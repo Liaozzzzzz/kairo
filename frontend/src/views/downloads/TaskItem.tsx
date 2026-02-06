@@ -126,7 +126,9 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
   const getStatusTagClass = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-50 text-green-600 border border-green-200';
+        return task.file_exists === false
+          ? 'bg-gray-100 text-gray-400 border border-gray-200' // Disabled/Missing
+          : 'bg-green-50 text-green-600 border border-green-200';
       case 'error':
         return 'bg-red-50 text-red-600 border border-red-200';
       case 'downloading':
@@ -150,7 +152,9 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
       <Card
         hoverable
         variant="borderless"
-        className="relative overflow-hidden"
+        className={`relative overflow-hidden ${
+          task.status === 'completed' && task.file_exists === false ? 'opacity-60 grayscale' : ''
+        }`}
         styles={{ body: { padding: '16px' } }}
       >
         <div className="flex items-center gap-4">
@@ -253,12 +257,23 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
                 className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
               />
             )}
-            {(task.status === 'completed' || task.status === 'error') && (
-              <FileTextOutlined
-                title={t('downloads.viewLogs')}
-                onClick={onViewLog}
-                className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
+            {task.status === 'completed' && task.file_exists === false ? (
+              <DeleteOutlined
+                title={t('downloads.contextMenu.delete')}
+                onClick={() => {
+                  DeleteTaskWails(task.id);
+                  deleteTask(task.id);
+                }}
+                className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-red-500 hover:bg-red-50"
               />
+            ) : (
+              (task.status === 'completed' || task.status === 'error') && (
+                <FileTextOutlined
+                  title={t('downloads.viewLogs')}
+                  onClick={onViewLog}
+                  className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
+                />
+              )
             )}
           </div>
         </div>

@@ -47,6 +47,7 @@ type DownloadTask struct {
 	CurrentItem int          `json:"current_item"`
 	TotalItems  int          `json:"total_items"`
 	LogPath     string       `json:"log_path"`
+	FileExists  bool         `json:"file_exists"`
 }
 
 type VideoInfo struct {
@@ -208,6 +209,22 @@ func (a *App) loadTasks() {
 	for _, t := range a.tasks {
 		if t.Status == "downloading" {
 			t.Status = "error"
+		}
+
+		// Check if file exists
+		if t.Status == "completed" {
+			t.FileExists = false
+			// Try direct path (if Title contains extension)
+			path := filepath.Join(t.Dir, t.Title)
+			if _, err := os.Stat(path); err == nil {
+				t.FileExists = true
+			} else if t.Format != "" {
+				// Try appending format (if Title doesn't contain extension)
+				pathWithExt := filepath.Join(t.Dir, fmt.Sprintf("%s.%s", t.Title, t.Format))
+				if _, err := os.Stat(pathWithExt); err == nil {
+					t.FileExists = true
+				}
+			}
 		}
 	}
 }
@@ -724,6 +741,7 @@ func (a *App) processTask(ctx context.Context, task *DownloadTask) {
 	} else {
 		task.Status = "completed"
 		task.Progress = 100
+		task.FileExists = true
 		for _, s := range task.Stages {
 			s.Status = "completed"
 			s.Progress = 100

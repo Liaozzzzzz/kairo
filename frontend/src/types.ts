@@ -20,4 +20,5 @@ export interface Task {
   speed?: string;
   eta?: string;
   log_path?: string;
+  file_exists?: boolean;
 }

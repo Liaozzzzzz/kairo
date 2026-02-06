@@ -33,6 +33,7 @@
       "title": "新建任务",
       "videoUrl": "视频地址",
       "quality": "画质",
+      "format": "转码格式",
       "bestQuality": "最佳画质",
       "saveTo": "保存位置",
       "chooseDir": "选择目录",

@@ -10,6 +10,7 @@ export interface Task {
   url: string;
   dir: string;
   quality: string;
+  format: string;
   status: string;
   progress: number;
   title: string;

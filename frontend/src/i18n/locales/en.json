@@ -33,6 +33,7 @@
       "title": "New Task",
       "videoUrl": "Video URL",
       "quality": "Quality",
+      "format": "Format",
       "bestQuality": "Best Quality",
       "saveTo": "Save to",
       "chooseDir": "Choose Directory",

@@ -35,6 +35,7 @@ type DownloadTask struct {
 	URL         string       `json:"url"`
 	Dir         string       `json:"dir"`
 	Quality     string       `json:"quality"` // "best", "1080p", "720p", "audio"
+	Format      string       `json:"format"`  // "webm", "mp4", "mkv", "avi", "flv", "mov"
 	Status      string       `json:"status"`  // "pending", "downloading", "completed", "error"
 	Progress    float64      `json:"progress"`
 	Title       string       `json:"title"`
@@ -337,7 +338,7 @@ func (a *App) GetVideoInfo(url string) (*VideoInfo, error) {
 }
 
 // AddTask creates a new download task and starts it
-func (a *App) AddTask(url string, quality string, dir string, title string, thumbnail string) (string, error) {
+func (a *App) AddTask(url string, quality string, format string, dir string, title string, thumbnail string) (string, error) {
 	if url == "" {
 		return "", errors.New("地址为空")
 	}
@@ -355,6 +356,7 @@ func (a *App) AddTask(url string, quality string, dir string, title string, thum
 		URL:       url,
 		Dir:       dir,
 		Quality:   quality,
+		Format:    format,
 		Status:    "pending",
 		Progress:  0,
 		Title:     title,
@@ -458,8 +460,13 @@ func (a *App) processTask(ctx context.Context, task *DownloadTask) {
 		"-P", task.Dir,
 		"-f", format,
 		"--playlist-items", "1",
-		task.URL,
 	}
+
+	if task.Format != "" {
+		args = append(args, "--merge-output-format", task.Format)
+	}
+
+	args = append(args, task.URL)
 
 	cmd := exec.CommandContext(ctx, a.binPath, args...)
 
@@ -1001,7 +1008,7 @@ func extractTarXz(src, dest, targetFile string) error {
 
 // Deprecated: StartDownload kept for compatibility if needed, but we should use AddTask
 func (a *App) StartDownload(url string, dir string) error {
-	_, err := a.AddTask(url, "best", dir, "", "")
+	_, err := a.AddTask(url, "best", "webm", dir, "", "")
 	return err
 }
 

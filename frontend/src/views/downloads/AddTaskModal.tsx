@@ -20,6 +20,7 @@ export function AddTaskModal({ isOpen, onClose, onSuccess }: AddTaskModalProps) 
   const [newUrl, setNewUrl] = useState('');
   const [newDir, setNewDir] = useState('');
   const [newQuality, setNewQuality] = useState('best');
+  const [newFormat, setNewFormat] = useState('webm');
   const [videoInfo, setVideoInfo] = useState<main.VideoInfo | null>(null);
   const [isFetchingInfo, setIsFetchingInfo] = useState(false);
 
@@ -37,6 +38,7 @@ export function AddTaskModal({ isOpen, onClose, onSuccess }: AddTaskModalProps) 
       const timer = setTimeout(() => {
         setNewUrl('');
         setNewQuality('best');
+        setNewFormat('webm');
         setVideoInfo(null);
         if (defaultDir) setNewDir(defaultDir);
       }, 300);
@@ -80,7 +82,14 @@ export function AddTaskModal({ isOpen, onClose, onSuccess }: AddTaskModalProps) 
   const handleAddTask = async () => {
     if (!newUrl || !newDir) return;
     try {
-      await AddTask(newUrl, newQuality, newDir, videoInfo?.title || '', videoInfo?.thumbnail || '');
+      await AddTask(
+        newUrl,
+        newQuality,
+        newFormat,
+        newDir,
+        videoInfo?.title || '',
+        videoInfo?.thumbnail || ''
+      );
       onSuccess?.();
       onClose();
     } catch (e) {
@@ -165,6 +174,22 @@ export function AddTaskModal({ isOpen, onClose, onSuccess }: AddTaskModalProps) 
               />
             </div>
             <div className="space-y-2">
+              <label className="text-sm font-medium">{t('downloads.modal.format')}</label>
+              <Select
+                value={newFormat}
+                onChange={setNewFormat}
+                style={{ width: '100%' }}
+                options={[
+                  { label: 'WEBM', value: 'webm' },
+                  { label: 'MP4', value: 'mp4' },
+                  { label: 'MKV', value: 'mkv' },
+                  { label: 'AVI', value: 'avi' },
+                  { label: 'FLV', value: 'flv' },
+                  { label: 'MOV', value: 'mov' },
+                ]}
+              />
+            </div>
+            <div className="space-y-2 col-span-2">
               <label className="text-sm font-medium">{t('downloads.modal.saveTo')}</label>
               <div className="flex gap-2">
                 <Space.Compact style={{ width: '100%' }}>

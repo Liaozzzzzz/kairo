@@ -1,0 +1,66 @@
+{
+  "app": {
+    "title": "YT 下载器",
+    "sidebar": {
+      "downloads": "下载",
+      "settings": "设置"
+    }
+  },
+  "settings": {
+    "title": "设置",
+    "language": "语言",
+    "save": "保存"
+  },
+  "downloads": {
+    "title": "下载",
+    "subtitle": "管理您的视频下载任务",
+    "newTask": "新建任务",
+    "noDownloads": "暂无下载任务",
+    "startDownloading": "点击“新建任务”开始下载",
+    "status": {
+      "completed": "已完成",
+      "error": "错误",
+      "downloading": "下载中",
+      "pending": "等待中",
+      "paused": "已暂停"
+    },
+    "stages": {
+      "video": "视频",
+      "audio": "音频",
+      "merge": "合并"
+    },
+    "modal": {
+      "title": "新建任务",
+      "videoUrl": "视频地址",
+      "quality": "画质",
+      "bestQuality": "最佳画质",
+      "saveTo": "保存位置",
+      "chooseDir": "选择目录",
+      "cancel": "取消",
+      "start": "开始下载",
+      "analyze": "解析",
+      "parseError": "解析失败: ",
+      "duration": "时长: "
+    },
+    "filters": {
+      "all": "全部",
+      "downloading": "下载中",
+      "completed": "已完成"
+    },
+    "contextMenu": {
+      "details": "任务详情",
+      "openLocation": "打开位置",
+      "copyLink": "复制链接",
+      "retry": "重试",
+      "delete": "删除"
+    },
+    "viewLogs": "查看日志",
+    "pause": "暂停",
+    "resume": "继续",
+    "eta": "剩余时间 ",
+    "logs": {
+      "title": "任务日志",
+      "close": "关闭"
+    }
+  }
+}

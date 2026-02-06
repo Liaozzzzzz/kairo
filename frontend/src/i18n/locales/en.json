@@ -1,0 +1,66 @@
+{
+  "app": {
+    "title": "YT Downloader",
+    "sidebar": {
+      "downloads": "Downloads",
+      "settings": "Settings"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "save": "Save"
+  },
+  "downloads": {
+    "title": "Downloads",
+    "subtitle": "Manage your video downloads",
+    "newTask": "New Task",
+    "noDownloads": "No downloads yet",
+    "startDownloading": "Click \"New Task\" to start downloading",
+    "status": {
+      "completed": "Completed",
+      "error": "Error",
+      "downloading": "Downloading",
+      "pending": "Pending",
+      "paused": "Paused"
+    },
+    "stages": {
+      "video": "Video",
+      "audio": "Audio",
+      "merge": "Merge"
+    },
+    "modal": {
+      "title": "New Task",
+      "videoUrl": "Video URL",
+      "quality": "Quality",
+      "bestQuality": "Best Quality",
+      "saveTo": "Save to",
+      "chooseDir": "Choose Directory",
+      "cancel": "Cancel",
+      "start": "Start Download",
+      "analyze": "Analyze",
+      "parseError": "Parse failed: ",
+      "duration": "Duration: "
+    },
+    "filters": {
+      "all": "All",
+      "downloading": "Downloading",
+      "completed": "Completed"
+    },
+    "contextMenu": {
+      "details": "Task Details",
+      "openLocation": "Open Location",
+      "copyLink": "Copy Link",
+      "retry": "Retry",
+      "delete": "Delete"
+    },
+    "viewLogs": "View Logs",
+    "pause": "Pause",
+    "resume": "Resume",
+    "eta": "ETA ",
+    "logs": {
+      "title": "Task Logs",
+      "close": "Close"
+    }
+  }
+}

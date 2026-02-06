@@ -98,7 +98,7 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
       icon: <LinkOutlined className="w-4 h-4 mt-[-2px]" />,
       onClick: () => navigator.clipboard.writeText(task.url),
     },
-    ...(task.status === 'error'
+    ...(task.status === 'error' || (task.status === 'completed' && !task.file_exists)
       ? [
           {
             key: 'retry',

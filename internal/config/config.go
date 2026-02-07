@@ -15,7 +15,7 @@ func GetAppConfigDir() (string, error) {
 		}
 		configDir = home
 	}
-	appDir := filepath.Join(configDir, "yt-downloader")
+	appDir := filepath.Join(configDir, "Kairo")
 	if err := os.MkdirAll(appDir, 0755); err != nil {
 		return "", err
 	}
@@ -39,7 +39,7 @@ func GetLogPath(id string) string {
 		}
 		configDir = home
 	}
-	logDir := filepath.Join(configDir, "yt-downloader", "logs")
+	logDir := filepath.Join(configDir, "Kairo", "logs")
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		return ""
 	}
@@ -60,7 +60,7 @@ func GetBinDir() (string, error) {
 		home, _ := os.UserHomeDir()
 		cfg = filepath.Join(home, ".config")
 	}
-	base := filepath.Join(cfg, "yt-downloader", "bin")
+	base := filepath.Join(cfg, "Kairo", "bin")
 	_ = os.MkdirAll(base, 0o755)
 	return base, nil
 }

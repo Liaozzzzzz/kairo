@@ -17,6 +17,8 @@ import { MenuItemKey } from './data/variables';
 const { Sider, Content } = Layout;
 
 function App() {
+  const [version, setVersion] = useState<string>('');
+
   const { t, i18n } = useTranslation();
 
   const { activeTab, menuItems, setActiveTab } = useAppStore(
@@ -31,11 +33,9 @@ function App() {
     return menuItems.map((tab) => ({
       key: tab.id,
       icon: <tab.icon style={{ fontSize: 16, marginTop: '-2px' }} />,
-      label: t(tab.labelKey),
+      label: <span className="text-sm font-bold">{t(tab.labelKey)}</span>,
     }));
   }, [menuItems, t]);
-
-  const [version, setVersion] = useState<string>('');
 
   const {
     defaultDir,
@@ -188,9 +188,9 @@ function App() {
           style={{ borderRight: '1px solid #e2e8f0', background: 'transparent' }}
         >
           <div className="flex flex-col h-full">
-            <div className="p-4 border-b border-gray-200 mb-2 flex flex-col items-center justify-center">
-              <img src={appIcon} alt="App Icon" className="w-16 h-16 mb-2 rounded-xl shadow-sm" />
-              <h1 className="font-bold text-xl">{t('app.title')}</h1>
+            <div className="p-4 border-b border-gray-300 mb-2 ml-4 flex items-center gap-3">
+              <img src={appIcon} alt="App Icon" className="w-8 h-8 shadow-sm" />
+              <h1 className="font-extrabold text-2xl mt-0.5 select-text">{t('app.title')}</h1>
             </div>
             <Menu
               mode="inline"
@@ -199,7 +199,9 @@ function App() {
               items={TABS}
               style={{ borderRight: 0, background: 'transparent', flex: 1 }}
             />
-            <div className="p-4 text-center text-xs text-gray-400">v{version}</div>
+            <div className="border-t border-gray-300 p-3 text-center text-xs text-gray-400">
+              v{version}
+            </div>
           </div>
         </Sider>
         <Content style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

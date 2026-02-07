@@ -9,7 +9,7 @@ export interface AppSettings {
   language: AppLanguage;
 }
 
-const SETTINGS_STORAGE_KEY = 'yt-downloader.settings';
+const SETTINGS_STORAGE_KEY = 'Kairo.settings';
 
 const DEFAULT_SETTINGS: AppSettings = {
   downloadDir: '',

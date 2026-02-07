@@ -6,10 +6,10 @@ import (
 	_ "embed"
 	"encoding/json"
 
-	"yt-downloader/internal/config"
-	"yt-downloader/internal/downloader"
-	"yt-downloader/internal/models"
-	"yt-downloader/internal/task"
+	"Kairo/internal/config"
+	"Kairo/internal/downloader"
+	"Kairo/internal/models"
+	"Kairo/internal/task"
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )

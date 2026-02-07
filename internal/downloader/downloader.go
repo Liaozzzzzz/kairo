@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"yt-downloader/internal/config"
-	"yt-downloader/internal/models"
-	"yt-downloader/internal/utils"
+	"Kairo/internal/config"
+	"Kairo/internal/models"
+	"Kairo/internal/utils"
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )

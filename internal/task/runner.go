@@ -12,8 +12,8 @@ import (
 	"strings"
 	"sync"
 
-	"yt-downloader/internal/models"
-	"yt-downloader/internal/utils"
+	"Kairo/internal/models"
+	"Kairo/internal/utils"
 )
 
 func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {

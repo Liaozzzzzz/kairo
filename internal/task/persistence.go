@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"yt-downloader/internal/config"
-	"yt-downloader/internal/models"
+	"Kairo/internal/config"
+	"Kairo/internal/models"
 )
 
 func (m *Manager) saveTasks() {

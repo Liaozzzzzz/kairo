@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"yt-downloader/internal/config"
-	"yt-downloader/internal/downloader"
-	"yt-downloader/internal/models"
-	"yt-downloader/internal/utils"
+	"Kairo/internal/config"
+	"Kairo/internal/downloader"
+	"Kairo/internal/models"
+	"Kairo/internal/utils"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )

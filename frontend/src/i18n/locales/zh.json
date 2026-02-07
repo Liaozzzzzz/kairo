@@ -65,7 +65,8 @@
       "openLocation": "打开位置",
       "copyLink": "复制链接",
       "retry": "重试",
-      "delete": "删除"
+      "delete": "删除",
+      "purge": "彻底删除"
     },
     "viewLogs": "查看日志",
     "pause": "暂停",

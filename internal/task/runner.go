@@ -167,12 +167,11 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 				currentPartBytes = 0
 				currentPartDownloaded = 0
 
-				// Update task filename with the final filename
-				task.Filename = filepath.Base(matches[1])
+				task.FilePath = matches[1]
 			}
 
 			if matches := mergerRegex.FindStringSubmatch(line); len(matches) > 1 {
-				task.Filename = filepath.Base(matches[1])
+				task.FilePath = matches[1]
 			}
 
 			if strings.HasPrefix(line, "[Merger]") && task.Status != models.TaskStatusMerging {

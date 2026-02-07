@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"yt-downloader/internal/config"
@@ -59,21 +58,9 @@ func (m *Manager) loadTasks() {
 		// Check if file exists
 		if t.Status == models.TaskStatusCompleted {
 			t.FileExists = false
-			if t.Filename != "" {
-				path := filepath.Join(t.Dir, t.Filename)
-				if _, err := os.Stat(path); err == nil {
+			if t.FilePath != "" {
+				if _, err := os.Stat(t.FilePath); err == nil {
 					t.FileExists = true
-				}
-			} else {
-				// Fallback for older tasks that don't have the Filename field
-				path := filepath.Join(t.Dir, t.Title)
-				if _, err := os.Stat(path); err == nil {
-					t.FileExists = true
-				} else if t.Format != "" {
-					pathWithExt := filepath.Join(t.Dir, fmt.Sprintf("%s.%s", t.Title, t.Format))
-					if _, err := os.Stat(pathWithExt); err == nil {
-						t.FileExists = true
-					}
 				}
 			}
 		}

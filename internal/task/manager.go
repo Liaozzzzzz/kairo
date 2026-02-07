@@ -94,7 +94,7 @@ func (m *Manager) AddTask(input models.AddTaskInput) (string, error) {
 	return id, nil
 }
 
-func (m *Manager) DeleteTask(id string) {
+func (m *Manager) DeleteTask(id string, deleteFile bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -104,8 +104,13 @@ func (m *Manager) DeleteTask(id string) {
 		delete(m.cancelFuncs, id)
 	}
 
-	// 2. Remove from tasks
-	delete(m.tasks, id)
+	// 2. Delete file if requested and remove from tasks
+	if task, ok := m.tasks[id]; ok {
+		if deleteFile && task.FilePath != "" {
+			go utils.DeleteFile(task.FilePath)
+		}
+		delete(m.tasks, id)
+	}
 
 	// 3. Save
 	m.saveTasksInternal()

@@ -18,7 +18,6 @@ type DownloadTask struct {
 	Dir         string     `json:"dir"`
 	Quality     string     `json:"quality"` // "best", "1080p", "720p", "audio"
 	Format      string     `json:"format"`  // "original", "webm", "mp4", "mkv", "avi", "flv", "mov"
-	Filename    string     `json:"filename"`
 	Status      TaskStatus `json:"status"`
 	Progress    float64    `json:"progress"`
 	Title       string     `json:"title"`
@@ -30,6 +29,7 @@ type DownloadTask struct {
 	TotalItems  int        `json:"total_items"`
 	LogPath     string     `json:"log_path"`
 	FileExists  bool       `json:"file_exists"`
+	FilePath    string     `json:"file_path"`
 	TotalBytes  int64      `json:"total_bytes"`
 }
 

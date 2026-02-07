@@ -174,3 +174,11 @@ func ExtractTarXz(src, dest, targetFile string) error {
 	}
 	return errors.New("ffmpeg binary not found in tar.xz")
 }
+
+func DeleteFile(filePath string) error {
+	err := os.Remove(filePath)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}

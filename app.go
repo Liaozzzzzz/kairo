@@ -88,8 +88,8 @@ func (a *App) GetTasks() map[string]*models.DownloadTask {
 	return a.taskManager.GetTasks()
 }
 
-func (a *App) DeleteTask(id string) {
-	a.taskManager.DeleteTask(id)
+func (a *App) DeleteTask(id string, deleteFile bool) {
+	a.taskManager.DeleteTask(id, deleteFile)
 }
 
 func (a *App) PauseTask(id string) {

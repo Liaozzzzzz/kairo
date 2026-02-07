@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Task } from '../types';
+import { DeleteTask as DeleteTaskWails } from '@root/wailsjs/go/main/App';
 
 interface TaskState {
   tasks: Record<string, Task>;
@@ -17,7 +18,7 @@ interface TaskState {
   }) => void;
   addTaskLog: (taskId: string, message: string, replace?: boolean) => void;
   setTaskLogs: (taskId: string, logs: string[]) => void;
-  deleteTask: (taskId: string) => void;
+  deleteTask: (taskId: string, purge?: boolean) => Promise<void>;
 }
 
 export const useTaskStore = create<TaskState>((set) => ({
@@ -98,10 +99,12 @@ export const useTaskStore = create<TaskState>((set) => ({
       },
     })),
 
-  deleteTask: (taskId) =>
+  deleteTask: async (taskId, purge = false) => {
+    await DeleteTaskWails(taskId, purge);
     set((state) => {
       const newTasks = { ...state.tasks };
       delete newTasks[taskId];
       return { tasks: newTasks };
-    }),
+    });
+  },
 }));

@@ -65,7 +65,8 @@
       "openLocation": "Open Location",
       "copyLink": "Copy Link",
       "retry": "Retry",
-      "delete": "Delete"
+      "delete": "Delete",
+      "purge": "Purge"
     },
     "viewLogs": "View Logs",
     "pause": "Pause",

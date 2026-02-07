@@ -10,17 +10,12 @@ import {
   LinkOutlined,
   ReloadOutlined,
   DeleteOutlined,
+  CloseOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { Task } from '@/types';
 import { TaskStatus } from '@/data/variables';
-import {
-  PauseTask,
-  ResumeTask,
-  OpenTaskDir,
-  RetryTask,
-  DeleteTask as DeleteTaskWails,
-} from '@root/wailsjs/go/main/App';
+import { PauseTask, ResumeTask, OpenTaskDir, RetryTask } from '@root/wailsjs/go/main/App';
 import { useTaskStore } from '@/store/useTaskStore';
 import { ImageFallback } from '@/data/variables';
 
@@ -120,11 +115,19 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
       label: t('tasks.contextMenu.delete'),
       icon: <DeleteOutlined className="w-4 h-4 mt-[-2px]" />,
       danger: true,
-      onClick: () => {
-        DeleteTaskWails(task.id);
-        deleteTask(task.id);
-      },
+      onClick: () => deleteTask(task.id, false),
     },
+    ...(task.status === TaskStatus.Completed
+      ? [
+          {
+            key: 'purge',
+            label: t('tasks.contextMenu.purge'),
+            icon: <CloseOutlined className="w-4 h-4 mt-[-2px]" />,
+            danger: true,
+            onClick: () => deleteTask(task.id, true),
+          },
+        ]
+      : []),
   ];
 
   const getStatusTagClass = (status: string) => {
@@ -269,10 +272,7 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
                 {task.status === TaskStatus.Completed && task.file_exists === false && (
                   <DeleteOutlined
                     title={t('tasks.contextMenu.delete')}
-                    onClick={() => {
-                      DeleteTaskWails(task.id);
-                      deleteTask(task.id);
-                    }}
+                    onClick={() => deleteTask(task.id)}
                     className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-red-500 hover:bg-red-50"
                   />
                 )}

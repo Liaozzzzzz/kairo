@@ -70,7 +70,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		"--playlist-items", "1",
 	}
 
-	if task.Format != "" {
+	if task.Format != "original" {
 		args = append(args, "--merge-output-format", task.Format)
 	}
 

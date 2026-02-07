@@ -17,7 +17,7 @@ type DownloadTask struct {
 	URL         string     `json:"url"`
 	Dir         string     `json:"dir"`
 	Quality     string     `json:"quality"` // "best", "1080p", "720p", "audio"
-	Format      string     `json:"format"`  // "webm", "mp4", "mkv", "avi", "flv", "mov"
+	Format      string     `json:"format"`  // "original", "webm", "mp4", "mkv", "avi", "flv", "mov"
 	Status      TaskStatus `json:"status"`
 	Progress    float64    `json:"progress"`
 	Title       string     `json:"title"`

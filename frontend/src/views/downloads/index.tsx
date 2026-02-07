@@ -25,7 +25,7 @@ export default function Downloads({ onAdded }: DownloadsProps) {
   const [newUrl, setNewUrl] = useState('');
   const [newDir, setNewDir] = useState('');
   const [newQuality, setNewQuality] = useState('best');
-  const [newFormat, setNewFormat] = useState('webm');
+  const [newFormat, setNewFormat] = useState('original');
   const [videoInfo, setVideoInfo] = useState<models.VideoInfo | null>(null);
   const [isFetchingInfo, setIsFetchingInfo] = useState(false);
 
@@ -87,7 +87,7 @@ export default function Downloads({ onAdded }: DownloadsProps) {
       // Reset form
       setNewUrl('');
       setNewQuality('best');
-      setNewFormat('webm');
+      setNewFormat('original');
       setVideoInfo(null);
       if (defaultDir) setNewDir(defaultDir);
 
@@ -191,6 +191,8 @@ export default function Downloads({ onAdded }: DownloadsProps) {
                   style={{ width: '100%' }}
                   size="large"
                   options={[
+                    // 不转码
+                    { label: 'ORIGINAL', value: 'original' },
                     { label: 'WEBM', value: 'webm' },
                     { label: 'MP4', value: 'mp4' },
                     { label: 'MKV', value: 'mkv' },

@@ -3,6 +3,7 @@
     "title": "YT Downloader",
     "sidebar": {
       "downloads": "Downloads",
+      "tasks": "Tasks",
       "settings": "Settings"
     }
   },
@@ -30,7 +31,7 @@
       "merge": "Merge"
     },
     "modal": {
-      "title": "New Task",
+      "title": "Downloads",
       "videoUrl": "Video URL",
       "quality": "Quality",
       "format": "Format",

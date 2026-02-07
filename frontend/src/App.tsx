@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
-import { DownloadOutlined, SettingOutlined } from '@ant-design/icons';
+import { DownloadOutlined, SettingOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import { ConfigProvider, Layout, Menu } from 'antd';
 import { GetAppVersion, GetDefaultDownloadDir, GetTasks } from '@root/wailsjs/go/main/App';
 import { EventsOn, WindowSetTitle } from '@root/wailsjs/runtime/runtime';
 import { useAppStore } from '@/store/useAppStore';
 import { Task, TaskStage } from '@/types';
+import Tasks from '@/views/tasks';
 import Downloads from '@/views/downloads';
 import Settings from '@/views/settings';
 import appIcon from '@/assets/images/icon-full.png';
@@ -18,6 +19,11 @@ const TABS_CONFIG = [
     id: 'downloads',
     icon: DownloadOutlined,
     labelKey: 'app.sidebar.downloads',
+  },
+  {
+    id: 'tasks',
+    icon: UnorderedListOutlined,
+    labelKey: 'app.sidebar.tasks',
   },
   { id: 'settings', icon: SettingOutlined, labelKey: 'app.sidebar.settings' },
 ] as const;
@@ -136,8 +142,8 @@ function App() {
       <Layout style={{ height: '100vh', overflow: 'hidden' }}>
         <Sider width={200} theme="light" style={{ borderRight: '1px solid #e2e8f0' }}>
           <div className="flex flex-col h-full">
-            <div className="p-6 border-b border-gray-200 mb-2 flex flex-col items-center justify-center">
-              <img src={appIcon} alt="App Icon" className="w-20 h-20 mb-4 rounded-xl shadow-sm" />
+            <div className="p-4 border-b border-gray-200 mb-2 flex flex-col items-center justify-center">
+              <img src={appIcon} alt="App Icon" className="w-16 h-16 mb-2 rounded-xl shadow-sm" />
               <h1 className="font-bold text-xl">{t('app.title')}</h1>
             </div>
             <Menu
@@ -158,7 +164,8 @@ function App() {
             background: '#fff',
           }}
         >
-          {activeTab === 'downloads' && <Downloads />}
+          {activeTab === 'downloads' && <Downloads onAdded={() => setActiveTab('tasks')} />}
+          {activeTab === 'tasks' && <Tasks />}
           {activeTab === 'settings' && <Settings />}
         </Content>
       </Layout>

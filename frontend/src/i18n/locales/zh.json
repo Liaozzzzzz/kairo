@@ -3,6 +3,7 @@
     "title": "YT 下载器",
     "sidebar": {
       "downloads": "下载",
+      "tasks": "任务列表",
       "settings": "设置"
     }
   },
@@ -30,7 +31,7 @@
       "merge": "合并"
     },
     "modal": {
-      "title": "新建任务",
+      "title": "下载",
       "videoUrl": "视频地址",
       "quality": "画质",
       "format": "转码格式",

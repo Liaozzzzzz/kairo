@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Select, Card, Typography } from 'antd';
-
-const { Title } = Typography;
+import { Button, Select, Card } from 'antd';
+import PageContainer from '@/components/PageContainer';
+import PageHeader from '@/components/PageHeader';
 
 const Settings = () => {
   const { t, i18n } = useTranslation();
@@ -18,32 +18,31 @@ const Settings = () => {
   };
 
   return (
-    <div className="h-full w-full bg-background text-foreground overflow-hiddenmax-w-5xl py-10 px-10">
-      <Title level={2} style={{ marginBottom: 24 }}>
-        {t('settings.title')}
-      </Title>
-      <Card variant="borderless" className="shadow-sm">
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">{t('settings.language')}</label>
-            <Select
-              value={lang}
-              onChange={setLang}
-              style={{ width: '100%' }}
-              options={[
-                { value: 'zh', label: '中文' },
-                { value: 'en', label: 'English' },
-              ]}
-            />
+    <PageContainer className="px-10" header={<PageHeader title={t('settings.title')} />}>
+      <div className="pb-10">
+        <Card variant="borderless" className="shadow-sm">
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{t('settings.language')}</label>
+              <Select
+                value={lang}
+                onChange={setLang}
+                style={{ width: '100%' }}
+                options={[
+                  { value: 'zh', label: '中文' },
+                  { value: 'en', label: 'English' },
+                ]}
+              />
+            </div>
+            <div className="flex justify-end">
+              <Button type="primary" onClick={handleSave}>
+                {t('settings.save')}
+              </Button>
+            </div>
           </div>
-          <div className="flex justify-end">
-            <Button type="primary" onClick={handleSave}>
-              {t('settings.save')}
-            </Button>
-          </div>
-        </div>
-      </Card>
-    </div>
+        </Card>
+      </div>
+    </PageContainer>
   );
 };
 

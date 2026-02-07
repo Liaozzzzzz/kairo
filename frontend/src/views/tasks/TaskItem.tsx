@@ -276,7 +276,7 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
                     className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-red-500 hover:bg-red-50"
                   />
                 )}
-                {(task.status === TaskStatus.Completed ||
+                {((task.status === TaskStatus.Completed && task.file_exists === true) ||
                   task.status === TaskStatus.Error ||
                   task.status === TaskStatus.Merging) && (
                   <FileTextOutlined

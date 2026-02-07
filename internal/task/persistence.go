@@ -59,15 +59,21 @@ func (m *Manager) loadTasks() {
 		// Check if file exists
 		if t.Status == models.TaskStatusCompleted {
 			t.FileExists = false
-			// Try direct path (if Title contains extension)
-			path := filepath.Join(t.Dir, t.Title)
-			if _, err := os.Stat(path); err == nil {
-				t.FileExists = true
-			} else if t.Format != "" {
-				// Try appending format (if Title doesn't contain extension)
-				pathWithExt := filepath.Join(t.Dir, fmt.Sprintf("%s.%s", t.Title, t.Format))
-				if _, err := os.Stat(pathWithExt); err == nil {
+			if t.Filename != "" {
+				path := filepath.Join(t.Dir, t.Filename)
+				if _, err := os.Stat(path); err == nil {
 					t.FileExists = true
+				}
+			} else {
+				// Fallback for older tasks that don't have the Filename field
+				path := filepath.Join(t.Dir, t.Title)
+				if _, err := os.Stat(path); err == nil {
+					t.FileExists = true
+				} else if t.Format != "" {
+					pathWithExt := filepath.Join(t.Dir, fmt.Sprintf("%s.%s", t.Title, t.Format))
+					if _, err := os.Stat(pathWithExt); err == nil {
+						t.FileExists = true
+					}
 				}
 			}
 		}

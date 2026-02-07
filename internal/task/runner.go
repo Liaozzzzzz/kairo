@@ -111,6 +111,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 	progressRegex := regexp.MustCompile(`\[download\]\s+(\d+\.?\d*)%\s+of\s+([~\d\.\w]+)(?:\s+at\s+([~\d\.\w/]+)\s+ETA\s+([\d:]+))?`)
 	destinationRegex := regexp.MustCompile(`\[download\] Destination: (.+)`)
 	alreadyDownloadedRegex := regexp.MustCompile(`\[download\] (.+) has already been downloaded`)
+	mergerRegex := regexp.MustCompile(`\[Merger\] Merging formats into "(.+)"`)
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -156,7 +157,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 			}
 
 			// Parse Destination (new part starting)
-			if destinationRegex.MatchString(line) {
+			if matches := destinationRegex.FindStringSubmatch(line); len(matches) > 1 {
 				// If we were downloading a part, assume it finished?
 				// No, destination is printed at START of download.
 				// So if we had a previous part, add its size to completed.
@@ -165,6 +166,13 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 				}
 				currentPartBytes = 0
 				currentPartDownloaded = 0
+
+				// Update task filename with the final filename
+				task.Filename = filepath.Base(matches[1])
+			}
+
+			if matches := mergerRegex.FindStringSubmatch(line); len(matches) > 1 {
+				task.Filename = filepath.Base(matches[1])
 			}
 
 			if strings.HasPrefix(line, "[Merger]") && task.Status != models.TaskStatusMerging {

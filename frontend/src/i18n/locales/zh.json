@@ -30,6 +30,7 @@
     "modal": {
       "title": "下载",
       "videoUrl": "视频地址",
+      "supportedSites": "支持网站",
       "quality": "画质",
       "format": "转码格式",
       "bestQuality": "最佳画质",

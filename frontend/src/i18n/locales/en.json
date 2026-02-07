@@ -30,6 +30,7 @@
     "modal": {
       "title": "Downloads",
       "videoUrl": "Video URL",
+      "supportedSites": "Supported sites",
       "quality": "Quality",
       "format": "Format",
       "bestQuality": "Best Quality",

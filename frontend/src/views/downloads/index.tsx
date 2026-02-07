@@ -8,6 +8,8 @@ import { models } from '@root/wailsjs/go/models';
 import { useAppStore } from '@/store/useAppStore';
 import PageContainer from '@/components/PageContainer';
 import PageHeader from '@/components/PageHeader';
+import bilibiliIcon from '@/assets/images/bilibili.png';
+import youtubeIcon from '@/assets/images/Youtube.png';
 
 interface DownloadsProps {
   onAdded?: () => void;
@@ -98,7 +100,19 @@ export default function Downloads({ onAdded }: DownloadsProps) {
     <PageContainer
       viewClass="px-10"
       header={
-        <PageHeader title={t('downloads.modal.title')} subtitle={t('downloads.startDownloading')} />
+        <div className="flex items-end justify-between">
+          <PageHeader
+            title={t('downloads.modal.title')}
+            subtitle={t('downloads.startDownloading')}
+          />
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium">{t('downloads.modal.supportedSites')}</span>
+            <div className="flex items-center gap-3">
+              <img src={bilibiliIcon} alt="Bilibili" title="Bilibili" className="w-6 h-6" />
+              <img src={youtubeIcon} alt="YouTube" title="YouTube" className="w-14 h-6" />
+            </div>
+          </div>
+        </div>
       }
     >
       {contextHolder}

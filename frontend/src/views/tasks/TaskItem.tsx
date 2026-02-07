@@ -1,4 +1,5 @@
-import { Card, Progress, Dropdown, MenuProps, Image } from 'antd';
+import { useMemo } from 'react';
+import { Card, Progress, Dropdown, MenuProps, Image, Badge } from 'antd';
 import {
   PlayCircleOutlined,
   PauseCircleOutlined,
@@ -31,6 +32,13 @@ interface TaskItemProps {
 export function TaskItem({ task, onViewLog }: TaskItemProps) {
   const { t } = useTranslation();
   const deleteTask = useAppStore((state) => state.deleteTask);
+
+  const siteLabel = useMemo(() => {
+    const match = task.url.match(/https?:\/\/(?:www\.)?([a-z0-9-]+)\./i);
+    const rawLabel = match?.[1];
+    if (!rawLabel) return '';
+    return `${rawLabel[0].toUpperCase()}${rawLabel.slice(1)}`;
+  }, [task.url]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -149,135 +157,139 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
 
   return (
     <Dropdown menu={{ items: menuItems }} trigger={['contextMenu']}>
-      <Card
-        hoverable
-        variant="borderless"
-        className={`relative overflow-hidden ${
-          task.status === TaskStatus.Completed && task.file_exists === false
-            ? 'opacity-60 grayscale'
-            : ''
-        }`}
-        styles={{ body: { padding: '16px' } }}
-      >
-        <div className="flex items-center gap-4">
-          {/* Thumbnail Column */}
-          <div className="flex-shrink-0 w-24 h-16 bg-gray-100 rounded-md overflow-hidden relative border border-gray-100">
-            {task.thumbnail ? (
-              <Image
-                src={task.thumbnail}
-                className="w-full h-full object-cover"
-                alt=""
-                width="100%"
-                height="100%"
-                fallback={ImageFallback}
-              />
-            ) : (
-              <div className="flex items-center justify-center w-full h-full text-gray-300">
-                <PlayCircleOutlined className="w-4 h-4" />
-              </div>
-            )}
-            <div className="flex items-center justify-center absolute w-6 h-6 -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-gray-100 scale-75 z-10">
-              {getStatusIcon(task.status)}
-            </div>
-          </div>
-
-          {/* Main Info */}
-          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-            <div className="flex items-center justify-between gap-4 min-w-0">
-              <div
-                className="flex-1 min-w-0 font-semibold text-[15px] truncate text-gray-900"
-                title={task.title || task.url}
-              >
-                {task.title || task.url}
-              </div>
-              <div
-                className={`shrink-0 text-[11px] font-medium px-2.5 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap ${getStatusTagClass(
-                  task.status
-                )}`}
-              >
-                {getStatusText(task.status)}
-              </div>
-            </div>
-
-            <Progress
-              percent={displayProgress}
-              showInfo={false}
-              size="small"
-              strokeColor={getProgressColor()}
-              railColor="#f3f4f6" // gray-100
-              className="m-0"
-            />
-            <div className="flex justify-between text-[11px] font-medium text-gray-400 items-center">
-              <div className="flex items-center gap-2">
-                <span>{displayProgress.toFixed(1)}%</span>
-                {displaySize && displaySize !== '~' && (
-                  <>
-                    <span className="text-gray-300">•</span>
-                    <span>{displaySize}</span>
-                  </>
+      <div>
+        <Badge.Ribbon text={siteLabel} color="cyan">
+          <Card
+            hoverable
+            variant="borderless"
+            className={`${
+              task.status === TaskStatus.Completed && task.file_exists === false
+                ? 'opacity-60 grayscale'
+                : ''
+            }`}
+            styles={{ body: { padding: '16px' } }}
+          >
+            <div className="flex items-center gap-4">
+              {/* Thumbnail Column */}
+              <div className="flex-shrink-0 w-24 h-16 bg-gray-100 rounded-md overflow-hidden relative border border-gray-100">
+                {task.thumbnail ? (
+                  <Image
+                    src={task.thumbnail}
+                    className="w-full h-full object-cover"
+                    alt=""
+                    width="100%"
+                    height="100%"
+                    fallback={ImageFallback}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center w-full h-full text-gray-300">
+                    <PlayCircleOutlined className="w-4 h-4" />
+                  </div>
                 )}
+                <div className="flex items-center justify-center absolute w-6 h-6 -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-gray-100 scale-75 z-10">
+                  {getStatusIcon(task.status)}
+                </div>
+              </div>
+
+              {/* Main Info */}
+              <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                <div className="flex items-center justify-between gap-4 min-w-0">
+                  <div
+                    className="flex-1 min-w-0 font-semibold text-[15px] truncate text-gray-900"
+                    title={task.title || task.url}
+                  >
+                    {task.title || task.url}
+                  </div>
+                  <div
+                    className={`shrink-0 text-[11px] font-medium px-2.5 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap ${getStatusTagClass(
+                      task.status
+                    )}`}
+                  >
+                    {getStatusText(task.status)}
+                  </div>
+                </div>
+
+                <Progress
+                  percent={displayProgress}
+                  showInfo={false}
+                  size="small"
+                  strokeColor={getProgressColor()}
+                  railColor="#f3f4f6" // gray-100
+                  className="m-0"
+                />
+                <div className="flex justify-between text-[11px] font-medium text-gray-400 items-center">
+                  <div className="flex items-center gap-2">
+                    <span>{displayProgress.toFixed(1)}%</span>
+                    {displaySize && displaySize !== '~' && (
+                      <>
+                        <span className="text-gray-300">•</span>
+                        <span>{displaySize}</span>
+                      </>
+                    )}
+                    {isActive && (
+                      <>
+                        {task.speed && task.speed !== '~' && (
+                          <>
+                            <span className="text-gray-300">•</span>
+                            <span>{task.speed}</span>
+                          </>
+                        )}
+                        {task.eta && task.eta !== '~' && (
+                          <>
+                            <span className="text-gray-300">•</span>
+                            <span>
+                              {t('tasks.eta')}
+                              {task.eta}
+                            </span>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  <span className="uppercase">{task.quality}</span>
+                </div>
+              </div>
+
+              {/* Action */}
+              <div className="shrink-0">
                 {isActive && (
-                  <>
-                    {task.speed && task.speed !== '~' && (
-                      <>
-                        <span className="text-gray-300">•</span>
-                        <span>{task.speed}</span>
-                      </>
-                    )}
-                    {task.eta && task.eta !== '~' && (
-                      <>
-                        <span className="text-gray-300">•</span>
-                        <span>
-                          {t('tasks.eta')}
-                          {task.eta}
-                        </span>
-                      </>
-                    )}
-                  </>
+                  <PauseCircleOutlined
+                    title={t('tasks.pause')}
+                    onClick={() => PauseTask(task.id)}
+                    className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
+                  />
+                )}
+                {task.status === TaskStatus.Paused && (
+                  <PlayCircleOutlined
+                    title={t('tasks.resume')}
+                    onClick={() => ResumeTask(task.id)}
+                    className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
+                  />
+                )}
+                {task.status === TaskStatus.Completed && task.file_exists === false && (
+                  <DeleteOutlined
+                    title={t('tasks.contextMenu.delete')}
+                    onClick={() => {
+                      DeleteTaskWails(task.id);
+                      deleteTask(task.id);
+                    }}
+                    className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-red-500 hover:bg-red-50"
+                  />
+                )}
+                {(task.status === TaskStatus.Completed ||
+                  task.status === TaskStatus.Error ||
+                  task.status === TaskStatus.Merging) && (
+                  <FileTextOutlined
+                    title={t('tasks.viewLogs')}
+                    onClick={onViewLog}
+                    className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
+                  />
                 )}
               </div>
-              <span className="uppercase">{task.quality}</span>
             </div>
-          </div>
-
-          {/* Action */}
-          <div className="shrink-0">
-            {isActive && (
-              <PauseCircleOutlined
-                title={t('tasks.pause')}
-                onClick={() => PauseTask(task.id)}
-                className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
-              />
-            )}
-            {task.status === TaskStatus.Paused && (
-              <PlayCircleOutlined
-                title={t('tasks.resume')}
-                onClick={() => ResumeTask(task.id)}
-                className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
-              />
-            )}
-            {task.status === TaskStatus.Completed && task.file_exists === false && (
-              <DeleteOutlined
-                title={t('tasks.contextMenu.delete')}
-                onClick={() => {
-                  DeleteTaskWails(task.id);
-                  deleteTask(task.id);
-                }}
-                className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-red-500 hover:bg-red-50"
-              />
-            )}
-            {(task.status === TaskStatus.Completed ||
-              task.status === TaskStatus.Error ||
-              task.status === TaskStatus.Merging) && (
-              <FileTextOutlined
-                title={t('tasks.viewLogs')}
-                onClick={onViewLog}
-                className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
-              />
-            )}
-          </div>
-        </div>
-      </Card>
+          </Card>
+        </Badge.Ribbon>
+      </div>
     </Dropdown>
   );
 }

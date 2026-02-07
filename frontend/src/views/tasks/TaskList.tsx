@@ -49,11 +49,9 @@ export function TaskList({ onViewLog, filter }: TaskListProps) {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3">
-        {taskList.map((task) => (
-          <TaskItem key={task.id} task={task} onViewLog={() => onViewLog(task.id)} />
-        ))}
-      </div>
+      {taskList.map((task) => (
+        <TaskItem key={task.id} task={task} onViewLog={() => onViewLog(task.id)} />
+      ))}
     </div>
   );
 }

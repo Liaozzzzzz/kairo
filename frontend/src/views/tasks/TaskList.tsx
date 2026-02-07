@@ -1,9 +1,11 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button } from 'antd';
 import { useTaskStore } from '@/store/useTaskStore';
 import { PlusOutlined } from '@ant-design/icons';
-import { TaskStatus } from '@/data/variables';
+import { MenuItemKey, TaskStatus } from '@/data/variables';
 import { TaskItem } from './TaskItem';
+import { useAppStore } from '@/store/useAppStore';
 
 interface TaskListProps {
   onViewLog: (taskId: string) => void;
@@ -13,6 +15,7 @@ interface TaskListProps {
 export function TaskList({ onViewLog, filter }: TaskListProps) {
   const { t } = useTranslation();
   const tasks = useTaskStore((state) => state.tasks);
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
 
   const taskList = useMemo(() => {
     return Object.values(tasks)
@@ -37,13 +40,19 @@ export function TaskList({ onViewLog, filter }: TaskListProps) {
 
   if (taskList.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 rounded-2xl border-2 border-dashed border-black/5 bg-card/50 text-muted-foreground">
+      <button className="w-full flex flex-col items-center justify-center py-20 rounded-2xl border-2 border-dashed border-black/5 bg-card/50 text-muted-foreground">
         <div className="flex items-center justify-center w-12 h-12 rounded-full bg-black/5 mb-4 text-black/40">
-          <PlusOutlined className="w-6 h-6" />
+          <PlusOutlined className="text-3xl" />
         </div>
         <div className="text-[15px] font-medium text-black/60">{t('tasks.noDownloads')}</div>
-        <div className="text-[13px] text-black/40 mt-1">{t('tasks.startDownloading')}</div>
-      </div>
+        <div className="flex items-center justify-center gap-1 text-[13px] text-black/40 mt-1">
+          <span>{t('tasks.startDownloadingPrefix')}</span>
+          <Button className="px-0" type="link" onClick={() => setActiveTab(MenuItemKey.Downloads)}>
+            {t('tasks.startDownloading')}
+          </Button>
+          <span>{t('tasks.startDownloadingSuffix')}</span>
+        </div>
+      </button>
     );
   }
 

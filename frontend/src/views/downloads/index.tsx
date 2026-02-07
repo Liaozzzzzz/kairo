@@ -6,21 +6,19 @@ import { FolderOutlined, DownloadOutlined } from '@ant-design/icons';
 import { GetVideoInfo, AddTask as AddTaskGo, ChooseDirectory } from '@root/wailsjs/go/main/App';
 import { models } from '@root/wailsjs/go/models';
 import { useSettingStore } from '@/store/useSettingStore';
+import { useAppStore } from '@/store/useAppStore';
 import PageContainer from '@/components/PageContainer';
 import PageHeader from '@/components/PageHeader';
 import bilibiliIcon from '@/assets/images/bilibili.png';
 import youtubeIcon from '@/assets/images/Youtube.png';
-import { ImageFallback } from '@/data/variables';
+import { ImageFallback, MenuItemKey } from '@/data/variables';
 
-interface DownloadsProps {
-  onAdded?: () => void;
-}
-
-export default function Downloads({ onAdded }: DownloadsProps) {
+export default function Downloads() {
   const { t } = useTranslation();
   const [api, contextHolder] = notification.useNotification();
 
   const defaultDir = useSettingStore(useShallow((state) => state.defaultDir));
+  const setActiveTab = useAppStore(useShallow((state) => state.setActiveTab));
 
   const [newUrl, setNewUrl] = useState('');
   const [newDir, setNewDir] = useState('');
@@ -91,7 +89,7 @@ export default function Downloads({ onAdded }: DownloadsProps) {
       setVideoInfo(null);
       if (defaultDir) setNewDir(defaultDir);
 
-      onAdded?.();
+      setActiveTab(MenuItemKey.Tasks);
     } catch (e) {
       console.error(e);
     }

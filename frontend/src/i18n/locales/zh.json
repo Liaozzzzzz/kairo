@@ -50,7 +50,9 @@
       "completed": "已完成"
     },
     "noDownloads": "暂无下载任务",
-    "startDownloading": "点击“新建任务”开始下载",
+    "startDownloadingPrefix":  "点击",
+    "startDownloading": "新建任务",
+    "startDownloadingSuffix": "开始下载",
     "status": {
       "completed": "已完成",
       "error": "失败",

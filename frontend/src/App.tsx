@@ -1,44 +1,40 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
-import { DownloadOutlined, SettingOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import { ConfigProvider, Layout, Menu } from 'antd';
 import { GetAppVersion, GetDefaultDownloadDir, GetTasks } from '@root/wailsjs/go/main/App';
 import { EventsOn, WindowSetTitle } from '@root/wailsjs/runtime/runtime';
 import { useSettingStore } from '@/store/useSettingStore';
 import { useTaskStore } from '@/store/useTaskStore';
+import { useAppStore } from '@/store/useAppStore';
 import { Task } from '@/types';
 import Tasks from '@/views/tasks';
 import Downloads from '@/views/downloads';
 import Settings from '@/views/settings';
 import appIcon from '@/assets/images/icon-full.png';
+import { MenuItemKey } from './data/variables';
 
 const { Sider, Content } = Layout;
-
-const TABS_CONFIG = [
-  {
-    id: 'downloads',
-    icon: DownloadOutlined,
-    labelKey: 'app.sidebar.downloads',
-  },
-  {
-    id: 'tasks',
-    icon: UnorderedListOutlined,
-    labelKey: 'app.sidebar.tasks',
-  },
-  { id: 'settings', icon: SettingOutlined, labelKey: 'app.sidebar.settings' },
-] as const;
 
 function App() {
   const { t, i18n } = useTranslation();
 
-  const TABS = TABS_CONFIG.map((tab) => ({
-    key: tab.id,
-    icon: <tab.icon style={{ fontSize: 16, marginTop: '-2px' }} />,
-    label: t(tab.labelKey),
-  }));
+  const { activeTab, menuItems, setActiveTab } = useAppStore(
+    useShallow((state) => ({
+      activeTab: state.activeTab,
+      menuItems: state.menuItems,
+      setActiveTab: state.setActiveTab,
+    }))
+  );
 
-  const [activeTab, setActiveTab] = useState<(typeof TABS_CONFIG)[number]['id']>('downloads');
+  const TABS = useMemo(() => {
+    return menuItems.map((tab) => ({
+      key: tab.id,
+      icon: <tab.icon style={{ fontSize: 16, marginTop: '-2px' }} />,
+      label: t(tab.labelKey),
+    }));
+  }, [menuItems, t]);
+
   const [version, setVersion] = useState<string>('');
 
   const {
@@ -199,7 +195,7 @@ function App() {
             <Menu
               mode="inline"
               selectedKeys={[activeTab]}
-              onClick={({ key }) => setActiveTab(key as (typeof TABS_CONFIG)[number]['id'])}
+              onClick={({ key }) => setActiveTab(key as MenuItemKey)}
               items={TABS}
               style={{ borderRight: 0, background: 'transparent', flex: 1 }}
             />
@@ -207,7 +203,7 @@ function App() {
           </div>
         </Sider>
         <Content style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {activeTab === 'downloads' && <Downloads onAdded={() => setActiveTab('tasks')} />}
+          {activeTab === 'downloads' && <Downloads />}
           {activeTab === 'tasks' && <Tasks />}
           {activeTab === 'settings' && <Settings />}
         </Content>

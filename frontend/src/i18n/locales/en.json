@@ -50,7 +50,9 @@
       "completed": "Completed"
     },
     "noDownloads": "No tasks yet",
-    "startDownloading": "Click \"New Task\" to start downloading",
+    "startDownloadingPrefix":  "Click",
+    "startDownloading": "New Task",
+    "startDownloadingSuffix": "to start downloading",
     "status": {
       "completed": "Completed",
       "error": "Failed",

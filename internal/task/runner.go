@@ -44,6 +44,10 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 	// Build args based on quality
 	format := "bestvideo+bestaudio/best"
 	switch task.Quality {
+	case "4k":
+		format = "bestvideo[height<=2160]+bestaudio/best[height<=2160]"
+	case "2k":
+		format = "bestvideo[height<=1440]+bestaudio/best[height<=1440]"
 	case "1080p":
 		format = "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
 	case "720p":

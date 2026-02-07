@@ -1,9 +1,4 @@
-export interface TaskStage {
-  name: string;
-  status: string;
-  progress: number;
-  total_size?: string;
-}
+import { TaskStatus } from '@/data/variables';
 
 export interface Task {
   id: string;
@@ -11,12 +6,12 @@ export interface Task {
   dir: string;
   quality: string;
   format: string;
-  status: string;
+  status: TaskStatus;
   progress: number;
   title: string;
   thumbnail: string;
-  stages?: TaskStage[];
   total_size?: string;
+  total_bytes?: number;
   speed?: string;
   eta?: string;
   log_path?: string;

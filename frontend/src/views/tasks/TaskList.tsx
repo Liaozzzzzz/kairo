@@ -3,6 +3,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { TaskItem } from './TaskItem';
 import { PlusOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
+import { TaskStatus } from '@/data/variables';
 
 interface TaskListProps {
   onViewLog: (taskId: string) => void;
@@ -17,10 +18,17 @@ export function TaskList({ onViewLog, filter }: TaskListProps) {
     return Object.values(tasks)
       .filter((task) => {
         if (filter === 'downloading') {
-          return ['downloading', 'paused', 'error', 'pending'].includes(task.status);
+          return (
+            task.status === TaskStatus.Pending ||
+            task.status === TaskStatus.Starting ||
+            task.status === TaskStatus.Downloading ||
+            task.status === TaskStatus.Merging ||
+            task.status === TaskStatus.Paused ||
+            task.status === TaskStatus.Error
+          );
         }
         if (filter === 'completed') {
-          return task.status === 'completed';
+          return task.status === TaskStatus.Completed;
         }
         return true;
       })

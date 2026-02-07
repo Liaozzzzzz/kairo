@@ -12,6 +12,7 @@ import {
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { Task } from '@/types';
+import { TaskStatus } from '@/data/variables';
 import {
   PauseTask,
   ResumeTask,
@@ -32,15 +33,17 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed':
+      case TaskStatus.Completed:
         return <CheckCircleOutlined className="w-4 h-4 text-green-500" />;
-      case 'error':
+      case TaskStatus.Error:
         return <CloseCircleOutlined className="w-4 h-4 text-red-500" />;
-      case 'downloading':
+      case TaskStatus.Starting:
+      case TaskStatus.Merging:
+      case TaskStatus.Downloading:
         return (
           <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
         );
-      case 'paused':
+      case TaskStatus.Paused:
         return <PauseCircleOutlined className="w-4 h-4 text-yellow-500" />;
       default:
         return <PlayCircleOutlined className="w-4 h-4" />;
@@ -49,35 +52,27 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'completed':
+      case TaskStatus.Completed:
         return t('downloads.status.completed');
-      case 'error':
+      case TaskStatus.Error:
         return t('downloads.status.error');
-      case 'downloading':
+      case TaskStatus.Starting:
+        return t('downloads.status.starting');
+      case TaskStatus.Downloading:
         return t('downloads.status.downloading');
-      case 'pending':
+      case TaskStatus.Merging:
+        return t('downloads.status.merging');
+      case TaskStatus.Pending:
         return t('downloads.status.pending');
-      case 'paused':
+      case TaskStatus.Paused:
         return t('downloads.status.paused');
       default:
         return status;
     }
   };
 
-  const getActiveStage = (task: Task) => {
-    if ((task.status !== 'downloading' && task.status !== 'paused') || !task.stages) return null;
-    const stage = task.stages.find((s) => s.status === 'downloading');
-    if (!stage) return null;
-    return stage;
-  };
-
-  const activeStage = getActiveStage(task);
-  const showStage = (task.status === 'downloading' || task.status === 'paused') && activeStage;
-
-  const displayProgress = showStage ? activeStage!.progress : task.progress;
-  const displaySize =
-    showStage && activeStage!.total_size ? activeStage!.total_size : task.total_size;
-  const displayTag = showStage ? t(`downloads.stages.${activeStage!.name}`) : null;
+  const displayProgress = task.progress;
+  const displaySize = task.total_size;
 
   const menuItems: MenuProps['items'] = [
     {
@@ -125,15 +120,17 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
 
   const getStatusTagClass = (status: string) => {
     switch (status) {
-      case 'completed':
+      case TaskStatus.Completed:
         return task.file_exists === false
           ? 'bg-gray-100 text-gray-400 border border-gray-200' // Disabled/Missing
           : 'bg-green-50 text-green-600 border border-green-200';
-      case 'error':
+      case TaskStatus.Error:
         return 'bg-red-50 text-red-600 border border-red-200';
-      case 'downloading':
+      case TaskStatus.Starting:
+      case TaskStatus.Merging:
+      case TaskStatus.Downloading:
         return 'bg-blue-50 text-blue-600 border border-blue-200';
-      case 'paused':
+      case TaskStatus.Paused:
         return 'bg-yellow-50 text-yellow-600 border border-yellow-200';
       default:
         return 'bg-gray-50 text-gray-500 border border-gray-200';
@@ -141,11 +138,13 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
   };
 
   const getProgressColor = () => {
-    if (task.status === 'completed') return '#22c55e'; // green-500
-    if (task.status === 'error') return '#ef4444'; // red-500
-    if (task.status === 'paused') return '#eab308'; // yellow-500
+    if (task.status === TaskStatus.Completed) return '#22c55e'; // green-500
+    if (task.status === TaskStatus.Error) return '#ef4444'; // red-500
+    if (task.status === TaskStatus.Paused) return '#eab308'; // yellow-500
     return undefined; // default primary
   };
+
+  const isActive = task.status === TaskStatus.Starting || task.status === TaskStatus.Downloading;
 
   return (
     <Dropdown menu={{ items: menuItems }} trigger={['contextMenu']}>
@@ -153,7 +152,9 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
         hoverable
         variant="borderless"
         className={`relative overflow-hidden ${
-          task.status === 'completed' && task.file_exists === false ? 'opacity-60 grayscale' : ''
+          task.status === TaskStatus.Completed && task.file_exists === false
+            ? 'opacity-60 grayscale'
+            : ''
         }`}
         styles={{ body: { padding: '16px' } }}
       >
@@ -213,7 +214,7 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
                     <span>{displaySize}</span>
                   </>
                 )}
-                {task.status === 'downloading' && (
+                {isActive && (
                   <>
                     {task.speed && task.speed !== '~' && (
                       <>
@@ -229,13 +230,6 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
                     )}
                   </>
                 )}
-                {displayTag && (
-                  <span
-                    className={`bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded text-[10px] border border-blue-100 ml-1 ${task.status === 'downloading' ? 'animate-pulse' : ''}`}
-                  >
-                    {displayTag}
-                  </span>
-                )}
               </div>
               <span className="uppercase">{task.quality}</span>
             </div>
@@ -243,21 +237,21 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
 
           {/* Action */}
           <div className="shrink-0">
-            {task.status === 'downloading' && (
+            {isActive && (
               <PauseCircleOutlined
                 title={t('downloads.pause')}
                 onClick={() => PauseTask(task.id)}
                 className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
               />
             )}
-            {task.status === 'paused' && (
+            {task.status === TaskStatus.Paused && (
               <PlayCircleOutlined
                 title={t('downloads.resume')}
                 onClick={() => ResumeTask(task.id)}
                 className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
               />
             )}
-            {task.status === 'completed' && task.file_exists === false ? (
+            {task.status === TaskStatus.Completed && task.file_exists === false && (
               <DeleteOutlined
                 title={t('downloads.contextMenu.delete')}
                 onClick={() => {
@@ -266,14 +260,15 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
                 }}
                 className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-red-500 hover:bg-red-50"
               />
-            ) : (
-              (task.status === 'completed' || task.status === 'error') && (
-                <FileTextOutlined
-                  title={t('downloads.viewLogs')}
-                  onClick={onViewLog}
-                  className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
-                />
-              )
+            )}
+            {(task.status === TaskStatus.Completed ||
+              task.status === TaskStatus.Error ||
+              task.status === TaskStatus.Merging) && (
+              <FileTextOutlined
+                title={t('downloads.viewLogs')}
+                onClick={onViewLog}
+                className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
+              />
             )}
           </div>
         </div>

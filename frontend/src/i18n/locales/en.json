@@ -20,15 +20,12 @@
     "startDownloading": "Click \"New Task\" to start downloading",
     "status": {
       "completed": "Completed",
-      "error": "Error",
+      "error": "Failed",
+      "starting": "Starting",
       "downloading": "Downloading",
+      "merging": "Merging",
       "pending": "Pending",
       "paused": "Paused"
-    },
-    "stages": {
-      "video": "Video",
-      "audio": "Audio",
-      "merge": "Merge"
     },
     "modal": {
       "title": "Downloads",

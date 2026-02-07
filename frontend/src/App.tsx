@@ -6,7 +6,7 @@ import { ConfigProvider, Layout, Menu } from 'antd';
 import { GetAppVersion, GetDefaultDownloadDir, GetTasks } from '@root/wailsjs/go/main/App';
 import { EventsOn, WindowSetTitle } from '@root/wailsjs/runtime/runtime';
 import { useAppStore } from '@/store/useAppStore';
-import { Task, TaskStage } from '@/types';
+import { Task } from '@/types';
 import Tasks from '@/views/tasks';
 import Downloads from '@/views/downloads';
 import Settings from '@/views/settings';
@@ -88,7 +88,6 @@ function App() {
         total_size?: string;
         speed?: string;
         eta?: string;
-        stages?: TaskStage[];
       }) => {
         updateTaskProgress(data);
       }

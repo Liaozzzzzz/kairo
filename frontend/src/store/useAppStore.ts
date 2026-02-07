@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Task, TaskStage } from '../types';
+import { Task } from '../types';
 
 interface AppState {
   tasks: Record<string, Task>;
@@ -15,7 +15,6 @@ interface AppState {
     total_size?: string;
     speed?: string;
     eta?: string;
-    stages?: TaskStage[];
   }) => void;
   addTaskLog: (taskId: string, message: string, replace?: boolean) => void;
   setTaskLogs: (taskId: string, logs: string[]) => void;
@@ -64,7 +63,6 @@ export const useAppStore = create<AppState>((set) => ({
             total_size: data.total_size,
             speed: data.speed,
             eta: data.eta,
-            stages: data.stages || task.stages,
           },
         },
       };

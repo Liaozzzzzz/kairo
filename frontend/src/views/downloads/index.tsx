@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
-import { Input, Button, Select, Space, Image, Card } from 'antd';
+import { Input, Button, Select, Space, Image, Card, notification } from 'antd';
 import { FolderOutlined, DownloadOutlined } from '@ant-design/icons';
 import { GetVideoInfo, AddTask as AddTaskGo, ChooseDirectory } from '@root/wailsjs/go/main/App';
-import { main } from '@root/wailsjs/go/models';
+import { models } from '@root/wailsjs/go/models';
 import { useAppStore } from '@/store/useAppStore';
 import PageContainer from '@/components/PageContainer';
 import PageHeader from '@/components/PageHeader';
@@ -15,13 +15,15 @@ interface DownloadsProps {
 
 export default function Downloads({ onAdded }: DownloadsProps) {
   const { t } = useTranslation();
+  const [api, contextHolder] = notification.useNotification();
+
   const defaultDir = useAppStore(useShallow((state) => state.defaultDir));
 
   const [newUrl, setNewUrl] = useState('');
   const [newDir, setNewDir] = useState('');
   const [newQuality, setNewQuality] = useState('best');
   const [newFormat, setNewFormat] = useState('webm');
-  const [videoInfo, setVideoInfo] = useState<main.VideoInfo | null>(null);
+  const [videoInfo, setVideoInfo] = useState<models.VideoInfo | null>(null);
   const [isFetchingInfo, setIsFetchingInfo] = useState(false);
 
   // Initialize directory when defaultDir is loaded
@@ -40,13 +42,16 @@ export default function Downloads({ onAdded }: DownloadsProps) {
       const info = await GetVideoInfo(newUrl);
       setVideoInfo(info);
       if (info.qualities && info.qualities.length > 0) {
-        setNewQuality(info.qualities[0]);
+        setNewQuality(info.qualities[0].value);
       } else {
         setNewQuality('best');
       }
     } catch (e) {
       console.error(e);
-      alert(t('downloads.modal.parseError') + e);
+      api.error({
+        title: t('downloads.modal.parseError'),
+        description: (e as Error).message || (e as string),
+      });
     } finally {
       setIsFetchingInfo(false);
     }
@@ -64,14 +69,18 @@ export default function Downloads({ onAdded }: DownloadsProps) {
   const handleStartDownload = async () => {
     if (!newUrl || !newDir) return;
     try {
-      await AddTaskGo(
-        newUrl,
-        newQuality,
-        newFormat,
-        newDir,
-        videoInfo?.title || '',
-        videoInfo?.thumbnail || ''
-      );
+      const selectedQuality = videoInfo?.qualities?.find((q) => q.value === newQuality);
+      const totalBytes = selectedQuality?.total_bytes || 0;
+
+      await AddTaskGo({
+        url: newUrl,
+        quality: newQuality,
+        format: newFormat,
+        dir: newDir,
+        title: videoInfo?.title || '',
+        thumbnail: videoInfo?.thumbnail || '',
+        total_bytes: totalBytes,
+      });
       // Reset form
       setNewUrl('');
       setNewQuality('best');
@@ -92,6 +101,7 @@ export default function Downloads({ onAdded }: DownloadsProps) {
         <PageHeader title={t('downloads.modal.title')} subtitle={t('downloads.startDownloading')} />
       }
     >
+      {contextHolder}
       <Card variant="borderless" className="shadow-sm">
         <div className="space-y-6">
           <div className="space-y-2">
@@ -148,9 +158,15 @@ export default function Downloads({ onAdded }: DownloadsProps) {
                   onChange={setNewQuality}
                   style={{ width: '100%' }}
                   size="large"
-                  options={(videoInfo?.qualities?.length ? videoInfo.qualities : ['best']).map(
-                    (q) => ({ label: q, value: q })
-                  )}
+                  options={(videoInfo?.qualities || []).map((q) => ({
+                    label: (
+                      <div className="flex justify-between items-center w-full gap-4">
+                        <span>{q.label}</span>
+                        <span className="text-gray-400 text-xs font-normal">{q.total_size}</span>
+                      </div>
+                    ),
+                    value: q.value,
+                  }))}
                   placeholder={t('downloads.modal.bestQuality')}
                 />
               </div>

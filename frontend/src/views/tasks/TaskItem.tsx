@@ -21,6 +21,7 @@ import {
   DeleteTask as DeleteTaskWails,
 } from '@root/wailsjs/go/main/App';
 import { useAppStore } from '@/store/useAppStore';
+import { ImageFallback } from '@/data/variables';
 
 interface TaskItemProps {
   task: Task;
@@ -168,6 +169,7 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
                 alt=""
                 width="100%"
                 height="100%"
+                fallback={ImageFallback}
               />
             ) : (
               <div className="flex items-center justify-center w-full h-full text-gray-300">

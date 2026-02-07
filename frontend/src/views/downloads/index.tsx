@@ -10,6 +10,7 @@ import PageContainer from '@/components/PageContainer';
 import PageHeader from '@/components/PageHeader';
 import bilibiliIcon from '@/assets/images/bilibili.png';
 import youtubeIcon from '@/assets/images/Youtube.png';
+import { ImageFallback } from '@/data/variables';
 
 interface DownloadsProps {
   onAdded?: () => void;
@@ -140,6 +141,7 @@ export default function Downloads({ onAdded }: DownloadsProps) {
                   alt=""
                   width="100%"
                   height="100%"
+                  fallback={ImageFallback}
                 />
               </div>
               <div className="flex-1 min-w-0 flex flex-col justify-center">

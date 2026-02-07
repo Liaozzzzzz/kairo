@@ -263,9 +263,16 @@ func (d *Downloader) GetVideoInfo(url string, assetProvider AssetProvider) (*mod
 		return nil, fmt.Errorf("failed to parse json: %w", err)
 	}
 
+	wailsRuntime.EventsEmit(d.Ctx, "debug:notify", rawInfo)
+	thumbnail := strings.TrimSpace(rawInfo.Thumbnail)
+	if strings.HasPrefix(thumbnail, "http://") {
+		thumbnail = "https://" + strings.TrimPrefix(thumbnail, "http://")
+	} else if strings.HasPrefix(thumbnail, "//") {
+		thumbnail = "https:" + thumbnail
+	}
 	info := models.VideoInfo{
 		Title:     rawInfo.Title,
-		Thumbnail: rawInfo.Thumbnail,
+		Thumbnail: thumbnail,
 		Duration:  rawInfo.Duration,
 	}
 

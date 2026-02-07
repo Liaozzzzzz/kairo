@@ -106,9 +106,9 @@ export default function Downloads({ onAdded }: DownloadsProps) {
             subtitle={t('downloads.startDownloading')}
           />
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium">{t('downloads.modal.supportedSites')}</span>
+            <span className="text-sm ont-medium mt-1">{t('downloads.modal.supportedSites')}</span>
             <div className="flex items-center gap-3">
-              <img src={bilibiliIcon} alt="Bilibili" title="Bilibili" className="w-6 h-6" />
+              <img src={bilibiliIcon} alt="Bilibili" title="Bilibili" className="w-10 h-4.5" />
               <img src={youtubeIcon} alt="YouTube" title="YouTube" className="w-14 h-6" />
             </div>
           </div>

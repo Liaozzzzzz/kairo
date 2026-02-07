@@ -14,8 +14,27 @@
   },
   "downloads": {
     "title": "下载",
-    "subtitle": "管理您的视频下载任务",
-    "newTask": "新建任务",
+    "subtitle": "新增视频下载任务",
+    "videoUrl": "视频地址",
+    "supportedSites": "支持网站",
+    "quality": "画质",
+    "format": "转码格式",
+    "bestQuality": "最佳画质",
+    "saveTo": "保存位置",
+    "chooseDir": "选择目录",
+    "start": "开始下载",
+    "analyze": "解析",
+    "parseError": "解析失败: ",
+    "duration": "时长: "
+  },
+  "tasks": {
+    "title": "任务列表",
+    "subtitle": "查看与管理所有下载任务",
+    "filters": {
+      "all": "全部",
+      "downloading": "下载中",
+      "completed": "已完成"
+    },
     "noDownloads": "暂无下载任务",
     "startDownloading": "点击“新建任务”开始下载",
     "status": {
@@ -26,26 +45,6 @@
       "merging": "合并中",
       "pending": "等待中",
       "paused": "暂停中"
-    },
-    "modal": {
-      "title": "下载",
-      "videoUrl": "视频地址",
-      "supportedSites": "支持网站",
-      "quality": "画质",
-      "format": "转码格式",
-      "bestQuality": "最佳画质",
-      "saveTo": "保存位置",
-      "chooseDir": "选择目录",
-      "cancel": "取消",
-      "start": "开始下载",
-      "analyze": "解析",
-      "parseError": "解析失败: ",
-      "duration": "时长: "
-    },
-    "filters": {
-      "all": "全部",
-      "downloading": "下载中",
-      "completed": "已完成"
     },
     "contextMenu": {
       "details": "任务详情",

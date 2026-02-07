@@ -53,19 +53,19 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
   const getStatusText = (status: string) => {
     switch (status) {
       case TaskStatus.Completed:
-        return t('downloads.status.completed');
+        return t('tasks.status.completed');
       case TaskStatus.Error:
-        return t('downloads.status.error');
+        return t('tasks.status.error');
       case TaskStatus.Starting:
-        return t('downloads.status.starting');
+        return t('tasks.status.starting');
       case TaskStatus.Downloading:
-        return t('downloads.status.downloading');
+        return t('tasks.status.downloading');
       case TaskStatus.Merging:
-        return t('downloads.status.merging');
+        return t('tasks.status.merging');
       case TaskStatus.Pending:
-        return t('downloads.status.pending');
+        return t('tasks.status.pending');
       case TaskStatus.Paused:
-        return t('downloads.status.paused');
+        return t('tasks.status.paused');
       default:
         return status;
     }
@@ -77,19 +77,19 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
   const menuItems: MenuProps['items'] = [
     {
       key: 'details',
-      label: t('downloads.contextMenu.details'),
+      label: t('tasks.contextMenu.details'),
       icon: <FileTextOutlined className="w-4 h-4 mt-[-2px]" />,
       onClick: onViewLog,
     },
     {
       key: 'open',
-      label: t('downloads.contextMenu.openLocation'),
+      label: t('tasks.contextMenu.openLocation'),
       icon: <FolderOutlined className="w-4 h-4 mt-[-2px]" />,
       onClick: () => OpenTaskDir(task.id),
     },
     {
       key: 'copy',
-      label: t('downloads.contextMenu.copyLink'),
+      label: t('tasks.contextMenu.copyLink'),
       icon: <LinkOutlined className="w-4 h-4 mt-[-2px]" />,
       onClick: () => navigator.clipboard.writeText(task.url),
     },
@@ -97,7 +97,7 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
       ? [
           {
             key: 'retry',
-            label: t('downloads.contextMenu.retry'),
+            label: t('tasks.contextMenu.retry'),
             icon: <ReloadOutlined className="w-4 h-4 mt-[-2px]" />,
             onClick: () => RetryTask(task.id),
           },
@@ -108,7 +108,7 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
     },
     {
       key: 'delete',
-      label: t('downloads.contextMenu.delete'),
+      label: t('tasks.contextMenu.delete'),
       icon: <DeleteOutlined className="w-4 h-4 mt-[-2px]" />,
       danger: true,
       onClick: () => {
@@ -225,7 +225,10 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
                     {task.eta && task.eta !== '~' && (
                       <>
                         <span className="text-gray-300">•</span>
-                        <span>ETA {task.eta}</span>
+                        <span>
+                          {t('tasks.eta')}
+                          {task.eta}
+                        </span>
                       </>
                     )}
                   </>
@@ -239,21 +242,21 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
           <div className="shrink-0">
             {isActive && (
               <PauseCircleOutlined
-                title={t('downloads.pause')}
+                title={t('tasks.pause')}
                 onClick={() => PauseTask(task.id)}
                 className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
               />
             )}
             {task.status === TaskStatus.Paused && (
               <PlayCircleOutlined
-                title={t('downloads.resume')}
+                title={t('tasks.resume')}
                 onClick={() => ResumeTask(task.id)}
                 className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
               />
             )}
             {task.status === TaskStatus.Completed && task.file_exists === false && (
               <DeleteOutlined
-                title={t('downloads.contextMenu.delete')}
+                title={t('tasks.contextMenu.delete')}
                 onClick={() => {
                   DeleteTaskWails(task.id);
                   deleteTask(task.id);
@@ -265,7 +268,7 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
               task.status === TaskStatus.Error ||
               task.status === TaskStatus.Merging) && (
               <FileTextOutlined
-                title={t('downloads.viewLogs')}
+                title={t('tasks.viewLogs')}
                 onClick={onViewLog}
                 className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
               />

@@ -67,11 +67,11 @@ export function LogModal({ viewLogId, onClose }: LogModalProps) {
     <Modal
       open={!!viewLogId}
       onCancel={onClose}
-      title={t('downloads.logs.title')}
+      title={t('tasks.logs.title')}
       width={700}
       footer={[
         <Button key="close" onClick={onClose}>
-          {t('downloads.logs.close')}
+          {t('tasks.logs.close')}
         </Button>,
       ]}
     >

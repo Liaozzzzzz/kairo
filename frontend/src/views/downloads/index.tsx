@@ -51,7 +51,7 @@ export default function Downloads({ onAdded }: DownloadsProps) {
     } catch (e) {
       console.error(e);
       api.error({
-        title: t('downloads.modal.parseError'),
+        title: t('downloads.parseError'),
         description: (e as Error).message || (e as string),
       });
     } finally {
@@ -101,12 +101,9 @@ export default function Downloads({ onAdded }: DownloadsProps) {
       viewClass="px-10"
       header={
         <div className="flex items-end justify-between">
-          <PageHeader
-            title={t('downloads.modal.title')}
-            subtitle={t('downloads.startDownloading')}
-          />
+          <PageHeader title={t('downloads.title')} subtitle={t('downloads.subtitle')} />
           <div className="flex items-center gap-4">
-            <span className="text-sm ont-medium mt-1">{t('downloads.modal.supportedSites')}</span>
+            <span className="text-sm ont-medium mt-1">{t('downloads.supportedSites')}</span>
             <div className="flex items-center gap-3">
               <img src={bilibiliIcon} alt="Bilibili" title="Bilibili" className="w-10 h-4.5" />
               <img src={youtubeIcon} alt="YouTube" title="YouTube" className="w-14 h-6" />
@@ -119,7 +116,7 @@ export default function Downloads({ onAdded }: DownloadsProps) {
       <Card variant="borderless" className="shadow-sm">
         <div className="space-y-6">
           <div className="space-y-2">
-            <label className="text-sm font-medium">{t('downloads.modal.videoUrl')}</label>
+            <label className="text-sm font-medium">{t('downloads.videoUrl')}</label>
             <Input.Search
               value={newUrl}
               onChange={(e) => {
@@ -128,7 +125,7 @@ export default function Downloads({ onAdded }: DownloadsProps) {
               }}
               loading={isFetchingInfo}
               placeholder="https://www.youtube.com/watch?v=..."
-              enterButton={t('downloads.modal.analyze')}
+              enterButton={t('downloads.analyze')}
               onSearch={fetchVideoInfo}
               size="large"
             />
@@ -154,7 +151,7 @@ export default function Downloads({ onAdded }: DownloadsProps) {
                 </div>
                 <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
                   <span className="bg-white px-2 py-0.5 rounded border border-slate-200 text-xs">
-                    {t('downloads.modal.duration')}
+                    {t('downloads.duration')}
                     {Math.floor(videoInfo.duration / 60)}:
                     {String(Math.floor(videoInfo.duration % 60)).padStart(2, '0')}
                   </span>
@@ -166,7 +163,7 @@ export default function Downloads({ onAdded }: DownloadsProps) {
           {videoInfo && (
             <div className="grid grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-300 delay-75">
               <div className="space-y-2">
-                <label className="text-sm font-medium">{t('downloads.modal.quality')}</label>
+                <label className="text-sm font-medium">{t('downloads.quality')}</label>
                 <Select
                   value={newQuality}
                   onChange={setNewQuality}
@@ -181,11 +178,11 @@ export default function Downloads({ onAdded }: DownloadsProps) {
                     ),
                     value: q.value,
                   }))}
-                  placeholder={t('downloads.modal.bestQuality')}
+                  placeholder={t('downloads.bestQuality')}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">{t('downloads.modal.format')}</label>
+                <label className="text-sm font-medium">{t('downloads.format')}</label>
                 <Select
                   value={newFormat}
                   onChange={setNewFormat}
@@ -202,11 +199,11 @@ export default function Downloads({ onAdded }: DownloadsProps) {
                 />
               </div>
               <div className="space-y-2 col-span-2">
-                <label className="text-sm font-medium">{t('downloads.modal.saveTo')}</label>
+                <label className="text-sm font-medium">{t('downloads.saveTo')}</label>
                 <Space.Compact style={{ width: '100%' }} size="large">
                   <Input value={newDir} readOnly />
                   <Button icon={<FolderOutlined />} onClick={handleChooseDir}>
-                    {t('downloads.modal.chooseDir')}
+                    {t('downloads.chooseDir')}
                   </Button>
                 </Space.Compact>
               </div>
@@ -220,7 +217,7 @@ export default function Downloads({ onAdded }: DownloadsProps) {
                   icon={<DownloadOutlined />}
                   className="px-8"
                 >
-                  {t('downloads.modal.start')}
+                  {t('downloads.start')}
                 </Button>
               </div>
             </div>

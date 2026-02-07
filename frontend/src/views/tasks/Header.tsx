@@ -44,7 +44,7 @@ export function Header({ filter, onFilterChange }: HeaderProps) {
 
   return (
     <div className="flex items-center gap-8">
-      <PageHeader title={t('downloads.title')} subtitle={t('downloads.subtitle')} />
+      <PageHeader title={t('tasks.title')} subtitle={t('tasks.subtitle')} />
 
       <Segmented
         value={filter}
@@ -53,7 +53,7 @@ export function Header({ filter, onFilterChange }: HeaderProps) {
           {
             label: (
               <span className="px-2 text-[14px] font-medium flex items-center gap-1">
-                <span>{t('downloads.filters.downloading')}</span>
+                <span>{t('tasks.filters.downloading')}</span>
                 <span className="text-[12px] text-muted-foreground">({counts.downloading})</span>
               </span>
             ),
@@ -62,7 +62,7 @@ export function Header({ filter, onFilterChange }: HeaderProps) {
           {
             label: (
               <span className="px-2 text-[14px] font-medium flex items-center gap-1">
-                <span>{t('downloads.filters.completed')}</span>
+                <span>{t('tasks.filters.completed')}</span>
                 <span className="text-[12px] text-muted-foreground">({counts.completed})</span>
               </span>
             ),
@@ -71,7 +71,7 @@ export function Header({ filter, onFilterChange }: HeaderProps) {
           {
             label: (
               <span className="px-2 text-[14px] font-medium flex items-center gap-1">
-                <span>{t('downloads.filters.all')}</span>
+                <span>{t('tasks.filters.all')}</span>
                 <span className="text-[12px] text-muted-foreground">({counts.all})</span>
               </span>
             ),

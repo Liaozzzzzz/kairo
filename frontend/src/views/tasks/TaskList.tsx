@@ -41,8 +41,8 @@ export function TaskList({ onViewLog, filter }: TaskListProps) {
         <div className="flex items-center justify-center w-12 h-12 rounded-full bg-black/5 mb-4 text-black/40">
           <PlusOutlined className="w-6 h-6" />
         </div>
-        <div className="text-[15px] font-medium text-black/60">{t('downloads.noDownloads')}</div>
-        <div className="text-[13px] text-black/40 mt-1">{t('downloads.startDownloading')}</div>
+        <div className="text-[15px] font-medium text-black/60">{t('tasks.noDownloads')}</div>
+        <div className="text-[13px] text-black/40 mt-1">{t('tasks.startDownloading')}</div>
       </div>
     );
   }

@@ -100,10 +100,15 @@ function App() {
       }
     );
 
+    const cleanupDebugNotify = EventsOn('debug:notify', (message: string) => {
+      console.log('[debug:notify]', message);
+    });
+
     return () => {
       cleanupUpdate();
       cleanupProgress();
       cleanupLog();
+      cleanupDebugNotify();
     };
   }, [setDefaultDir, setTasks, updateTask, updateTaskProgress, addTaskLog]);
 

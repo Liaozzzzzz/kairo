@@ -11,7 +11,7 @@ import (
 	"yt-downloader/internal/models"
 	"yt-downloader/internal/task"
 
-	runtimeapi "github.com/wailsapp/wails/v2/pkg/runtime"
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 //go:embed wails.json
@@ -60,7 +60,7 @@ func (a *App) startup(ctx context.Context) {
 }
 
 func (a *App) ChooseDirectory() (string, error) {
-	dir, err := runtimeapi.OpenDirectoryDialog(a.ctx, runtimeapi.OpenDialogOptions{
+	dir, err := wailsRuntime.OpenDirectoryDialog(a.ctx, wailsRuntime.OpenDialogOptions{
 		Title: "选择下载目录",
 	})
 	if err != nil {

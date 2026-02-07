@@ -21,7 +21,7 @@ import {
   RetryTask,
   DeleteTask as DeleteTaskWails,
 } from '@root/wailsjs/go/main/App';
-import { useAppStore } from '@/store/useAppStore';
+import { useTaskStore } from '@/store/useTaskStore';
 import { ImageFallback } from '@/data/variables';
 
 interface TaskItemProps {
@@ -31,7 +31,7 @@ interface TaskItemProps {
 
 export function TaskItem({ task, onViewLog }: TaskItemProps) {
   const { t } = useTranslation();
-  const deleteTask = useAppStore((state) => state.deleteTask);
+  const deleteTask = useTaskStore((state) => state.deleteTask);
 
   const siteLabel = useMemo(() => {
     const match = task.url.match(/https?:\/\/(?:www\.)?([a-z0-9-]+)\./i);

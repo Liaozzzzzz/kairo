@@ -5,7 +5,7 @@ import { Input, Button, Select, Space, Image, Card, notification } from 'antd';
 import { FolderOutlined, DownloadOutlined } from '@ant-design/icons';
 import { GetVideoInfo, AddTask as AddTaskGo, ChooseDirectory } from '@root/wailsjs/go/main/App';
 import { models } from '@root/wailsjs/go/models';
-import { useAppStore } from '@/store/useAppStore';
+import { useSettingStore } from '@/store/useSettingStore';
 import PageContainer from '@/components/PageContainer';
 import PageHeader from '@/components/PageHeader';
 import bilibiliIcon from '@/assets/images/bilibili.png';
@@ -20,7 +20,7 @@ export default function Downloads({ onAdded }: DownloadsProps) {
   const { t } = useTranslation();
   const [api, contextHolder] = notification.useNotification();
 
-  const defaultDir = useAppStore(useShallow((state) => state.defaultDir));
+  const defaultDir = useSettingStore(useShallow((state) => state.defaultDir));
 
   const [newUrl, setNewUrl] = useState('');
   const [newDir, setNewDir] = useState('');

@@ -6,10 +6,14 @@ const PageHeader = ({ title, subtitle }: { title: string; subtitle?: string }) =
   <div className="flex items-center justify-between">
     <div className="flex items-center gap-8">
       <div>
-        <Title className="!mb-1" level={2}>
+        <Title className="!mb-0" level={2}>
           {title}
         </Title>
-        {!!subtitle && <Text type="secondary">{subtitle}</Text>}
+        {!!subtitle && (
+          <Text className="mt-1" type="secondary">
+            {subtitle}
+          </Text>
+        )}
       </div>
     </div>
   </div>

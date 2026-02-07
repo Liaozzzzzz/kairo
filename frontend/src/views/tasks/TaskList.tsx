@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import { useAppStore } from '@/store/useAppStore';
-import { TaskItem } from './TaskItem';
-import { PlusOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
+import { useTaskStore } from '@/store/useTaskStore';
+import { PlusOutlined } from '@ant-design/icons';
 import { TaskStatus } from '@/data/variables';
+import { TaskItem } from './TaskItem';
 
 interface TaskListProps {
   onViewLog: (taskId: string) => void;
@@ -12,7 +12,7 @@ interface TaskListProps {
 
 export function TaskList({ onViewLog, filter }: TaskListProps) {
   const { t } = useTranslation();
-  const tasks = useAppStore((state) => state.tasks);
+  const tasks = useTaskStore((state) => state.tasks);
 
   const taskList = useMemo(() => {
     return Object.values(tasks)

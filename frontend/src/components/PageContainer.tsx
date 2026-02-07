@@ -35,7 +35,7 @@ const PageContainer = ({
     <div className="h-full w-full bg-background text-foreground overflow-hidden">
       <Scrollbar className="h-full w-full py-10" header={headerNode} footer={footerNode}>
         <div className="flex justify-center w-full min-h-full">
-          <div className={cn('w-full py-10', maxWidth, className, viewClass)}>{children}</div>
+          <div className={cn('w-full py-6', maxWidth, className, viewClass)}>{children}</div>
         </div>
       </Scrollbar>
     </div>

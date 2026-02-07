@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 import { Modal, Button } from 'antd';
-import { useAppStore } from '@/store/useAppStore';
+import { useTaskStore } from '@/store/useTaskStore';
 import { GetTaskLogs } from '@root/wailsjs/go/main/App';
 
 interface LogModalProps {
@@ -12,7 +12,7 @@ interface LogModalProps {
 
 export function LogModal({ viewLogId, onClose }: LogModalProps) {
   const { t } = useTranslation();
-  const { taskLogs, setTaskLogs } = useAppStore(
+  const { taskLogs, setTaskLogs } = useTaskStore(
     useShallow((state) => ({
       taskLogs: state.taskLogs,
       setTaskLogs: state.setTaskLogs,

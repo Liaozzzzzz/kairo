@@ -5,7 +5,8 @@ import { DownloadOutlined, SettingOutlined, UnorderedListOutlined } from '@ant-d
 import { ConfigProvider, Layout, Menu } from 'antd';
 import { GetAppVersion, GetDefaultDownloadDir, GetTasks } from '@root/wailsjs/go/main/App';
 import { EventsOn, WindowSetTitle } from '@root/wailsjs/runtime/runtime';
-import { useAppStore } from '@/store/useAppStore';
+import { useSettingStore } from '@/store/useSettingStore';
+import { useTaskStore } from '@/store/useTaskStore';
 import { Task } from '@/types';
 import Tasks from '@/views/tasks';
 import Downloads from '@/views/downloads';
@@ -29,20 +30,37 @@ const TABS_CONFIG = [
 ] as const;
 
 function App() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const TABS = TABS_CONFIG.map((tab) => ({
     key: tab.id,
-    icon: <tab.icon style={{ fontSize: 20, marginTop: '-2px' }} />,
+    icon: <tab.icon style={{ fontSize: 16, marginTop: '-2px' }} />,
     label: t(tab.labelKey),
   }));
 
   const [activeTab, setActiveTab] = useState<(typeof TABS_CONFIG)[number]['id']>('downloads');
   const [version, setVersion] = useState<string>('');
 
-  const { setDefaultDir, setTasks, updateTask, updateTaskProgress, addTaskLog } = useAppStore(
+  const {
+    defaultDir,
+    language,
+    setDefaultDir,
+    setDownloadConcurrency,
+    setMaxDownloadSpeed,
+    loadSettings,
+  } = useSettingStore(
     useShallow((state) => ({
+      defaultDir: state.defaultDir,
+      language: state.language,
       setDefaultDir: state.setDefaultDir,
+      setDownloadConcurrency: state.setDownloadConcurrency,
+      setMaxDownloadSpeed: state.setMaxDownloadSpeed,
+      loadSettings: state.loadSettings,
+    }))
+  );
+
+  const { setTasks, updateTask, updateTaskProgress, addTaskLog } = useTaskStore(
+    useShallow((state) => ({
       setTasks: state.setTasks,
       updateTask: state.updateTask,
       updateTaskProgress: state.updateTaskProgress,
@@ -56,12 +74,20 @@ function App() {
   }, [t]);
 
   useEffect(() => {
-    // Set default dir
-    GetDefaultDownloadDir()
-      .then((d) => {
-        setDefaultDir(d);
-      })
-      .catch(console.error);
+    loadSettings();
+    if (language && language !== i18n.language) {
+      i18n.changeLanguage(language);
+    }
+
+    if (!defaultDir) {
+      GetDefaultDownloadDir()
+        .then((d) => {
+          if (d) {
+            setDefaultDir(d);
+          }
+        })
+        .catch(console.error);
+    }
 
     GetTasks()
       .then((t) => {
@@ -110,7 +136,16 @@ function App() {
       cleanupLog();
       cleanupDebugNotify();
     };
-  }, [setDefaultDir, setTasks, updateTask, updateTaskProgress, addTaskLog]);
+  }, [
+    setDefaultDir,
+    setTasks,
+    updateTask,
+    updateTaskProgress,
+    addTaskLog,
+    setDownloadConcurrency,
+    setMaxDownloadSpeed,
+    i18n,
+  ]);
 
   return (
     <ConfigProvider
@@ -123,7 +158,7 @@ function App() {
         components: {
           Layout: {
             bodyBg: '#ffffff',
-            siderBg: '#f1f5f9', // slate-100
+            siderBg: undefined,
           },
           Menu: {
             itemBg: 'transparent',
@@ -143,8 +178,19 @@ function App() {
         },
       }}
     >
-      <Layout style={{ height: '100vh', overflow: 'hidden' }}>
-        <Sider width={200} theme="light" style={{ borderRight: '1px solid #e2e8f0' }}>
+      <Layout
+        style={{
+          height: '100vh',
+          overflow: 'hidden',
+          background:
+            'linear-gradient(to right, #f1f5f9 0, #f1f5f9 200px, #eef2f7 220px, #f8fafc 400px, #ffffff 420px, #ffffff 100%)',
+        }}
+      >
+        <Sider
+          width={200}
+          theme="light"
+          style={{ borderRight: '1px solid #e2e8f0', background: 'transparent' }}
+        >
           <div className="flex flex-col h-full">
             <div className="p-4 border-b border-gray-200 mb-2 flex flex-col items-center justify-center">
               <img src={appIcon} alt="App Icon" className="w-16 h-16 mb-2 rounded-xl shadow-sm" />
@@ -160,14 +206,7 @@ function App() {
             <div className="p-4 text-center text-xs text-gray-400">v{version}</div>
           </div>
         </Sider>
-        <Content
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            background: '#fff',
-          }}
-        >
+        <Content style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {activeTab === 'downloads' && <Downloads onAdded={() => setActiveTab('tasks')} />}
           {activeTab === 'tasks' && <Tasks />}
           {activeTab === 'settings' && <Settings />}

@@ -9,8 +9,22 @@
   },
   "settings": {
     "title": "Settings",
+    "subtitle": "Manage application preferences",
     "language": "Language",
-    "save": "Save"
+    "save": "Save",
+    "tabs": {
+      "downloads": "Download Settings",
+      "language": "Language Settings"
+    },
+    "downloads": {
+      "dir": "Default Download Path",
+      "dirDesc": "Where files will be saved",
+      "chooseDir": "Choose Directory",
+      "concurrent": "Concurrent Downloads",
+      "concurrentDesc": "Max simultaneous downloads",
+      "maxSpeed": "Max Download Speed",
+      "speedUnlimited": "Unlimited"
+    }
   },
   "downloads": {
     "title": "Downloads",

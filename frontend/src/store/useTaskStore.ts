@@ -1,10 +1,9 @@
 import { create } from 'zustand';
 import { Task } from '../types';
 
-interface AppState {
+interface TaskState {
   tasks: Record<string, Task>;
   taskLogs: Record<string, string[]>;
-  defaultDir: string;
 
   // Actions
   setTasks: (tasks: Record<string, Task>) => void;
@@ -18,14 +17,12 @@ interface AppState {
   }) => void;
   addTaskLog: (taskId: string, message: string, replace?: boolean) => void;
   setTaskLogs: (taskId: string, logs: string[]) => void;
-  setDefaultDir: (dir: string) => void;
   deleteTask: (taskId: string) => void;
 }
 
-export const useAppStore = create<AppState>((set) => ({
+export const useTaskStore = create<TaskState>((set) => ({
   tasks: {},
   taskLogs: {},
-  defaultDir: '',
 
   setTasks: (tasks) => set({ tasks }),
 
@@ -100,8 +97,6 @@ export const useAppStore = create<AppState>((set) => ({
         [taskId]: logs,
       },
     })),
-
-  setDefaultDir: (dir) => set({ defaultDir: dir }),
 
   deleteTask: (taskId) =>
     set((state) => {

@@ -3,7 +3,7 @@ import { Segmented } from 'antd';
 import { useTranslation } from 'react-i18next';
 import PageHeader from '@/components/PageHeader';
 import { TaskStatus } from '@/data/variables';
-import { useAppStore } from '@/store/useAppStore';
+import { useTaskStore } from '@/store/useTaskStore';
 
 interface HeaderProps {
   filter: string;
@@ -12,7 +12,7 @@ interface HeaderProps {
 
 export function Header({ filter, onFilterChange }: HeaderProps) {
   const { t } = useTranslation();
-  const tasks = useAppStore((state) => state.tasks);
+  const tasks = useTaskStore((state) => state.tasks);
 
   const counts = useMemo(() => {
     const values = Object.values(tasks);

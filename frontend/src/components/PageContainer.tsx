@@ -32,7 +32,7 @@ const PageContainer = ({
 
   return (
     <div className="flex-1 w-full bg-background text-foreground flex flex-col">
-      {headerNode && <div className="sticky top-0 z-10 bg-background pt-10">{headerNode}</div>}
+      {headerNode && <div className="sticky top-0 z-50 bg-background pt-10">{headerNode}</div>}
 
       <div className="flex-1 w-full">
         <div className="flex justify-center w-full">
@@ -40,7 +40,7 @@ const PageContainer = ({
         </div>
       </div>
 
-      {footerNode && <div className="sticky bottom-0 z-10 bg-background pb-10">{footerNode}</div>}
+      {footerNode && <div className="sticky bottom-0 z-50 bg-background pb-10">{footerNode}</div>}
     </div>
   );
 };

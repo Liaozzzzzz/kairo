@@ -270,11 +270,10 @@ func (d *Downloader) GetVideoInfo(url string, assetProvider AssetProvider) (*mod
 		Formats   []map[string]interface{} `json:"formats"`
 	}
 
-	if err := json.Unmarshal(output, &rawInfo); err != nil {
+	if err := json.NewDecoder(strings.NewReader(string(output))).Decode(&rawInfo); err != nil {
 		return nil, fmt.Errorf("failed to parse json: %w", err)
 	}
 
-	wailsRuntime.EventsEmit(d.Ctx, "debug:notify", rawInfo)
 	thumbnail := strings.TrimSpace(rawInfo.Thumbnail)
 	if strings.HasPrefix(thumbnail, "http://") {
 		thumbnail = "https://" + strings.TrimPrefix(thumbnail, "http://")

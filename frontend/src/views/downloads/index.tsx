@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
-import { Input, Button, Select, Space, Image, Card, notification } from 'antd';
+import { Input, Button, Select, Space, Image, Card, notification, message } from 'antd';
 import { FolderOutlined, DownloadOutlined } from '@ant-design/icons';
 import { GetVideoInfo, AddTask as AddTaskGo, ChooseDirectory } from '@root/wailsjs/go/main/App';
 import { models } from '@root/wailsjs/go/models';
 import { useSettingStore } from '@/store/useSettingStore';
 import { useAppStore } from '@/store/useAppStore';
+import { useTaskStore } from '@/store/useTaskStore';
 import PageContainer from '@/components/PageContainer';
 import PageHeader from '@/components/PageHeader';
 import bilibiliIcon from '@/assets/images/bilibili.png';
@@ -15,7 +16,9 @@ import { ImageFallback, MenuItemKey } from '@/data/variables';
 
 export default function Downloads() {
   const { t } = useTranslation();
+  const tasks = useTaskStore(useShallow((state) => state.tasks));
   const [api, contextHolder] = notification.useNotification();
+  const [messageApi, messageContextHolder] = message.useMessage();
 
   const defaultDir = useSettingStore(useShallow((state) => state.defaultDir));
   const setActiveTab = useAppStore(useShallow((state) => state.setActiveTab));
@@ -36,6 +39,15 @@ export default function Downloads() {
 
   const fetchVideoInfo = async () => {
     if (!newUrl) return;
+
+    if (!newUrl || !newDir) return;
+
+    // Check duplicate
+    const isDuplicate = Object.values(tasks).some((t) => t.url === newUrl);
+    if (isDuplicate) {
+      messageApi.warning(t('downloads.duplicateTaskContent'));
+      return;
+    }
 
     setIsFetchingInfo(true);
     setVideoInfo(null);
@@ -112,6 +124,7 @@ export default function Downloads() {
       }
     >
       {contextHolder}
+      {messageContextHolder}
       <Card variant="borderless" className="shadow-sm">
         <div className="space-y-6">
           <div className="space-y-2">

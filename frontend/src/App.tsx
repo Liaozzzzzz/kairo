@@ -71,9 +71,6 @@ function App() {
 
   useEffect(() => {
     loadSettings();
-    if (language && language !== i18n.language) {
-      i18n.changeLanguage(language);
-    }
 
     if (!defaultDir) {
       GetDefaultDownloadDir()
@@ -140,8 +137,13 @@ function App() {
     addTaskLog,
     setDownloadConcurrency,
     setMaxDownloadSpeed,
-    i18n,
   ]);
+
+  useEffect(() => {
+    if (language && language !== i18n.language) {
+      i18n.changeLanguage(language);
+    }
+  }, [language, i18n]);
 
   return (
     <ConfigProvider

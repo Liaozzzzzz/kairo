@@ -135,6 +135,7 @@ export default function Downloads() {
               <div className="flex-shrink-0 w-40 aspect-video rounded-md overflow-hidden border border-black/10">
                 <Image
                   src={videoInfo.thumbnail}
+                  referrerPolicy="no-referrer"
                   className="w-full h-full object-cover"
                   alt=""
                   width="100%"

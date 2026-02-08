@@ -178,6 +178,7 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
                 {task.thumbnail ? (
                   <Image
                     src={task.thumbnail}
+                    referrerPolicy="no-referrer"
                     className="w-full h-full object-cover"
                     alt=""
                     width="100%"

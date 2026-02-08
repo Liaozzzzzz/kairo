@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { UpdateSettings } from '@root/wailsjs/go/main/App';
 
 export type AppLanguage = 'zh' | 'en';
 
@@ -89,6 +90,10 @@ export const useSettingStore = create<SettingState>((set, get) => ({
       maxDownloadSpeed: settings.maxDownloadSpeed,
       language: settings.language,
     });
+    UpdateSettings({
+      ...settings,
+      maxDownloadSpeed: settings.maxDownloadSpeed ?? undefined,
+    }).catch(console.error);
   },
 }));
 
@@ -120,4 +125,8 @@ const saveAppSettings = (state: SettingState) => {
     language: state.language,
   };
   localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  UpdateSettings({
+    ...settings,
+    maxDownloadSpeed: settings.maxDownloadSpeed ?? undefined,
+  }).catch(console.error);
 };

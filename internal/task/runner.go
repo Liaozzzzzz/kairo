@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	"Kairo/internal/config"
 	"Kairo/internal/models"
 	"Kairo/internal/utils"
 )
@@ -21,6 +22,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		m.mu.Lock()
 		delete(m.cancelFuncs, task.ID)
 		m.mu.Unlock()
+		go m.scheduleTasks()
 	}()
 
 	m.downloader.EnsureYtDlp(m.assetProvider)
@@ -72,6 +74,10 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		"-P", task.Dir,
 		"-f", format,
 		"--playlist-items", "1",
+	}
+
+	if limit := config.GetDownloadRateLimit(); limit != "" {
+		args = append(args, "-r", limit)
 	}
 
 	if task.Format != "original" {

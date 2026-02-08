@@ -111,3 +111,8 @@ func (a *App) OpenTaskDir(id string) {
 func (a *App) GetTaskLogs(id string) ([]string, error) {
 	return a.taskManager.GetTaskLogs(id)
 }
+
+// UpdateSettings updates the application settings
+func (a *App) UpdateSettings(settings config.AppSettings) {
+	config.UpdateSettings(settings)
+}

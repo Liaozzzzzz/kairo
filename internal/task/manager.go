@@ -77,10 +77,9 @@ func (m *Manager) AddTask(input models.AddTaskInput) (string, error) {
 		task.Title = input.URL
 	}
 
-	ctx, cancel := context.WithCancel(m.ctx)
 	m.mu.Lock()
 	m.tasks[id] = task
-	m.cancelFuncs[id] = cancel
+	m.cancelFuncs[id] = func() {}
 	m.mu.Unlock()
 
 	m.saveTasks()
@@ -89,9 +88,35 @@ func (m *Manager) AddTask(input models.AddTaskInput) (string, error) {
 	m.emitTaskUpdate(task)
 
 	// Start download in background
-	go m.processTask(ctx, task)
+	go m.scheduleTasks()
 
 	return id, nil
+}
+
+func (m *Manager) scheduleTasks() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	downloadingCount := 0
+	for _, task := range m.tasks {
+		if task.Status == models.TaskStatusDownloading || task.Status == models.TaskStatusStarting || task.Status == models.TaskStatusMerging {
+			downloadingCount++
+		}
+	}
+
+	maxConcurrent := config.GetMaxConcurrentDownloads()
+
+	for _, task := range m.tasks {
+		if downloadingCount >= maxConcurrent {
+			break
+		}
+		if task.Status == models.TaskStatusPending {
+			downloadingCount++
+			ctx, cancel := context.WithCancel(m.ctx)
+			m.cancelFuncs[task.ID] = cancel
+			go m.processTask(ctx, task)
+		}
+	}
 }
 
 func (m *Manager) DeleteTask(id string, deleteFile bool) {

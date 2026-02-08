@@ -269,7 +269,8 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
                     className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
                   />
                 )}
-                {task.status === TaskStatus.Completed && task.file_exists === false && (
+                {((task.status === TaskStatus.Completed && task.file_exists === false) ||
+                  task.status === TaskStatus.Pending) && (
                   <DeleteOutlined
                     title={t('tasks.contextMenu.delete')}
                     onClick={() => deleteTask(task.id)}

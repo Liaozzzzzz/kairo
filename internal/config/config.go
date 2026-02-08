@@ -4,7 +4,32 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 )
+
+type AppSettings struct {
+	DownloadDir         string `json:"downloadDir"`
+	DownloadConcurrency int    `json:"downloadConcurrency"`
+	MaxDownloadSpeed    *int   `json:"maxDownloadSpeed"` // MB/s
+	Language            string `json:"language"`
+}
+
+var (
+	currentConfig AppSettings
+	configMu      sync.RWMutex
+)
+
+func init() {
+	currentConfig = AppSettings{
+		DownloadConcurrency: 3,
+	}
+}
+
+func UpdateSettings(cfg AppSettings) {
+	configMu.Lock()
+	defer configMu.Unlock()
+	currentConfig = cfg
+}
 
 func GetAppConfigDir() (string, error) {
 	configDir, err := os.UserConfigDir()
@@ -63,4 +88,22 @@ func GetBinDir() (string, error) {
 	base := filepath.Join(cfg, "Kairo", "bin")
 	_ = os.MkdirAll(base, 0o755)
 	return base, nil
+}
+
+func GetMaxConcurrentDownloads() int {
+	configMu.RLock()
+	defer configMu.RUnlock()
+	if currentConfig.DownloadConcurrency <= 0 {
+		return 3
+	}
+	return currentConfig.DownloadConcurrency
+}
+
+func GetDownloadRateLimit() string {
+	configMu.RLock()
+	defer configMu.RUnlock()
+	if currentConfig.MaxDownloadSpeed == nil || *currentConfig.MaxDownloadSpeed <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("%dM", *currentConfig.MaxDownloadSpeed)
 }

@@ -57,6 +57,7 @@
     "start": "开始下载",
     "analyze": "解析",
     "parseError": "解析失败: ",
+    "duplicateTaskContent": "该任务已存在列表中，请勿重复添加",
     "duration": "时长: "
   },
   "tasks": {

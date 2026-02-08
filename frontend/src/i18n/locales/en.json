@@ -57,6 +57,7 @@
     "start": "Start Download",
     "analyze": "Analyze",
     "parseError": "Parse failed: ",
+    "duplicateTaskContent": "This task is already in the list.",
     "duration": "Duration: "
   },
   "tasks": {

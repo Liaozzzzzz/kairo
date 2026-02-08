@@ -21,6 +21,8 @@ const Settings = () => {
     setMaxDownloadSpeed,
     language,
     setLanguage,
+    proxyUrl,
+    setProxyUrl,
   } = useSettingStore(
     useShallow((state) => ({
       defaultDir: state.defaultDir,
@@ -31,6 +33,8 @@ const Settings = () => {
       setMaxDownloadSpeed: state.setMaxDownloadSpeed,
       language: state.language,
       setLanguage: state.setLanguage,
+      proxyUrl: state.proxyUrl,
+      setProxyUrl: state.setProxyUrl,
     }))
   );
 
@@ -137,6 +141,27 @@ const Settings = () => {
                     const v = value >= 151 ? null : value;
                     setMaxDownloadSpeed(v);
                   }}
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Network Settings */}
+        <Card variant="borderless" size="small" title={<span>{t('settings.tabs.network')}</span>}>
+          <div className="px-2 py-0">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+              <div className="md:col-span-4">
+                <Text strong className="block text-sm mb-0">
+                  {t('settings.network.proxy')}
+                </Text>
+              </div>
+              <div className="md:col-span-8">
+                <Input
+                  value={proxyUrl}
+                  onChange={(e) => setProxyUrl(e.target.value)}
+                  placeholder={t('settings.network.proxyPlaceholder')}
+                  allowClear
                 />
               </div>
             </div>

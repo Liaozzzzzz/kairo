@@ -12,6 +12,7 @@ type AppSettings struct {
 	DownloadConcurrency int    `json:"downloadConcurrency"`
 	MaxDownloadSpeed    *int   `json:"maxDownloadSpeed"` // MB/s
 	Language            string `json:"language"`
+	ProxyUrl            string `json:"proxyUrl"`
 }
 
 var (
@@ -106,4 +107,10 @@ func GetDownloadRateLimit() string {
 		return ""
 	}
 	return fmt.Sprintf("%dM", *currentConfig.MaxDownloadSpeed)
+}
+
+func GetProxyUrl() string {
+	configMu.RLock()
+	defer configMu.RUnlock()
+	return currentConfig.ProxyUrl
 }

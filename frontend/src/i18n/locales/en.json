@@ -14,7 +14,12 @@
     "save": "Save",
     "tabs": {
       "downloads": "Download Settings",
+      "network": "Network Settings",
       "language": "Language Settings"
+    },
+    "network": {
+      "proxy": "Proxy URL",
+      "proxyPlaceholder": "http://user:pass@host:port"
     },
     "downloads": {
       "dir": "Default Download Path",

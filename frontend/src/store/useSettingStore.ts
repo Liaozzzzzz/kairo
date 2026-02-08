@@ -8,6 +8,7 @@ export interface AppSettings {
   downloadConcurrency: number;
   maxDownloadSpeed: number | null;
   language: AppLanguage;
+  proxyUrl: string;
 }
 
 const SETTINGS_STORAGE_KEY = 'Kairo.settings';
@@ -17,6 +18,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   downloadConcurrency: 3,
   maxDownloadSpeed: null,
   language: 'zh',
+  proxyUrl: '',
 };
 
 const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
@@ -36,6 +38,7 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
       : null;
   const language = value.language === 'en' ? 'en' : 'zh';
   const downloadDir = typeof value.downloadDir === 'string' ? value.downloadDir : '';
+  const proxyUrl = typeof value.proxyUrl === 'string' ? value.proxyUrl : '';
 
   return {
     ...DEFAULT_SETTINGS,
@@ -43,6 +46,7 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
     maxDownloadSpeed,
     language,
     downloadDir,
+    proxyUrl,
   };
 };
 
@@ -51,12 +55,14 @@ interface SettingState {
   downloadConcurrency: number;
   maxDownloadSpeed: number | null;
   language: AppLanguage;
+  proxyUrl: string;
 
   // Actions
   setDefaultDir: (dir: string) => void;
   setDownloadConcurrency: (value: number) => void;
   setMaxDownloadSpeed: (value: number | null) => void;
   setLanguage: (value: AppLanguage) => void;
+  setProxyUrl: (value: string) => void;
   loadSettings: () => void;
 }
 
@@ -65,6 +71,7 @@ export const useSettingStore = create<SettingState>((set, get) => ({
   downloadConcurrency: DEFAULT_SETTINGS.downloadConcurrency,
   maxDownloadSpeed: DEFAULT_SETTINGS.maxDownloadSpeed,
   language: DEFAULT_SETTINGS.language,
+  proxyUrl: DEFAULT_SETTINGS.proxyUrl,
 
   setDefaultDir: (dir) => {
     set({ defaultDir: dir });
@@ -82,6 +89,10 @@ export const useSettingStore = create<SettingState>((set, get) => ({
     set({ language: value });
     saveAppSettings(get());
   },
+  setProxyUrl: (value) => {
+    set({ proxyUrl: value });
+    saveAppSettings(get());
+  },
   loadSettings: () => {
     const settings = loadAppSettings();
     set({
@@ -89,6 +100,7 @@ export const useSettingStore = create<SettingState>((set, get) => ({
       downloadConcurrency: settings.downloadConcurrency,
       maxDownloadSpeed: settings.maxDownloadSpeed,
       language: settings.language,
+      proxyUrl: settings.proxyUrl,
     });
     UpdateSettings({
       ...settings,
@@ -123,6 +135,7 @@ const saveAppSettings = (state: SettingState) => {
     downloadConcurrency: state.downloadConcurrency,
     maxDownloadSpeed: state.maxDownloadSpeed,
     language: state.language,
+    proxyUrl: state.proxyUrl,
   };
   localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
   UpdateSettings({

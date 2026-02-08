@@ -242,7 +242,13 @@ func (d *Downloader) GetVideoInfo(url string, assetProvider AssetProvider) (*mod
 	}
 
 	// Use --dump-json to get metadata
-	cmd := exec.Command(d.BinPath, "--dump-json", "--no-playlist", url)
+	args := []string{"--dump-json", "--no-playlist"}
+	if proxy := config.GetProxyUrl(); proxy != "" {
+		args = append(args, "--proxy", proxy)
+	}
+	args = append(args, url)
+
+	cmd := exec.Command(d.BinPath, args...)
 
 	output, err := cmd.Output()
 	if err != nil {

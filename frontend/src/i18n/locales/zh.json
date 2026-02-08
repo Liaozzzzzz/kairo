@@ -14,7 +14,12 @@
     "save": "保存",
     "tabs": {
       "downloads": "下载设置",
+      "network": "网络设置",
       "language": "语言设置"
+    },
+    "network": {
+      "proxy": "代理地址",
+      "proxyPlaceholder": "http://user:pass@host:port"
     },
     "downloads": {
       "dir": "默认下载路径",

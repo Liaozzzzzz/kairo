@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -30,7 +31,60 @@ func findProjectRoot() (string, error) {
 	}
 }
 
+func checkSharedTags() bool {
+	// 1. Check environment variable (manual override or if Wails passes it)
+	if os.Getenv("WAILS_TAGS") == "shared" || strings.Contains(os.Getenv("WAILS_TAGS"), "shared") {
+		return true
+	}
+
+	// 2. Check environment variable for skipping assets specifically
+	if os.Getenv("SKIP_ASSETS") == "true" || os.Getenv("SKIP_ASSETS") == "1" {
+		return true
+	}
+
+	// 3. Check parent processes for wails command with -tags shared
+	// This is a best-effort check primarily for macOS/Linux where ps is available
+	pid := os.Getpid()
+	for i := 0; i < 5; i++ { // check up to 5 levels up
+		// Get PPID
+		ppidCmd := exec.Command("ps", "-o", "ppid=", "-p", fmt.Sprintf("%d", pid))
+		out, err := ppidCmd.Output()
+		if err != nil {
+			break
+		}
+		ppidStr := strings.TrimSpace(string(out))
+		if ppidStr == "" || ppidStr == "0" {
+			break
+		}
+
+		// Get Command
+		cmdCmd := exec.Command("ps", "-o", "command=", "-p", ppidStr)
+		out, err = cmdCmd.Output()
+		if err == nil {
+			cmd := strings.TrimSpace(string(out))
+			// Look for wails command with shared tag
+			if strings.Contains(cmd, "wails") && strings.Contains(cmd, "shared") {
+				return true
+			}
+		}
+
+		// Move up
+		newPid := 0
+		fmt.Sscanf(ppidStr, "%d", &newPid)
+		if newPid == 0 {
+			break
+		}
+		pid = newPid
+	}
+	return false
+}
+
 func main() {
+	if checkSharedTags() {
+		fmt.Println("Shared mode detected. Skipping binary download.")
+		return
+	}
+
 	projectRoot, err := findProjectRoot()
 	if err != nil {
 		fmt.Printf("Warning: %v. Using current directory as root.\n", err)
@@ -199,7 +253,7 @@ func downloadFileGeneric(url, targetPath string) error {
 	return err
 }
 
-func extractFileFromZip(zipPath, targetName, destDir string) error {
+func extractFileFromZip(zipPath, targetFile, destDir string) error {
 	r, err := zip.OpenReader(zipPath)
 	if err != nil {
 		return err
@@ -207,61 +261,25 @@ func extractFileFromZip(zipPath, targetName, destDir string) error {
 	defer r.Close()
 
 	for _, f := range r.File {
-		// Logic matches internal/utils/utils.go ExtractZip
-		// Checks:
-		// 1. suffix /targetName
-		// 2. suffix \targetName
-		// 3. exact match targetName
-		// 4. suffix targetName.exe (if looking for ffmpeg but finding ffmpeg.exe - though here we usually pass full name)
-
-		// Note: internal/utils uses "/" hardcoded for check 1.
-		// We implement similar flexible checking.
-
-		normalizedName := strings.ReplaceAll(f.Name, "\\", "/")
-		targetNameBase := filepath.Base(targetName) // ffmpeg or ffmpeg.exe
-
-		isMatch := false
-		if strings.HasSuffix(normalizedName, "/"+targetNameBase) {
-			isMatch = true
-		} else if normalizedName == targetNameBase {
-			isMatch = true
-		}
-
-		if isMatch {
-			if f.FileInfo().IsDir() {
-				continue
-			}
-
+		// Only extract the specific file (handling potential paths in zip)
+		// e.g., ffmpeg-master.../bin/ffmpeg.exe
+		if filepath.Base(f.Name) == targetFile {
 			rc, err := f.Open()
 			if err != nil {
 				return err
 			}
 			defer rc.Close()
 
-			// Extract to destDir/targetName
-			destPath := filepath.Join(destDir, targetName)
-
-			// Use temp file for extraction too
-			tmpDestPath := destPath + ".tmp"
-			outFile, err := os.Create(tmpDestPath)
+			targetPath := filepath.Join(destDir, targetFile)
+			out, err := os.Create(targetPath)
 			if err != nil {
 				return err
 			}
+			defer out.Close()
 
-			_, err = io.Copy(outFile, rc)
-			outFile.Close()
-			if err != nil {
-				os.Remove(tmpDestPath)
-				return err
-			}
-
-			if err := os.Rename(tmpDestPath, destPath); err != nil {
-				os.Remove(tmpDestPath)
-				return err
-			}
-
-			return nil
+			_, err = io.Copy(out, rc)
+			return err
 		}
 	}
-	return fmt.Errorf("file %s not found in zip", targetName)
+	return fmt.Errorf("file %s not found in zip", targetFile)
 }

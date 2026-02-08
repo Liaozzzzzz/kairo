@@ -80,6 +80,14 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		args = append(args, "-r", limit)
 	}
 
+	if proxy := config.GetProxyUrl(); proxy != "" {
+		args = append(args, "--proxy", proxy)
+	}
+
+	if cookieArgs := config.GetCookieArgs(task.URL); len(cookieArgs) > 0 {
+		args = append(args, cookieArgs...)
+	}
+
 	if task.Format != "original" {
 		args = append(args, "--merge-output-format", task.Format)
 	}

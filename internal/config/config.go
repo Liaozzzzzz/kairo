@@ -5,13 +5,25 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+
+	"Kairo/internal/utils"
 )
 
+type CookieConfig struct {
+	Enabled bool   `json:"enabled"`
+	Source  string `json:"source"` // "browser" or "file"
+	Browser string `json:"browser"`
+	File    string `json:"file"`
+}
+
 type AppSettings struct {
-	DownloadDir         string `json:"downloadDir"`
-	DownloadConcurrency int    `json:"downloadConcurrency"`
-	MaxDownloadSpeed    *int   `json:"maxDownloadSpeed"` // MB/s
-	Language            string `json:"language"`
+	DownloadDir         string       `json:"downloadDir"`
+	DownloadConcurrency int          `json:"downloadConcurrency"`
+	MaxDownloadSpeed    *int         `json:"maxDownloadSpeed"` // MB/s
+	Language            string       `json:"language"`
+	ProxyUrl            string       `json:"proxyUrl"`
+	BilibiliCookie      CookieConfig `json:"bilibiliCookie"`
+	YoutubeCookie       CookieConfig `json:"youtubeCookie"`
 }
 
 var (
@@ -106,4 +118,35 @@ func GetDownloadRateLimit() string {
 		return ""
 	}
 	return fmt.Sprintf("%dM", *currentConfig.MaxDownloadSpeed)
+}
+
+func GetProxyUrl() string {
+	configMu.RLock()
+	defer configMu.RUnlock()
+	return currentConfig.ProxyUrl
+}
+
+func GetCookieArgs(url string) []string {
+	site := utils.GetSiteName(url)
+	var cookieConfig CookieConfig
+	if site == "bilibili" {
+		configMu.RLock()
+		cookieConfig = currentConfig.BilibiliCookie
+		configMu.RUnlock()
+	} else if site == "youtube" {
+		configMu.RLock()
+		cookieConfig = currentConfig.YoutubeCookie
+		configMu.RUnlock()
+	}
+
+	if cookieConfig.Enabled {
+		if cookieConfig.Source == "browser" && cookieConfig.Browser != "" {
+			return []string{"--cookies-from-browser", cookieConfig.Browser}
+		}
+		if cookieConfig.Source == "file" && cookieConfig.File != "" {
+			return []string{"--cookies", cookieConfig.File}
+		}
+	}
+
+	return nil
 }

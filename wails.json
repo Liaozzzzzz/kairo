@@ -10,9 +10,7 @@
   "frontend:dev:watcher": "pnpm run dev",
   "frontend:dev:serverUrl": "auto",
   "preBuildHooks": {
-    "darwin/*": "go run ../../scripts/init_binaries.go",
-    "windows/*": "go run ..\\..\\scripts\\init_binaries.go",
-    "linux/*": "go run ../../scripts/init_binaries.go"
+    "*/*": "go run ../../scripts/init_binaries.go"
   },
   "author": {
     "name": "liaozzzzzz",

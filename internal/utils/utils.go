@@ -182,3 +182,14 @@ func DeleteFile(filePath string) error {
 	}
 	return nil
 }
+
+func GetSiteName(url string) string {
+	url = strings.ToLower(url)
+	if strings.Contains(url, "bilibili.com") || strings.Contains(url, "b23.tv") {
+		return "bilibili"
+	}
+	if strings.Contains(url, "youtube.com") || strings.Contains(url, "youtu.be") {
+		return "youtube"
+	}
+	return "other"
+}

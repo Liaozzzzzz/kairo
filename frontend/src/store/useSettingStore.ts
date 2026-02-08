@@ -1,22 +1,43 @@
 import { create } from 'zustand';
 import { UpdateSettings } from '@root/wailsjs/go/main/App';
+import { config as WailsConfig } from '@root/wailsjs/go/models';
 
 export type AppLanguage = 'zh' | 'en';
+
+export interface CookieConfig {
+  enabled: boolean;
+  source: 'browser' | 'file';
+  browser: string;
+  file: string;
+}
 
 export interface AppSettings {
   downloadDir: string;
   downloadConcurrency: number;
   maxDownloadSpeed: number | null;
   language: AppLanguage;
+  proxyUrl: string;
+  bilibiliCookie: CookieConfig;
+  youtubeCookie: CookieConfig;
 }
 
 const SETTINGS_STORAGE_KEY = 'Kairo.settings';
+
+const DEFAULT_COOKIE_CONFIG: CookieConfig = {
+  enabled: false,
+  source: 'browser',
+  browser: '',
+  file: '',
+};
 
 const DEFAULT_SETTINGS: AppSettings = {
   downloadDir: '',
   downloadConcurrency: 3,
   maxDownloadSpeed: null,
   language: 'zh',
+  proxyUrl: '',
+  bilibiliCookie: { ...DEFAULT_COOKIE_CONFIG },
+  youtubeCookie: { ...DEFAULT_COOKIE_CONFIG },
 };
 
 const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
@@ -36,6 +57,20 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
       : null;
   const language = value.language === 'en' ? 'en' : 'zh';
   const downloadDir = typeof value.downloadDir === 'string' ? value.downloadDir : '';
+  const proxyUrl = typeof value.proxyUrl === 'string' ? value.proxyUrl : '';
+
+  const normalizeCookie = (c: unknown): CookieConfig => {
+    const value = typeof c === 'object' && c !== null ? (c as Partial<CookieConfig>) : {};
+    return {
+      enabled: !!value.enabled,
+      source: value.source === 'file' ? 'file' : 'browser',
+      browser: typeof value.browser === 'string' ? value.browser : '',
+      file: typeof value.file === 'string' ? value.file : '',
+    };
+  };
+
+  const bilibiliCookie = normalizeCookie(value.bilibiliCookie);
+  const youtubeCookie = normalizeCookie(value.youtubeCookie);
 
   return {
     ...DEFAULT_SETTINGS,
@@ -43,6 +78,9 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
     maxDownloadSpeed,
     language,
     downloadDir,
+    proxyUrl,
+    bilibiliCookie,
+    youtubeCookie,
   };
 };
 
@@ -51,12 +89,18 @@ interface SettingState {
   downloadConcurrency: number;
   maxDownloadSpeed: number | null;
   language: AppLanguage;
+  proxyUrl: string;
+  bilibiliCookie: CookieConfig;
+  youtubeCookie: CookieConfig;
 
   // Actions
   setDefaultDir: (dir: string) => void;
   setDownloadConcurrency: (value: number) => void;
   setMaxDownloadSpeed: (value: number | null) => void;
   setLanguage: (value: AppLanguage) => void;
+  setProxyUrl: (value: string) => void;
+  setBilibiliCookie: (value: CookieConfig) => void;
+  setYoutubeCookie: (value: CookieConfig) => void;
   loadSettings: () => void;
 }
 
@@ -65,6 +109,9 @@ export const useSettingStore = create<SettingState>((set, get) => ({
   downloadConcurrency: DEFAULT_SETTINGS.downloadConcurrency,
   maxDownloadSpeed: DEFAULT_SETTINGS.maxDownloadSpeed,
   language: DEFAULT_SETTINGS.language,
+  proxyUrl: DEFAULT_SETTINGS.proxyUrl,
+  bilibiliCookie: DEFAULT_SETTINGS.bilibiliCookie,
+  youtubeCookie: DEFAULT_SETTINGS.youtubeCookie,
 
   setDefaultDir: (dir) => {
     set({ defaultDir: dir });
@@ -82,6 +129,18 @@ export const useSettingStore = create<SettingState>((set, get) => ({
     set({ language: value });
     saveAppSettings(get());
   },
+  setProxyUrl: (value) => {
+    set({ proxyUrl: value });
+    saveAppSettings(get());
+  },
+  setBilibiliCookie: (value) => {
+    set({ bilibiliCookie: value });
+    saveAppSettings(get());
+  },
+  setYoutubeCookie: (value) => {
+    set({ youtubeCookie: value });
+    saveAppSettings(get());
+  },
   loadSettings: () => {
     const settings = loadAppSettings();
     set({
@@ -89,44 +148,44 @@ export const useSettingStore = create<SettingState>((set, get) => ({
       downloadConcurrency: settings.downloadConcurrency,
       maxDownloadSpeed: settings.maxDownloadSpeed,
       language: settings.language,
+      proxyUrl: settings.proxyUrl,
+      bilibiliCookie: settings.bilibiliCookie,
+      youtubeCookie: settings.youtubeCookie,
     });
-    UpdateSettings({
-      ...settings,
-      maxDownloadSpeed: settings.maxDownloadSpeed ?? undefined,
-    }).catch(console.error);
+    // Sync to backend
+    UpdateSettings(toWailsSettings(settings));
   },
 }));
 
-const loadAppSettings = (): AppSettings => {
-  if (typeof localStorage === 'undefined') {
-    return DEFAULT_SETTINGS;
-  }
+function loadAppSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
-    if (!raw) {
-      return DEFAULT_SETTINGS;
+    if (raw) {
+      return normalizeSettings(JSON.parse(raw));
     }
-
-    const parsed = JSON.parse(raw) as Partial<AppSettings>;
-    return normalizeSettings(parsed);
-  } catch {
-    return DEFAULT_SETTINGS;
+  } catch (e) {
+    console.error('Failed to load settings', e);
   }
-};
+  return DEFAULT_SETTINGS;
+}
 
-const saveAppSettings = (state: SettingState) => {
-  if (typeof localStorage === 'undefined') {
-    return;
-  }
+function saveAppSettings(state: SettingState) {
   const settings: AppSettings = {
     downloadDir: state.defaultDir,
     downloadConcurrency: state.downloadConcurrency,
     maxDownloadSpeed: state.maxDownloadSpeed,
     language: state.language,
+    proxyUrl: state.proxyUrl,
+    bilibiliCookie: state.bilibiliCookie,
+    youtubeCookie: state.youtubeCookie,
   };
   localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
-  UpdateSettings({
+  UpdateSettings(toWailsSettings(settings));
+}
+
+function toWailsSettings(settings: AppSettings): WailsConfig.AppSettings {
+  return new WailsConfig.AppSettings({
     ...settings,
     maxDownloadSpeed: settings.maxDownloadSpeed ?? undefined,
-  }).catch(console.error);
-};
+  });
+}

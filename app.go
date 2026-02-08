@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"embed"
 	_ "embed"
 	"encoding/json"
 
@@ -16,14 +15,6 @@ import (
 
 //go:embed wails.json
 var wailsJSON []byte
-
-//go:embed assets/bin/*
-var embeddedAssets embed.FS
-
-// readEmbedded reads a file from the embedded assets
-func readEmbedded(name string) ([]byte, error) {
-	return embeddedAssets.ReadFile("assets/bin/" + name)
-}
 
 // App struct
 type App struct {

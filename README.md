@@ -80,6 +80,22 @@ wails dev
 
 首次运行时，项目会自动通过 `scripts/init_binaries.go` 下载所需的 `yt-dlp` 和 `ffmpeg` 二进制文件。
 
+**Shared 模式（推荐用于减小二进制体积）：**
+
+如果您希望构建出的应用不包含内嵌的二进制文件（yt-dlp/ffmpeg），而是让应用在首次运行时自动下载，可以使用 `shared` 标签：
+
+```bash
+# 开发模式
+wails dev -tags shared
+
+# 构建生产版本
+wails build -tags shared
+```
+
+在 `shared` 模式下：
+1. `wails build` 阶段会跳过 `scripts/init_binaries.go` 的下载过程，显著加快构建速度。
+2. 应用启动时，如果发现配置目录下缺少二进制文件，会自动从网络下载。
+
 ### 构建
 
 构建生产环境版本：

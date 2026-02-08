@@ -19,7 +19,20 @@
     },
     "network": {
       "proxy": "代理地址",
-      "proxyPlaceholder": "http://user:pass@host:port"
+      "proxyPlaceholder": "http://user:pass@host:port",
+      "cookies": "Cookies 来源浏览器",
+      "cookiesPlaceholder": "选择浏览器 (例如: chrome)",
+      "cookiesFile": "Cookies 文件",
+      "cookiesFilePlaceholder": "请选择 Cookies 文件",
+      "chooseFile": "选择文件"
+    },
+    "site": {
+      "bilibili": "哔哩哔哩",
+      "youtube": "YouTube",
+      "enableAuth": "启用认证",
+      "authMode": "认证方式",
+      "browser": "浏览器",
+      "file": "本地文件"
     },
     "downloads": {
       "dir": "默认下载路径",

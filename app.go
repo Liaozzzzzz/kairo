@@ -60,6 +60,16 @@ func (a *App) ChooseDirectory() (string, error) {
 	return dir, nil
 }
 
+func (a *App) ChooseFile() (string, error) {
+	file, err := wailsRuntime.OpenFileDialog(a.ctx, wailsRuntime.OpenDialogOptions{
+		Title: "选择文件",
+	})
+	if err != nil {
+		return "", err
+	}
+	return file, nil
+}
+
 // GetDefaultDownloadDir returns the system download directory
 func (a *App) GetDefaultDownloadDir() (string, error) {
 	return config.GetDefaultDownloadDir()

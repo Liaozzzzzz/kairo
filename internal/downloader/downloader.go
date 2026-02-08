@@ -246,6 +246,11 @@ func (d *Downloader) GetVideoInfo(url string, assetProvider AssetProvider) (*mod
 	if proxy := config.GetProxyUrl(); proxy != "" {
 		args = append(args, "--proxy", proxy)
 	}
+
+	if cookieArgs := config.GetCookieArgs(url); len(cookieArgs) > 0 {
+		args = append(args, cookieArgs...)
+	}
+
 	args = append(args, url)
 
 	cmd := exec.Command(d.BinPath, args...)

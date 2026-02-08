@@ -1,11 +1,22 @@
 import { useTranslation } from 'react-i18next';
-import { Button, Select, Card, Slider, Input, Space, Typography, Segmented } from 'antd';
-import { FolderOpenOutlined } from '@ant-design/icons';
+import {
+  Button,
+  Select,
+  Card,
+  Slider,
+  Input,
+  Space,
+  Typography,
+  Segmented,
+  Switch,
+  Radio,
+} from 'antd';
+import { FolderOpenOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useShallow } from 'zustand/react/shallow';
-import { ChooseDirectory } from '@root/wailsjs/go/main/App';
+import { ChooseDirectory, ChooseFile } from '@root/wailsjs/go/main/App';
 import PageContainer from '@/components/PageContainer';
 import PageHeader from '@/components/PageHeader';
-import { AppLanguage, useSettingStore } from '@/store/useSettingStore';
+import { AppLanguage, useSettingStore, CookieConfig } from '@/store/useSettingStore';
 
 const { Text } = Typography;
 
@@ -23,6 +34,10 @@ const Settings = () => {
     setLanguage,
     proxyUrl,
     setProxyUrl,
+    bilibiliCookie,
+    setBilibiliCookie,
+    youtubeCookie,
+    setYoutubeCookie,
   } = useSettingStore(
     useShallow((state) => ({
       defaultDir: state.defaultDir,
@@ -35,6 +50,10 @@ const Settings = () => {
       setLanguage: state.setLanguage,
       proxyUrl: state.proxyUrl,
       setProxyUrl: state.setProxyUrl,
+      bilibiliCookie: state.bilibiliCookie,
+      setBilibiliCookie: state.setBilibiliCookie,
+      youtubeCookie: state.youtubeCookie,
+      setYoutubeCookie: state.setYoutubeCookie,
     }))
   );
 
@@ -49,7 +68,132 @@ const Settings = () => {
     }
   };
 
+  const handleChooseCookiesFile = async (
+    site: 'bilibili' | 'youtube',
+    currentConfig: CookieConfig
+  ) => {
+    try {
+      const file = await ChooseFile();
+      if (file) {
+        const update = { ...currentConfig, file };
+        if (site === 'bilibili') setBilibiliCookie(update);
+        else setYoutubeCookie(update);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const maxSpeedSliderValue = maxDownloadSpeed === null ? 151 : maxDownloadSpeed;
+
+  const renderCookieSettings = (
+    site: 'bilibili' | 'youtube',
+    config: CookieConfig,
+    setConfig: (val: CookieConfig) => void
+  ) => {
+    return (
+      <>
+        {/* Enable Switch */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+          <div className="md:col-span-4">
+            <Text strong className="block text-[13px] text-gray-600 mb-0">
+              {t('settings.site.enableAuth')}
+            </Text>
+          </div>
+          <div className="md:col-span-8">
+            <Switch
+              checked={config.enabled}
+              onChange={(checked) => setConfig({ ...config, enabled: checked })}
+            />
+          </div>
+        </div>
+
+        {config.enabled && (
+          <>
+            {/* Auth Mode */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+              <div className="md:col-span-4">
+                <Text strong className="block text-[13px] text-gray-600 mb-0">
+                  {t('settings.site.authMode')}
+                </Text>
+              </div>
+              <div className="md:col-span-8">
+                <Radio.Group
+                  value={config.source}
+                  onChange={(e) => setConfig({ ...config, source: e.target.value })}
+                >
+                  <Radio value="browser">{t('settings.site.browser')}</Radio>
+                  <Radio value="file">{t('settings.site.file')}</Radio>
+                </Radio.Group>
+              </div>
+            </div>
+
+            {/* Browser Select */}
+            {config.source === 'browser' && (
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+                <div className="md:col-span-4">
+                  <Text strong className="block text-[13px] text-gray-600 mb-0">
+                    {t('settings.network.cookies')}
+                  </Text>
+                </div>
+                <div className="md:col-span-8">
+                  <Select
+                    value={config.browser || undefined}
+                    onChange={(val) => setConfig({ ...config, browser: val })}
+                    style={{ width: '100%' }}
+                    placeholder={t('settings.network.cookiesPlaceholder')}
+                    allowClear
+                    options={[
+                      { value: 'chrome', label: 'Google Chrome' },
+                      { value: 'firefox', label: 'Mozilla Firefox' },
+                      { value: 'edge', label: 'Microsoft Edge' },
+                      { value: 'safari', label: 'Safari' },
+                      { value: 'opera', label: 'Opera' },
+                      { value: 'brave', label: 'Brave' },
+                      { value: 'vivaldi', label: 'Vivaldi' },
+                      { value: 'chromium', label: 'Chromium' },
+                    ]}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* File Select */}
+            {config.source === 'file' && (
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+                <div className="md:col-span-4">
+                  <Text strong className="block text-[13px] text-gray-600 mb-0">
+                    {t('settings.network.cookiesFile')}
+                  </Text>
+                </div>
+                <div className="md:col-span-8">
+                  <Space.Compact style={{ width: '100%' }}>
+                    <Input
+                      value={config.file}
+                      readOnly
+                      placeholder={t('settings.network.cookiesFilePlaceholder')}
+                      className="cursor-default bg-gray-50 hover:bg-gray-50 text-gray-700"
+                      allowClear
+                      onChange={(e) => {
+                        if (!e.target.value) setConfig({ ...config, file: '' });
+                      }}
+                    />
+                    <Button
+                      icon={<FileTextOutlined />}
+                      onClick={() => handleChooseCookiesFile(site, config)}
+                      type="default"
+                    >
+                      {t('settings.network.chooseFile')}
+                    </Button>
+                  </Space.Compact>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </>
+    );
+  };
 
   return (
     <PageContainer
@@ -62,12 +206,20 @@ const Settings = () => {
     >
       <div className="space-y-4 max-w-4xl mx-auto">
         {/* Downloads Settings */}
-        <Card variant="borderless" size="small" title={<span>{t('settings.tabs.downloads')}</span>}>
+        <Card
+          variant="borderless"
+          size="small"
+          title={
+            <span className="text-base font-semibold text-gray-800">
+              {t('settings.tabs.downloads')}
+            </span>
+          }
+        >
           <div className="space-y-5 px-2 py-0">
             {/* Directory */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
               <div className="md:col-span-4">
-                <Text strong className="block text-sm mb-0">
+                <Text strong className="block text-[13px] text-gray-600 mb-0">
                   {t('settings.downloads.dir')}
                 </Text>
               </div>
@@ -88,7 +240,7 @@ const Settings = () => {
             {/* Concurrent Downloads */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
               <div className="md:col-span-4">
-                <Text strong className="block text-sm mb-0">
+                <Text strong className="block text-[13px] text-gray-600 mb-0">
                   {t('settings.downloads.concurrent')}
                 </Text>
               </div>
@@ -109,7 +261,7 @@ const Settings = () => {
             {/* Max Speed */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-start">
               <div className="md:col-span-4 pt-1">
-                <Text strong className="block text-sm mb-0">
+                <Text strong className="block text-[13px] text-gray-600 mb-0">
                   {t('settings.downloads.maxSpeed')}
                 </Text>
                 <div className="text-xs text-gray-500 mt-0.5">
@@ -148,11 +300,19 @@ const Settings = () => {
         </Card>
 
         {/* Network Settings */}
-        <Card variant="borderless" size="small" title={<span>{t('settings.tabs.network')}</span>}>
-          <div className="px-2 py-0">
+        <Card
+          variant="borderless"
+          size="small"
+          title={
+            <span className="text-base font-semibold text-gray-800">
+              {t('settings.tabs.network')}
+            </span>
+          }
+        >
+          <div className="px-2 py-0 space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
               <div className="md:col-span-4">
-                <Text strong className="block text-sm mb-0">
+                <Text strong className="block text-[13px] text-gray-600 mb-0">
                   {t('settings.network.proxy')}
                 </Text>
               </div>
@@ -165,15 +325,39 @@ const Settings = () => {
                 />
               </div>
             </div>
+            <div className="flex items-center gap-3 my-2">
+              <div className="w-6 border-t border-gray-200" />
+              <span className="text-[12px] text-gray-500 font-medium">
+                {t('settings.site.bilibili')}
+              </span>
+              <div className="flex-1 border-t border-gray-200" />
+            </div>
+            {renderCookieSettings('bilibili', bilibiliCookie, setBilibiliCookie)}
+            <div className="flex items-center gap-3 my-2">
+              <div className="w-6 border-t border-gray-200" />
+              <span className="text-[12px] text-gray-500 font-medium">
+                {t('settings.site.youtube')}
+              </span>
+              <div className="flex-1 border-t border-gray-200" />
+            </div>
+            {renderCookieSettings('youtube', youtubeCookie, setYoutubeCookie)}
           </div>
         </Card>
 
         {/* Language Settings */}
-        <Card variant="borderless" size="small" title={<span>{t('settings.tabs.language')}</span>}>
+        <Card
+          variant="borderless"
+          size="small"
+          title={
+            <span className="text-base font-semibold text-gray-800">
+              {t('settings.tabs.language')}
+            </span>
+          }
+        >
           <div className="px-2 py-0">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
               <div className="md:col-span-4">
-                <Text strong className="block text-sm mb-0">
+                <Text strong className="block text-[13px] text-gray-600 mb-0">
                   {t('settings.language')}
                 </Text>
               </div>

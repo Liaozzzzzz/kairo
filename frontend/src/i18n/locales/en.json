@@ -19,7 +19,20 @@
     },
     "network": {
       "proxy": "Proxy URL",
-      "proxyPlaceholder": "http://user:pass@host:port"
+      "proxyPlaceholder": "http://user:pass@host:port",
+      "cookies": "Cookies Browser",
+      "cookiesPlaceholder": "Select browser (e.g. chrome)",
+      "cookiesFile": "Cookies File",
+      "cookiesFilePlaceholder": "Select Cookies File",
+      "chooseFile": "Choose File"
+    },
+    "site": {
+      "bilibili": "Bilibili",
+      "youtube": "YouTube",
+      "enableAuth": "Enable Auth",
+      "authMode": "Auth Mode",
+      "browser": "Browser",
+      "file": "Local File"
     },
     "downloads": {
       "dir": "Default Download Path",

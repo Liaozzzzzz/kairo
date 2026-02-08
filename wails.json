@@ -5,10 +5,15 @@
   "info": {
     "productVersion": "1.0.0"
   },
-  "frontend:install": "npm install",
-  "frontend:build": "npm run build",
-  "frontend:dev:watcher": "npm run dev",
+  "frontend:install": "pnpm install",
+  "frontend:build": "pnpm run build",
+  "frontend:dev:watcher": "pnpm run dev",
   "frontend:dev:serverUrl": "auto",
+  "preBuildHooks": {
+    "darwin/*": "go run ../../scripts/init_binaries.go",
+    "windows/*": "go run ..\\..\\scripts\\init_binaries.go",
+    "linux/*": "go run ../../scripts/init_binaries.go"
+  },
   "author": {
     "name": "liaozzzzzz",
     "email": "l996712856@gmail.com"

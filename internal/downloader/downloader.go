@@ -168,7 +168,7 @@ func (d *Downloader) EnsureFFmpeg(base string, assetProvider AssetProvider) {
 	url := ""
 	switch runtime.GOOS {
 	case "darwin":
-		url = "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-macos64-gpl.zip"
+		url = "https://evermeet.cx/ffmpeg/getrelease/zip"
 	case "linux":
 		url = "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"
 	case "windows":

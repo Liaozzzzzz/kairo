@@ -204,7 +204,14 @@ function App() {
             </div>
           </div>
         </Sider>
-        <Content style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Content
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            overflowY: 'auto',
+            minHeight: '100vh',
+          }}
+        >
           {activeTab === 'downloads' && <Downloads />}
           {activeTab === 'tasks' && <Tasks />}
           {activeTab === 'settings' && <Settings />}

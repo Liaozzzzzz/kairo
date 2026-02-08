@@ -1,6 +1,5 @@
 import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
-import { Scrollbar } from '@/components/Scrollbar';
 
 interface PageContainerProps {
   children: ReactNode;
@@ -32,12 +31,16 @@ const PageContainer = ({
   ) : null;
 
   return (
-    <div className="h-full w-full bg-background text-foreground overflow-hidden">
-      <Scrollbar className="h-full w-full py-10" header={headerNode} footer={footerNode}>
-        <div className="flex justify-center w-full min-h-full">
+    <div className="flex-1 w-full bg-background text-foreground flex flex-col">
+      {headerNode && <div className="sticky top-0 z-10 bg-background pt-10">{headerNode}</div>}
+
+      <div className="flex-1 w-full">
+        <div className="flex justify-center w-full">
           <div className={cn('w-full py-6', maxWidth, className, viewClass)}>{children}</div>
         </div>
-      </Scrollbar>
+      </div>
+
+      {footerNode && <div className="sticky bottom-0 z-10 bg-background pb-10">{footerNode}</div>}
     </div>
   );
 };

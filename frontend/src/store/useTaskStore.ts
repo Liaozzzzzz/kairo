@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Task } from '../types';
+import { TaskStatus } from '@/data/variables';
 import { DeleteTask as DeleteTaskWails } from '@root/wailsjs/go/main/App';
 
 interface TaskState {
@@ -21,7 +22,7 @@ interface TaskState {
   deleteTask: (taskId: string, purge?: boolean) => Promise<void>;
 }
 
-export const useTaskStore = create<TaskState>((set) => ({
+export const useTaskStore = create<TaskState>((set, get) => ({
   tasks: {},
   taskLogs: {},
 
@@ -100,6 +101,10 @@ export const useTaskStore = create<TaskState>((set) => ({
     })),
 
   deleteTask: async (taskId, purge = false) => {
+    const task = get().tasks[taskId];
+    if (task?.status === TaskStatus.Merging) {
+      return;
+    }
     await DeleteTaskWails(taskId, purge);
     set((state) => {
       const newTasks = { ...state.tasks };

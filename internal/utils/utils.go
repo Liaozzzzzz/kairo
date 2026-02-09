@@ -107,6 +107,16 @@ func FormatSize(size float64) string {
 	}
 }
 
+func NormalizePath(dir string, path string) string {
+	if path == "" {
+		return ""
+	}
+	if filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(dir, path)
+}
+
 func ExtractZip(src, dest, targetFile string) error {
 	r, err := zip.OpenReader(src)
 	if err != nil {

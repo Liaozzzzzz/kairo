@@ -117,7 +117,7 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
       danger: true,
       onClick: () => deleteTask(task.id, false),
     },
-    ...(task.status === TaskStatus.Completed
+    ...(task.status !== TaskStatus.Merging
       ? [
           {
             key: 'purge',

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	stdruntime "runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -125,15 +126,42 @@ func (m *Manager) DeleteTask(id string, deleteFile bool) {
 	defer m.mu.Unlock()
 
 	// 1. Cancel running task
-	if cancel, ok := m.cancelFuncs[id]; ok {
-		cancel()
-		delete(m.cancelFuncs, id)
-	}
-
 	// 2. Delete file if requested and remove from tasks
 	if task, ok := m.tasks[id]; ok {
-		if deleteFile && task.FilePath != "" {
-			go utils.DeleteFile(task.FilePath)
+		if task.Status == models.TaskStatusMerging {
+			return
+		}
+
+		if cancel, ok := m.cancelFuncs[id]; ok {
+			cancel()
+			delete(m.cancelFuncs, id)
+		}
+
+		if deleteFile {
+			paths := map[string]struct{}{}
+			if task.FilePath != "" {
+				normalized := utils.NormalizePath(task.Dir, task.FilePath)
+				paths[normalized] = struct{}{}
+				if !strings.HasSuffix(normalized, ".part") {
+					paths[normalized+".part"] = struct{}{}
+				}
+			}
+			for _, file := range task.Files {
+				if file.Path != "" {
+					normalized := utils.NormalizePath(task.Dir, file.Path)
+					paths[normalized] = struct{}{}
+					if !strings.HasSuffix(normalized, ".part") {
+						paths[normalized+".part"] = struct{}{}
+					}
+				}
+			}
+			for path := range paths {
+				if path == "" {
+					continue
+				}
+				p := path
+				go utils.DeleteFile(p)
+			}
 		}
 		delete(m.tasks, id)
 	}

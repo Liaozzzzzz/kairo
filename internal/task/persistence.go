@@ -9,6 +9,7 @@ import (
 
 	"Kairo/internal/config"
 	"Kairo/internal/models"
+	"Kairo/internal/utils"
 )
 
 func (m *Manager) saveTasks() {
@@ -61,6 +62,22 @@ func (m *Manager) loadTasks() {
 			if t.FilePath != "" {
 				if _, err := os.Stat(t.FilePath); err == nil {
 					t.FileExists = true
+				}
+			}
+		}
+
+		if len(t.Files) > 0 {
+			for i := range t.Files {
+				if t.Files[i].Path != "" {
+					t.Files[i].Path = utils.NormalizePath(t.Dir, t.Files[i].Path)
+				}
+				if info, err := os.Stat(t.Files[i].Path); err == nil {
+					t.Files[i].SizeBytes = info.Size()
+					t.Files[i].Size = utils.FormatBytes(info.Size())
+					if t.Status == models.TaskStatusCompleted {
+						t.Files[i].Progress = 100
+						t.FileExists = true
+					}
 				}
 			}
 		}

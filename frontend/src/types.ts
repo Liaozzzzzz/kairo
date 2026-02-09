@@ -1,5 +1,12 @@
 import { TaskStatus } from '@/data/variables';
 
+export interface TaskFile {
+  path: string;
+  size?: string;
+  size_bytes?: number;
+  progress?: number;
+}
+
 export interface Task {
   id: string;
   url: string;
@@ -17,4 +24,5 @@ export interface Task {
   eta?: string;
   log_path?: string;
   file_exists?: boolean;
+  files?: TaskFile[];
 }

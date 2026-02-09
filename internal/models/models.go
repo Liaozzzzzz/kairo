@@ -12,26 +12,34 @@ const (
 	TaskStatusError       TaskStatus = "error"
 )
 
+type DownloadFile struct {
+	Path      string  `json:"path"`
+	Size      string  `json:"size"`
+	SizeBytes int64   `json:"size_bytes"`
+	Progress  float64 `json:"progress"`
+}
+
 type DownloadTask struct {
-	ID          string     `json:"id"`
-	URL         string     `json:"url"`
-	Dir         string     `json:"dir"`
-	Quality     string     `json:"quality"` // "best", "1080p", "720p", "audio"
-	Format      string     `json:"format"`  // "original", "webm", "mp4", "mkv", "avi", "flv", "mov"
-	FormatID    string     `json:"format_id"`
-	Status      TaskStatus `json:"status"`
-	Progress    float64    `json:"progress"`
-	Title       string     `json:"title"`
-	Thumbnail   string     `json:"thumbnail"`
-	TotalSize   string     `json:"total_size"`
-	Speed       string     `json:"speed"`
-	Eta         string     `json:"eta"`
-	CurrentItem int        `json:"current_item"`
-	TotalItems  int        `json:"total_items"`
-	LogPath     string     `json:"log_path"`
-	FileExists  bool       `json:"file_exists"`
-	FilePath    string     `json:"file_path"`
-	TotalBytes  int64      `json:"total_bytes"`
+	ID          string         `json:"id"`
+	URL         string         `json:"url"`
+	Dir         string         `json:"dir"`
+	Quality     string         `json:"quality"` // "best", "1080p", "720p", "audio"
+	Format      string         `json:"format"`  // "original", "webm", "mp4", "mkv", "avi", "flv", "mov"
+	FormatID    string         `json:"format_id"`
+	Status      TaskStatus     `json:"status"`
+	Progress    float64        `json:"progress"`
+	Title       string         `json:"title"`
+	Thumbnail   string         `json:"thumbnail"`
+	TotalSize   string         `json:"total_size"`
+	Speed       string         `json:"speed"`
+	Eta         string         `json:"eta"`
+	CurrentItem int            `json:"current_item"`
+	TotalItems  int            `json:"total_items"`
+	LogPath     string         `json:"log_path"`
+	FileExists  bool           `json:"file_exists"`
+	FilePath    string         `json:"file_path"`
+	TotalBytes  int64          `json:"total_bytes"`
+	Files       []DownloadFile `json:"files"`
 }
 
 type QualityOption struct {

@@ -89,6 +89,18 @@
       "delete": "Delete",
       "purge": "Purge"
     },
+    "confirmDelete": {
+      "title": "Confirm Delete",
+      "content": "Remove this task from the list?",
+      "ok": "Delete",
+      "cancel": "Cancel"
+    },
+    "confirmPurge": {
+      "title": "Confirm Purge",
+      "content": "Delete files and remove this task from the list?",
+      "ok": "Purge",
+      "cancel": "Cancel"
+    },
     "viewLogs": "View Logs",
     "pause": "Pause",
     "resume": "Resume",

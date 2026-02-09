@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Card, Progress, Dropdown, MenuProps, Image, Badge } from 'antd';
+import { Card, Progress, Dropdown, MenuProps, Image, Badge, Modal } from 'antd';
 import {
   PlayCircleOutlined,
   PauseCircleOutlined,
@@ -78,6 +78,22 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
   const displayProgress = task.progress;
   const displaySize = task.total_size;
 
+  const confirmDelete = (purge: boolean) => {
+    if (task.status === TaskStatus.Merging) {
+      return;
+    }
+    const modalKey = purge ? 'tasks.confirmPurge' : 'tasks.confirmDelete';
+    Modal.confirm({
+      centered: true,
+      title: t(`${modalKey}.title`),
+      content: t(`${modalKey}.content`),
+      okText: t(`${modalKey}.ok`),
+      cancelText: t(`${modalKey}.cancel`),
+      okButtonProps: { danger: true },
+      onOk: () => deleteTask(task.id, purge),
+    });
+  };
+
   const menuItems: MenuProps['items'] = [
     {
       key: 'details',
@@ -115,7 +131,7 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
       label: t('tasks.contextMenu.delete'),
       icon: <DeleteOutlined className="w-4 h-4 mt-[-2px]" />,
       danger: true,
-      onClick: () => deleteTask(task.id, false),
+      onClick: () => confirmDelete(false),
     },
     ...(task.status !== TaskStatus.Merging
       ? [
@@ -124,7 +140,7 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
             label: t('tasks.contextMenu.purge'),
             icon: <CloseOutlined className="w-4 h-4 mt-[-2px]" />,
             danger: true,
-            onClick: () => deleteTask(task.id, true),
+            onClick: () => confirmDelete(true),
           },
         ]
       : []),
@@ -265,7 +281,7 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
                   task.status === TaskStatus.Pending) && (
                   <DeleteOutlined
                     title={t('tasks.contextMenu.delete')}
-                    onClick={() => deleteTask(task.id)}
+                    onClick={() => confirmDelete(false)}
                     className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-red-500 hover:bg-red-50"
                   />
                 )}

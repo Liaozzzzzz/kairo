@@ -21,6 +21,9 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 	defer func() {
 		m.mu.Lock()
 		delete(m.cancelFuncs, task.ID)
+		if _, deleted := m.deletedTasks[task.ID]; deleted {
+			delete(m.deletedTasks, task.ID)
+		}
 		m.mu.Unlock()
 		go m.scheduleTasks()
 	}()

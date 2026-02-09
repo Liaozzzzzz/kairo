@@ -108,8 +108,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     await DeleteTaskWails(taskId, purge);
     set((state) => {
       const newTasks = { ...state.tasks };
+      const newTaskLogs = { ...state.taskLogs };
       delete newTasks[taskId];
-      return { tasks: newTasks };
+      delete newTaskLogs[taskId];
+      return { tasks: newTasks, taskLogs: newTaskLogs };
     });
   },
 }));

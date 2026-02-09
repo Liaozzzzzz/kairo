@@ -23,6 +23,7 @@ type Manager struct {
 	assetProvider downloader.AssetProvider
 	tasks         map[string]*models.DownloadTask
 	cancelFuncs   map[string]context.CancelFunc
+	deletedTasks  map[string]struct{}
 	mu            sync.Mutex
 }
 
@@ -33,6 +34,7 @@ func NewManager(ctx context.Context, d *downloader.Downloader, ap downloader.Ass
 		assetProvider: ap,
 		tasks:         make(map[string]*models.DownloadTask),
 		cancelFuncs:   make(map[string]context.CancelFunc),
+		deletedTasks:  make(map[string]struct{}),
 	}
 	m.loadTasks()
 	return m
@@ -132,6 +134,8 @@ func (m *Manager) DeleteTask(id string, deleteFile bool) {
 			return
 		}
 
+		m.deletedTasks[id] = struct{}{}
+
 		if cancel, ok := m.cancelFuncs[id]; ok {
 			cancel()
 			delete(m.cancelFuncs, id)
@@ -164,6 +168,10 @@ func (m *Manager) DeleteTask(id string, deleteFile bool) {
 			}
 		}
 		delete(m.tasks, id)
+		m.deleteTaskLog(id)
+		if task.Status != models.TaskStatusStarting && task.Status != models.TaskStatusDownloading && task.Status != models.TaskStatusMerging {
+			delete(m.deletedTasks, id)
+		}
 	}
 
 	// 3. Save
@@ -274,12 +282,22 @@ func (m *Manager) OpenTaskDir(id string) {
 
 func (m *Manager) emitTaskUpdate(task *models.DownloadTask) {
 	m.mu.Lock()
+	if _, deleted := m.deletedTasks[task.ID]; deleted {
+		m.mu.Unlock()
+		return
+	}
 	t := *task
 	m.mu.Unlock()
 	runtime.EventsEmit(m.ctx, "task:update", t)
 }
 
 func (m *Manager) emitTaskLog(id, message string, replace bool) {
+	m.mu.Lock()
+	if _, deleted := m.deletedTasks[id]; deleted {
+		m.mu.Unlock()
+		return
+	}
+	m.mu.Unlock()
 	if !replace {
 		m.appendTextLog(id, message)
 	}

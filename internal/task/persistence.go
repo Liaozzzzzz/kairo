@@ -100,6 +100,14 @@ func (m *Manager) appendTextLog(id string, message string) {
 	_, _ = f.WriteString(fmt.Sprintf("[%s] %s\n", timestamp, message))
 }
 
+func (m *Manager) deleteTaskLog(id string) {
+	path := config.GetLogPath(id)
+	if path == "" {
+		return
+	}
+	_ = utils.DeleteFile(path)
+}
+
 func (m *Manager) GetTaskLogs(id string) ([]string, error) {
 	path := config.GetLogPath(id)
 	if path == "" {

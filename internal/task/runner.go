@@ -119,7 +119,8 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 	}
 
 	args := []string{
-		"--newline", // Important for parsing
+		"--newline",           // Important for parsing
+		"--encoding", "utf-8", // Force UTF-8 output for correct parsing
 		// "--js-runtimes", "node,deno", // Removed: auto-detection is preferred, or use specific path if needed
 		"--ffmpeg-location", filepath.Dir(m.downloader.BinPath), // Explicitly set ffmpeg location
 		"-o", "%(title)s.%(ext)s",

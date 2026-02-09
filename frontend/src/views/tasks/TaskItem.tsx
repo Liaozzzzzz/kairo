@@ -115,13 +115,13 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
     },
     ...(task.status === 'error' || (task.status === 'completed' && !task.file_exists)
       ? [
-          {
-            key: 'retry',
-            label: t('tasks.contextMenu.retry'),
-            icon: <ReloadOutlined className="w-4 h-4 mt-[-2px]" />,
-            onClick: () => RetryTask(task.id),
-          },
-        ]
+        {
+          key: 'retry',
+          label: t('tasks.contextMenu.retry'),
+          icon: <ReloadOutlined className="w-4 h-4 mt-[-2px]" />,
+          onClick: () => RetryTask(task.id),
+        },
+      ]
       : []),
     {
       type: 'divider',
@@ -135,14 +135,14 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
     },
     ...(task.status !== TaskStatus.Merging
       ? [
-          {
-            key: 'purge',
-            label: t('tasks.contextMenu.purge'),
-            icon: <CloseOutlined className="w-4 h-4 mt-[-2px]" />,
-            danger: true,
-            onClick: () => confirmDelete(true),
-          },
-        ]
+        {
+          key: 'purge',
+          label: t('tasks.contextMenu.purge'),
+          icon: <CloseOutlined className="w-4 h-4 mt-[-2px]" />,
+          danger: true,
+          onClick: () => confirmDelete(true),
+        },
+      ]
       : []),
   ];
 
@@ -173,7 +173,7 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
   };
 
   const isActive = task.status === TaskStatus.Starting || task.status === TaskStatus.Downloading;
-
+  console.log(task)
   return (
     <Dropdown menu={{ items: menuItems }} trigger={['contextMenu']}>
       <div>
@@ -181,11 +181,10 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
           <Card
             hoverable
             variant="borderless"
-            className={`${
-              task.status === TaskStatus.Completed && task.file_exists === false
-                ? 'opacity-60 grayscale'
-                : ''
-            }`}
+            className={`${task.status === TaskStatus.Completed && task.file_exists === false
+              ? 'opacity-60 grayscale'
+              : ''
+              }`}
             styles={{ body: { padding: '16px' } }}
           >
             <div className="flex items-center gap-4">
@@ -279,21 +278,21 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
                 )}
                 {((task.status === TaskStatus.Completed && task.file_exists === false) ||
                   task.status === TaskStatus.Pending) && (
-                  <DeleteOutlined
-                    title={t('tasks.contextMenu.delete')}
-                    onClick={() => confirmDelete(false)}
-                    className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-red-500 hover:bg-red-50"
-                  />
-                )}
+                    <DeleteOutlined
+                      title={t('tasks.contextMenu.delete')}
+                      onClick={() => confirmDelete(false)}
+                      className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-red-500 hover:bg-red-50"
+                    />
+                  )}
                 {((task.status === TaskStatus.Completed && task.file_exists === true) ||
                   task.status === TaskStatus.Error ||
                   task.status === TaskStatus.Merging) && (
-                  <FileTextOutlined
-                    title={t('tasks.viewLogs')}
-                    onClick={onViewLog}
-                    className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
-                  />
-                )}
+                    <FileTextOutlined
+                      title={t('tasks.viewLogs')}
+                      onClick={onViewLog}
+                      className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
+                    />
+                  )}
               </div>
             </div>
           </Card>

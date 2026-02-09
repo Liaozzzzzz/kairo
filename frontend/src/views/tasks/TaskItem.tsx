@@ -227,7 +227,7 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
                     {displaySize && displaySize !== '~' && (
                       <>
                         <span className="text-gray-300">•</span>
-                        <span>{displaySize}</span>
+                        <span>~{displaySize}</span>
                       </>
                     )}
                     {isActive && (
@@ -236,15 +236,6 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
                           <>
                             <span className="text-gray-300">•</span>
                             <span>{task.speed}</span>
-                          </>
-                        )}
-                        {task.eta && task.eta !== '~' && (
-                          <>
-                            <span className="text-gray-300">•</span>
-                            <span>
-                              {t('tasks.eta')}
-                              {task.eta}
-                            </span>
                           </>
                         )}
                       </>

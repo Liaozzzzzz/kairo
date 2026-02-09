@@ -84,11 +84,13 @@ export default function Downloads() {
     try {
       const selectedQuality = videoInfo?.qualities?.find((q) => q.value === newQuality);
       const totalBytes = selectedQuality?.total_bytes || 0;
+      const formatId = selectedQuality?.format_id || '';
 
       await AddTaskGo({
         url: newUrl,
         quality: newQuality,
         format: newFormat,
+        format_id: formatId,
         dir: newDir,
         title: videoInfo?.title || '',
         thumbnail: videoInfo?.thumbnail || '',

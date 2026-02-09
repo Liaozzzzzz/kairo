@@ -263,6 +263,10 @@ func (d *Downloader) GetVideoInfo(url string, assetProvider AssetProvider) (*mod
 		return nil, err
 	}
 
+	return d.ParseVideoInfo(output)
+}
+
+func (d *Downloader) ParseVideoInfo(output []byte) (*models.VideoInfo, error) {
 	var rawInfo struct {
 		Title     string                   `json:"title"`
 		Thumbnail string                   `json:"thumbnail"`
@@ -297,25 +301,37 @@ func (d *Downloader) GetVideoInfo(url string, assetProvider AssetProvider) (*mod
 		return 0
 	}
 
-	// Find best audio size
+	// Find best audio size (last is best assumption)
 	var bestAudioSize int64
+	var bestAudioID string
 	for _, f := range rawInfo.Formats {
 		// acodec != "none" and vcodec == "none"
 		vcodec, _ := f["vcodec"].(string)
 		acodec, _ := f["acodec"].(string)
-		if vcodec == "none" && acodec != "none" {
-			size := getSize(f)
-			if size > bestAudioSize {
-				bestAudioSize = size
+		if vcodec != "none" || acodec == "none" {
+			continue
+		}
+
+		if size := getSize(f); size > 0 {
+			bestAudioSize = size
+			if formatID, ok := f["format_id"].(string); ok && formatID != "" {
+				bestAudioID = formatID
 			}
 		}
 	}
 
 	// Parse formats to extract unique heights and their best sizes
-	heightBestSize := make(map[int]int64)
+	// We trust yt-dlp's sorting (last is best) so we overwrite
+	type formatSelection struct {
+		Size int64
+		ID   string
+	}
+	videoOnlyBestSize := make(map[int]formatSelection)
+	combinedBestSize := make(map[int]formatSelection)
 
 	for _, f := range rawInfo.Formats {
 		vcodec, _ := f["vcodec"].(string)
+		acodec, _ := f["acodec"].(string)
 
 		isVideo := false
 		if vcodec != "" && vcodec != "none" {
@@ -325,53 +341,83 @@ func (d *Downloader) GetVideoInfo(url string, assetProvider AssetProvider) (*mod
 			isVideo = true
 		}
 
-		if isVideo {
-			if h, ok := f["height"].(float64); ok && h > 0 {
-				height := int(h)
-				size := getSize(f)
-				if size > heightBestSize[height] {
-					heightBestSize[height] = size
-				}
+		if !isVideo {
+			continue
+		}
+
+		if h, ok := f["height"].(float64); ok && h > 0 {
+			height := int(h)
+			size := getSize(f)
+			formatID, _ := f["format_id"].(string)
+
+			if size == 0 || formatID == "" {
+				continue
+			}
+
+			if acodec == "none" || acodec == "" {
+				videoOnlyBestSize[height] = formatSelection{Size: size, ID: formatID}
+			} else {
+				combinedBestSize[height] = formatSelection{Size: size, ID: formatID}
 			}
 		}
 	}
 
+	// Collect all available heights
+	heightMap := make(map[int]bool)
+	for h := range videoOnlyBestSize {
+		heightMap[h] = true
+	}
+	for h := range combinedBestSize {
+		heightMap[h] = true
+	}
+
 	var heights []int
-	for h := range heightBestSize {
+	for h := range heightMap {
 		heights = append(heights, h)
 	}
 	sort.Sort(sort.Reverse(sort.IntSlice(heights)))
 
 	var qualities []models.QualityOption
 
-	// Add "best" option
-	// best usually corresponds to max height + best audio
-	var bestVideoSize int64
-	if len(heights) > 0 {
-		bestVideoSize = heightBestSize[heights[0]]
-	}
-	qualities = append(qualities, models.QualityOption{
-		Label:      "Best",
-		Value:      "best",
-		VideoBytes: bestVideoSize,
-		AudioBytes: bestAudioSize,
-		TotalBytes: bestVideoSize + bestAudioSize,
-		VideoSize:  utils.FormatBytes(bestVideoSize),
-		AudioSize:  utils.FormatBytes(bestAudioSize),
-		TotalSize:  utils.FormatBytes(bestVideoSize + bestAudioSize),
-	})
-
 	for _, h := range heights {
-		videoSize := heightBestSize[h]
-		totalSize := videoSize + bestAudioSize
+		var videoSize, audioSize, totalSize int64
+		var videoSizeStr, audioSizeStr string
+		var formatID string
+
+		if vSel, ok := videoOnlyBestSize[h]; ok && bestAudioSize > 0 && bestAudioID != "" {
+			videoSize = vSel.Size
+			audioSize = bestAudioSize
+			totalSize = videoSize + audioSize
+			videoSizeStr = utils.FormatBytes(videoSize)
+			audioSizeStr = utils.FormatBytes(audioSize)
+			formatID = vSel.ID + "+" + bestAudioID
+		} else if cSel, ok := combinedBestSize[h]; ok {
+			videoSize = cSel.Size
+			audioSize = 0
+			totalSize = cSel.Size
+			videoSizeStr = utils.FormatBytes(videoSize)
+			audioSizeStr = "-"
+			formatID = cSel.ID
+		} else if vSel, ok := videoOnlyBestSize[h]; ok {
+			videoSize = vSel.Size
+			audioSize = 0
+			totalSize = vSel.Size
+			videoSizeStr = utils.FormatBytes(videoSize)
+			audioSizeStr = "-"
+			formatID = vSel.ID
+		} else {
+			continue
+		}
+
 		qualities = append(qualities, models.QualityOption{
 			Label:      fmt.Sprintf("%dp", h),
 			Value:      fmt.Sprintf("%dp", h),
+			FormatID:   formatID,
 			VideoBytes: videoSize,
-			AudioBytes: bestAudioSize,
+			AudioBytes: audioSize,
 			TotalBytes: totalSize,
-			VideoSize:  utils.FormatBytes(videoSize),
-			AudioSize:  utils.FormatBytes(bestAudioSize),
+			VideoSize:  videoSizeStr,
+			AudioSize:  audioSizeStr,
 			TotalSize:  utils.FormatBytes(totalSize),
 		})
 	}
@@ -380,6 +426,7 @@ func (d *Downloader) GetVideoInfo(url string, assetProvider AssetProvider) (*mod
 	qualities = append(qualities, models.QualityOption{
 		Label:      "Audio Only",
 		Value:      "audio",
+		FormatID:   bestAudioID,
 		VideoBytes: 0,
 		AudioBytes: bestAudioSize,
 		TotalBytes: bestAudioSize,

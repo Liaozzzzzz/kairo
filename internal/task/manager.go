@@ -62,6 +62,7 @@ func (m *Manager) AddTask(input models.AddTaskInput) (string, error) {
 		Dir:         input.Dir,
 		Quality:     input.Quality,
 		Format:      input.Format,
+		FormatID:    input.FormatID,
 		Status:      models.TaskStatusPending,
 		Progress:    0,
 		Title:       input.Title,

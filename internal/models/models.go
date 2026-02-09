@@ -18,6 +18,7 @@ type DownloadTask struct {
 	Dir         string     `json:"dir"`
 	Quality     string     `json:"quality"` // "best", "1080p", "720p", "audio"
 	Format      string     `json:"format"`  // "original", "webm", "mp4", "mkv", "avi", "flv", "mov"
+	FormatID    string     `json:"format_id"`
 	Status      TaskStatus `json:"status"`
 	Progress    float64    `json:"progress"`
 	Title       string     `json:"title"`
@@ -36,6 +37,7 @@ type DownloadTask struct {
 type QualityOption struct {
 	Label      string `json:"label"`
 	Value      string `json:"value"`
+	FormatID   string `json:"format_id"`
 	VideoSize  string `json:"video_size"`
 	AudioSize  string `json:"audio_size"`
 	TotalSize  string `json:"total_size"`
@@ -55,6 +57,7 @@ type AddTaskInput struct {
 	URL        string `json:"url"`
 	Quality    string `json:"quality"`
 	Format     string `json:"format"`
+	FormatID   string `json:"format_id"`
 	Dir        string `json:"dir"`
 	Title      string `json:"title"`
 	Thumbnail  string `json:"thumbnail"`

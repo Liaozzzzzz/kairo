@@ -6,6 +6,7 @@ export interface Task {
   dir: string;
   quality: string;
   format: string;
+  format_id?: string;
   status: TaskStatus;
   progress: number;
   title: string;

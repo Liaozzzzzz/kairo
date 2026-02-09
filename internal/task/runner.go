@@ -44,26 +44,31 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 	m.saveTasks()
 
 	// Build args based on quality
-	format := "bestvideo+bestaudio/best"
-	switch task.Quality {
-	case "4k":
-		format = "bestvideo[height<=2160]+bestaudio/best[height<=2160]"
-	case "2k":
-		format = "bestvideo[height<=1440]+bestaudio/best[height<=1440]"
-	case "1080p":
-		format = "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
-	case "720p":
-		format = "bestvideo[height<=720]+bestaudio/best[height<=720]"
-	case "480p":
-		format = "bestvideo[height<=480]+bestaudio/best[height<=480]"
-	case "360p":
-		format = "bestvideo[height<=360]+bestaudio/best[height<=360]"
-	case "240p":
-		format = "bestvideo[height<=240]+bestaudio/best[height<=240]"
-	case "144p":
-		format = "bestvideo[height<=144]+bestaudio/best[height<=144]"
-	case "audio":
-		format = "bestaudio/best"
+	format := ""
+	if task.FormatID != "" {
+		format = task.FormatID
+	} else {
+		format = "bestvideo+bestaudio/best"
+		switch task.Quality {
+		case "4k":
+			format = "bestvideo[height<=2160]+bestaudio/best[height<=2160]"
+		case "2k":
+			format = "bestvideo[height<=1440]+bestaudio/best[height<=1440]"
+		case "1080p":
+			format = "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
+		case "720p":
+			format = "bestvideo[height<=720]+bestaudio/best[height<=720]"
+		case "480p":
+			format = "bestvideo[height<=480]+bestaudio/best[height<=480]"
+		case "360p":
+			format = "bestvideo[height<=360]+bestaudio/best[height<=360]"
+		case "240p":
+			format = "bestvideo[height<=240]+bestaudio/best[height<=240]"
+		case "144p":
+			format = "bestvideo[height<=144]+bestaudio/best[height<=144]"
+		case "audio":
+			format = "bestaudio/best"
+		}
 	}
 
 	args := []string{
@@ -134,6 +139,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 	var completedBytes int64
 	var currentPartBytes int64
 	var currentPartDownloaded int64
+	var currentPartLogged bool
 
 	// Stdout reader
 	go func() {
@@ -180,6 +186,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 				}
 				currentPartBytes = 0
 				currentPartDownloaded = 0
+				currentPartLogged = false
 
 				task.FilePath = matches[1]
 			}
@@ -224,6 +231,11 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 					// Let's show current part percent / number of parts? No.
 					// Just use the parsed percent as fallback?
 					task.Progress = percent
+				}
+
+				if percent >= 100 && !currentPartLogged {
+					m.emitTaskLog(task.ID, line, false)
+					currentPartLogged = true
 				}
 
 				m.emitTaskUpdate(task)

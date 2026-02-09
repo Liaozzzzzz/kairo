@@ -148,6 +148,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 	args = append(args, task.URL)
 
 	cmd := exec.CommandContext(ctx, m.downloader.BinPath, args...)
+	utils.HideWindow(cmd)
 
 	// Separate pipes for stdout and stderr
 	stdout, _ := cmd.StdoutPipe()

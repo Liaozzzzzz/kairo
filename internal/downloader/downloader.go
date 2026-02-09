@@ -254,6 +254,7 @@ func (d *Downloader) GetVideoInfo(url string, assetProvider AssetProvider) (*mod
 	args = append(args, url)
 
 	cmd := exec.Command(d.BinPath, args...)
+	utils.HideWindow(cmd)
 
 	output, err := cmd.Output()
 	if err != nil {

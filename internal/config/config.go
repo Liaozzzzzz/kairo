@@ -80,6 +80,12 @@ func LoadSettings() error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
+			// Set default download dir if config not exists
+			configMu.Lock()
+			if defaultDir, err := GetDefaultDownloadDir(); err == nil {
+				currentConfig.DownloadDir = defaultDir
+			}
+			configMu.Unlock()
 			return nil // Use defaults
 		}
 		return err
@@ -87,7 +93,18 @@ func LoadSettings() error {
 
 	configMu.Lock()
 	defer configMu.Unlock()
-	return json.Unmarshal(data, &currentConfig)
+	if err := json.Unmarshal(data, &currentConfig); err != nil {
+		return err
+	}
+
+	// Ensure default download dir
+	if currentConfig.DownloadDir == "" {
+		if defaultDir, err := GetDefaultDownloadDir(); err == nil {
+			currentConfig.DownloadDir = defaultDir
+		}
+	}
+
+	return nil
 }
 
 func GetSettings() AppSettings {

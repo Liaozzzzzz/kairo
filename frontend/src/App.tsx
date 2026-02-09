@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 import { ConfigProvider, Layout, Menu } from 'antd';
-import { GetAppVersion, GetDefaultDownloadDir, GetTasks } from '@root/wailsjs/go/main/App';
+import { GetAppVersion, GetTasks } from '@root/wailsjs/go/main/App';
 import { EventsOn, WindowSetTitle } from '@root/wailsjs/runtime/runtime';
 import { useSettingStore } from '@/store/useSettingStore';
 import { useTaskStore } from '@/store/useTaskStore';
@@ -38,7 +38,6 @@ function App() {
   }, [menuItems, t]);
 
   const {
-    defaultDir,
     language,
     setDefaultDir,
     setDownloadConcurrency,
@@ -71,16 +70,6 @@ function App() {
 
   useEffect(() => {
     loadSettings();
-
-    if (!defaultDir) {
-      GetDefaultDownloadDir()
-        .then((d) => {
-          if (d) {
-            setDefaultDir(d);
-          }
-        })
-        .catch(console.error);
-    }
 
     GetTasks()
       .then((t) => {

@@ -45,6 +45,8 @@ func (a *App) GetAppVersion() string {
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	// Load settings from disk
+	_ = config.LoadSettings()
 	a.downloader = downloader.NewDownloader(ctx)
 	a.taskManager = task.NewManager(ctx, a.downloader, readEmbedded)
 	a.downloader.EnsureYtDlp(readEmbedded)
@@ -116,4 +118,9 @@ func (a *App) GetTaskLogs(id string) ([]string, error) {
 // UpdateSettings updates the application settings
 func (a *App) UpdateSettings(settings config.AppSettings) {
 	config.UpdateSettings(settings)
+}
+
+// GetSettings returns the current application settings
+func (a *App) GetSettings() config.AppSettings {
+	return config.GetSettings()
 }

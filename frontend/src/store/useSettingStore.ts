@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { UpdateSettings } from '@root/wailsjs/go/main/App';
+import { UpdateSettings, GetSettings } from '@root/wailsjs/go/main/App';
 import { config as WailsConfig } from '@root/wailsjs/go/models';
 
 export type AppLanguage = 'zh' | 'en';
@@ -43,16 +43,16 @@ const DEFAULT_SETTINGS: AppSettings = {
 const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
   const downloadConcurrency =
     typeof value.downloadConcurrency === 'number' &&
-    Number.isFinite(value.downloadConcurrency) &&
-    value.downloadConcurrency >= 1 &&
-    value.downloadConcurrency <= 5
+      Number.isFinite(value.downloadConcurrency) &&
+      value.downloadConcurrency >= 1 &&
+      value.downloadConcurrency <= 5
       ? value.downloadConcurrency
       : DEFAULT_SETTINGS.downloadConcurrency;
   const maxDownloadSpeed =
     typeof value.maxDownloadSpeed === 'number' &&
-    Number.isFinite(value.maxDownloadSpeed) &&
-    value.maxDownloadSpeed >= 0 &&
-    value.maxDownloadSpeed <= 150
+      Number.isFinite(value.maxDownloadSpeed) &&
+      value.maxDownloadSpeed >= 0 &&
+      value.maxDownloadSpeed <= 150
       ? value.maxDownloadSpeed
       : null;
   const language = value.language === 'en' ? 'en' : 'zh';
@@ -142,18 +142,34 @@ export const useSettingStore = create<SettingState>((set, get) => ({
     saveAppSettings(get());
   },
   loadSettings: () => {
-    const settings = loadAppSettings();
-    set({
-      defaultDir: settings.downloadDir,
-      downloadConcurrency: settings.downloadConcurrency,
-      maxDownloadSpeed: settings.maxDownloadSpeed,
-      language: settings.language,
-      proxyUrl: settings.proxyUrl,
-      bilibiliCookie: settings.bilibiliCookie,
-      youtubeCookie: settings.youtubeCookie,
-    });
-    // Sync to backend
-    UpdateSettings(toWailsSettings(settings));
+    GetSettings()
+      .then((settings) => {
+        // Backend returns the source of truth
+        const normalized = normalizeSettings(settings as unknown as AppSettings);
+        set({
+          defaultDir: normalized.downloadDir,
+          downloadConcurrency: normalized.downloadConcurrency,
+          maxDownloadSpeed: normalized.maxDownloadSpeed,
+          language: normalized.language,
+          proxyUrl: normalized.proxyUrl,
+          bilibiliCookie: normalized.bilibiliCookie,
+          youtubeCookie: normalized.youtubeCookie,
+        });
+      })
+      .catch((e) => {
+        console.error('Failed to load settings from backend', e);
+        // Fallback to local storage
+        const settings = loadAppSettings();
+        set({
+          defaultDir: settings.downloadDir,
+          downloadConcurrency: settings.downloadConcurrency,
+          maxDownloadSpeed: settings.maxDownloadSpeed,
+          language: settings.language,
+          proxyUrl: settings.proxyUrl,
+          bilibiliCookie: settings.bilibiliCookie,
+          youtubeCookie: settings.youtubeCookie,
+        });
+      });
   },
 }));
 

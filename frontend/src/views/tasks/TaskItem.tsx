@@ -173,7 +173,7 @@ export function TaskItem({ task, onViewLog }: TaskItemProps) {
   };
 
   const isActive = task.status === TaskStatus.Starting || task.status === TaskStatus.Downloading;
-  console.log(task)
+
   return (
     <Dropdown menu={{ items: menuItems }} trigger={['contextMenu']}>
       <div>

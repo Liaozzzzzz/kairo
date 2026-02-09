@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -41,6 +42,58 @@ func UpdateSettings(cfg AppSettings) {
 	configMu.Lock()
 	defer configMu.Unlock()
 	currentConfig = cfg
+	// Save settings to disk
+	go SaveSettings()
+}
+
+func GetConfigPath() (string, error) {
+	appDir, err := GetAppConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(appDir, "config.json"), nil
+}
+
+func SaveSettings() error {
+	configMu.RLock()
+	data, err := json.MarshalIndent(currentConfig, "", "  ")
+	configMu.RUnlock()
+
+	if err != nil {
+		return err
+	}
+
+	path, err := GetConfigPath()
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(path, data, 0644)
+}
+
+func LoadSettings() error {
+	path, err := GetConfigPath()
+	if err != nil {
+		return err
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil // Use defaults
+		}
+		return err
+	}
+
+	configMu.Lock()
+	defer configMu.Unlock()
+	return json.Unmarshal(data, &currentConfig)
+}
+
+func GetSettings() AppSettings {
+	configMu.RLock()
+	defer configMu.RUnlock()
+	return currentConfig
 }
 
 func GetAppConfigDir() (string, error) {

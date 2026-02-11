@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
@@ -13,7 +14,7 @@ import {
 } from 'antd';
 import { FolderOpenOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useShallow } from 'zustand/react/shallow';
-import { ChooseDirectory, ChooseFile } from '@root/wailsjs/go/main/App';
+import { ChooseDirectory, ChooseFile, GetPlatform } from '@root/wailsjs/go/main/App';
 import PageContainer from '@/components/PageContainer';
 import PageHeader from '@/components/PageHeader';
 import { AppLanguage, useSettingStore, CookieConfig } from '@/store/useSettingStore';
@@ -22,6 +23,11 @@ const { Text } = Typography;
 
 const Settings = () => {
   const { t, i18n } = useTranslation();
+  const [platform, setPlatform] = useState('');
+
+  useEffect(() => {
+    GetPlatform().then(setPlatform);
+  }, []);
 
   const {
     defaultDir,
@@ -140,7 +146,7 @@ const Settings = () => {
                       { value: 'brave', label: 'Brave' },
                       { value: 'vivaldi', label: 'Vivaldi' },
                       { value: 'chromium', label: 'Chromium' },
-                    ]}
+                    ].filter((option) => platform !== 'windows' || option.value === 'firefox')}
                   />
                 </div>
               </div>

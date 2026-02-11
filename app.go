@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
+	"runtime"
 
 	"Kairo/internal/config"
 	"Kairo/internal/downloader"
@@ -39,6 +40,11 @@ func (a *App) GetAppVersion() string {
 		return "unknown"
 	}
 	return config.Info.ProductVersion
+}
+
+// GetPlatform returns the current operating system
+func (a *App) GetPlatform() string {
+	return runtime.GOOS
 }
 
 // startup is called when the app starts. The context is saved

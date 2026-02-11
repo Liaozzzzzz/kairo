@@ -58,7 +58,10 @@
     "analyze": "Analyze",
     "parseError": "Parse failed: ",
     "duplicateTaskContent": "This task is already in the list.",
-    "duration": "Duration: "
+    "duration": "Duration: ",
+    "playlistItems": "Playlist Videos",
+    "selectAll": "Select All",
+    "playlistIndex": "No. {{index}}"
   },
   "tasks": {
     "title": "Tasks",
@@ -80,6 +83,11 @@
       "merging": "Merging",
       "pending": "Pending",
       "paused": "Paused"
+    },
+    "playlist": {
+      "statusPrefix": "Downloading playlist: ",
+      "progress": "Completed {{completed}} / {{total}}",
+      "failed": "{{count}} failed"
     },
     "contextMenu": {
       "details": "Task Details",

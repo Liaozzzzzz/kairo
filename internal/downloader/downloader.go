@@ -28,10 +28,36 @@ type Downloader struct {
 	Ctx     context.Context
 }
 
+type thumbnailEntry struct {
+	URL string `json:"url"`
+}
+
 func NewDownloader(ctx context.Context) *Downloader {
 	return &Downloader{
 		Ctx: ctx,
 	}
+}
+
+func normalizeThumbnail(thumbnail string) string {
+	if strings.HasPrefix(thumbnail, "http://") {
+		return "https://" + strings.TrimPrefix(thumbnail, "http://")
+	}
+	if strings.HasPrefix(thumbnail, "//") {
+		return "https:" + thumbnail
+	}
+	return thumbnail
+}
+
+func pickThumbnail(thumbnail string, thumbnails []thumbnailEntry) string {
+	if thumbnail == "" && len(thumbnails) > 0 {
+		for i := len(thumbnails) - 1; i >= 0; i-- {
+			if thumbnails[i].URL != "" {
+				thumbnail = thumbnails[i].URL
+				break
+			}
+		}
+	}
+	return normalizeThumbnail(strings.TrimSpace(thumbnail))
 }
 
 // readEmbedded reads a file from the embedded assets
@@ -241,7 +267,18 @@ func (d *Downloader) GetVideoInfo(url string, assetProvider AssetProvider) (*mod
 		return nil, errors.New("yt-dlp not found")
 	}
 
-	// Use --dump-json to get metadata
+	playlistInfo, err := d.getPlaylistInfo(url)
+	if err != nil {
+		return nil, err
+	}
+	if playlistInfo != nil && playlistInfo.IsPlaylist {
+		return playlistInfo, nil
+	}
+
+	return d.getSingleVideoInfo(url)
+}
+
+func (d *Downloader) getSingleVideoInfo(url string) (*models.VideoInfo, error) {
 	args := []string{"--dump-json", "--no-playlist"}
 	if proxy := config.GetProxyUrl(); proxy != "" {
 		args = append(args, "--proxy", proxy)
@@ -267,24 +304,108 @@ func (d *Downloader) GetVideoInfo(url string, assetProvider AssetProvider) (*mod
 	return d.ParseVideoInfo(output)
 }
 
-func (d *Downloader) ParseVideoInfo(output []byte) (*models.VideoInfo, error) {
+func (d *Downloader) getPlaylistInfo(url string) (*models.VideoInfo, error) {
+	args := []string{"--dump-single-json", "--flat-playlist"}
+	if proxy := config.GetProxyUrl(); proxy != "" {
+		args = append(args, "--proxy", proxy)
+	}
+	if cookieArgs := config.GetCookieArgs(url); len(cookieArgs) > 0 {
+		args = append(args, cookieArgs...)
+	}
+	args = append(args, url)
+
+	cmd := exec.Command(d.BinPath, args...)
+	output, err := cmd.Output()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return nil, fmt.Errorf("yt-dlp error: %s", string(exitErr.Stderr))
+		}
+		return nil, err
+	}
+
 	var rawInfo struct {
-		Title     string                   `json:"title"`
-		Thumbnail string                   `json:"thumbnail"`
-		Duration  float64                  `json:"duration"`
-		Formats   []map[string]interface{} `json:"formats"`
+		Title      string           `json:"title"`
+		Thumbnail  string           `json:"thumbnail"`
+		Thumbnails []thumbnailEntry `json:"thumbnails"`
+		Type       string           `json:"_type"`
+		Entries    []struct {
+			Title      string           `json:"title"`
+			Duration   float64          `json:"duration"`
+			Thumbnail  string           `json:"thumbnail"`
+			Thumbnails []thumbnailEntry `json:"thumbnails"`
+			URL        string           `json:"url"`
+			WebpageURL string           `json:"webpage_url"`
+		} `json:"entries"`
 	}
 
 	if err := json.NewDecoder(strings.NewReader(string(output))).Decode(&rawInfo); err != nil {
 		return nil, fmt.Errorf("failed to parse json: %w", err)
 	}
+	wailsRuntime.EventsEmit(d.Ctx, "debug:notify", map[string]interface{}{
+		"type": "playlist",
+		"raw":  rawInfo,
+	})
 
-	thumbnail := strings.TrimSpace(rawInfo.Thumbnail)
-	if strings.HasPrefix(thumbnail, "http://") {
-		thumbnail = "https://" + strings.TrimPrefix(thumbnail, "http://")
-	} else if strings.HasPrefix(thumbnail, "//") {
-		thumbnail = "https:" + thumbnail
+	if rawInfo.Type != "playlist" && len(rawInfo.Entries) == 0 {
+		return nil, nil
 	}
+
+	var items []models.PlaylistItem
+	for i, entry := range rawInfo.Entries {
+		itemTitle := entry.Title
+		if itemTitle == "" {
+			if entry.WebpageURL != "" {
+				itemTitle = entry.WebpageURL
+			} else {
+				itemTitle = entry.URL
+			}
+			if itemTitle == "" {
+				itemTitle = fmt.Sprintf("Item %d", i+1)
+			}
+		}
+		itemThumbnail := pickThumbnail(entry.Thumbnail, entry.Thumbnails)
+		itemURL := strings.TrimSpace(entry.WebpageURL)
+		if itemURL == "" {
+			itemURL = strings.TrimSpace(entry.URL)
+		}
+		items = append(items, models.PlaylistItem{
+			Index:     i + 1,
+			Title:     itemTitle,
+			Duration:  entry.Duration,
+			Thumbnail: itemThumbnail,
+			URL:       itemURL,
+		})
+	}
+
+	info := models.VideoInfo{
+		Title:         rawInfo.Title,
+		Thumbnail:     "",
+		IsPlaylist:    true,
+		PlaylistItems: items,
+		TotalItems:    len(items),
+	}
+
+	return &info, nil
+}
+
+func (d *Downloader) ParseVideoInfo(output []byte) (*models.VideoInfo, error) {
+	var rawInfo struct {
+		Title      string                   `json:"title"`
+		Thumbnail  string                   `json:"thumbnail"`
+		Thumbnails []thumbnailEntry         `json:"thumbnails"`
+		Duration   float64                  `json:"duration"`
+		Formats    []map[string]interface{} `json:"formats"`
+	}
+
+	if err := json.NewDecoder(strings.NewReader(string(output))).Decode(&rawInfo); err != nil {
+		return nil, fmt.Errorf("failed to parse json: %w", err)
+	}
+	wailsRuntime.EventsEmit(d.Ctx, "debug:notify", map[string]interface{}{
+		"type": "single",
+		"raw":  rawInfo,
+	})
+
+	thumbnail := pickThumbnail(rawInfo.Thumbnail, rawInfo.Thumbnails)
 	info := models.VideoInfo{
 		Title:     rawInfo.Title,
 		Thumbnail: thumbnail,

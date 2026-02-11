@@ -46,6 +46,107 @@ func (m *Manager) GetTasks() map[string]*models.DownloadTask {
 	return m.tasks
 }
 
+func (m *Manager) AddPlaylistTask(input models.AddPlaylistTaskInput) (string, error) {
+	if input.URL == "" {
+		return "", fmt.Errorf("地址为空")
+	}
+	if input.Dir == "" {
+		d, err := config.GetDefaultDownloadDir()
+		if err != nil {
+			return "", fmt.Errorf("无法获取默认目录")
+		}
+		input.Dir = d
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// 1. Create parent task
+	parentID := fmt.Sprintf("%d", time.Now().UnixNano())
+	parentTask := &models.DownloadTask{
+		ID:            parentID,
+		URL:           input.URL,
+		Dir:           input.Dir,
+		Status:        models.TaskStatusCompleted,
+		Progress:      100,
+		Title:         input.Title,
+		Thumbnail:     input.Thumbnail,
+		TotalBytes:    0,
+		TotalSize:     utils.FormatBytes(0),
+		IsPlaylist:    true,
+		PlaylistItems: make([]int, len(input.PlaylistItems)),
+		TotalItems:    len(input.PlaylistItems),
+		CurrentItem:   len(input.PlaylistItems),
+		LogPath:       config.GetLogPath(parentID),
+	}
+	if parentTask.Title == "" {
+		parentTask.Title = input.URL
+	}
+
+	m.tasks[parentID] = parentTask
+	m.cancelFuncs[parentID] = func() {}
+
+	// 2. Create child tasks
+	for i, item := range input.PlaylistItems {
+		childID := fmt.Sprintf("%d_%d", time.Now().UnixNano(), i)
+		childTask := &models.DownloadTask{
+			ID:          childID,
+			URL:         item.URL,
+			Dir:         input.Dir,
+			Status:      models.TaskStatusPending,
+			Progress:    0,
+			Title:       item.Title,
+			Thumbnail:   item.Thumbnail,
+			ParentID:    parentID,
+			IsPlaylist:  false,
+			Quality:     "best", // Mark as needing best quality
+			Format:      "original",
+			FormatID:    "", // Will be determined later
+			CurrentItem: 1,
+			TotalItems:  1,
+			LogPath:     config.GetLogPath(childID),
+		}
+		if childTask.Title == "" {
+			childTask.Title = item.URL
+		}
+		m.tasks[childID] = childTask
+		m.cancelFuncs[childID] = func() {}
+		parentTask.PlaylistItems[i] = item.Index // Store index or just ignore
+	}
+
+	// 3. Save
+	m.saveTasksInternal()
+
+	// 4. Emit updates
+	// Since we are holding the lock, we can't call emitTaskUpdate which locks again.
+	// We should probably release lock before emitting or make emitTaskUpdate not lock?
+	// But emitTaskUpdate reads from map.
+	// Let's iterate and emit after unlocking.
+	// But we defer Unlock.
+	// So we need to refactor slightly or just schedule a goroutine.
+	// Or just saveTasks is enough for persistence, but we need UI update.
+
+	// We can't iterate m.tasks safely after unlock if it changes?
+	// But we just added them.
+	// Let's create a list of tasks to emit inside the lock.
+	var tasksToEmit []models.DownloadTask
+	tasksToEmit = append(tasksToEmit, *parentTask)
+	for _, t := range m.tasks {
+		if t.ParentID == parentID {
+			tasksToEmit = append(tasksToEmit, *t)
+		}
+	}
+
+	go func() {
+		for _, t := range tasksToEmit {
+			runtime.EventsEmit(m.ctx, "task:update", t)
+		}
+		m.scheduleTasks()
+	}()
+
+	return parentID, nil
+}
+
 func (m *Manager) AddTask(input models.AddTaskInput) (string, error) {
 	if input.URL == "" {
 		return "", fmt.Errorf("地址为空")
@@ -66,6 +167,8 @@ func (m *Manager) AddTask(input models.AddTaskInput) (string, error) {
 		Quality:     input.Quality,
 		Format:      input.Format,
 		FormatID:    input.FormatID,
+		ParentID:    "",
+		IsPlaylist:  false,
 		Status:      models.TaskStatusPending,
 		Progress:    0,
 		Title:       input.Title,
@@ -114,7 +217,7 @@ func (m *Manager) scheduleTasks() {
 		if downloadingCount >= maxConcurrent {
 			break
 		}
-		if task.Status == models.TaskStatusPending {
+		if task.Status == models.TaskStatusPending && !task.IsPlaylist {
 			downloadingCount++
 			ctx, cancel := context.WithCancel(m.ctx)
 			m.cancelFuncs[task.ID] = cancel

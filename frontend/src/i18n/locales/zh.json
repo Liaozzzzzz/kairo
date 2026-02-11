@@ -58,7 +58,10 @@
     "analyze": "解析",
     "parseError": "解析失败: ",
     "duplicateTaskContent": "该任务已存在列表中，请勿重复添加",
-    "duration": "时长: "
+    "duration": "时长: ",
+    "playlistItems": "合集视频",
+    "selectAll": "全选",
+    "playlistIndex": "第{{index}}条"
   },
   "tasks": {
     "title": "任务列表",
@@ -80,6 +83,11 @@
       "merging": "合并中",
       "pending": "等待中",
       "paused": "暂停中"
+    },
+    "playlist": {
+      "statusPrefix": "正在下载播放列表：",
+      "progress": "已完成 {{completed}} / {{total}}",
+      "failed": "{{count}} 失败"
     },
     "contextMenu": {
       "details": "任务详情",

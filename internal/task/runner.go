@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -90,6 +91,49 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 	m.emitTaskUpdate(task)
 	m.saveTasks()
 
+	// 如果是子任务且未指定格式ID，则获取视频信息以选择最佳分辨率
+	if task.ParentID != "" && task.FormatID == "" {
+		m.emitTaskLog(task.ID, "正在获取视频信息以选择最佳分辨率...", false)
+		info, err := m.downloader.GetVideoInfo(task.URL, m.assetProvider)
+		if err != nil {
+			m.mu.Lock()
+			task.Status = models.TaskStatusError
+			m.mu.Unlock()
+			m.emitTaskLog(task.ID, "Error resolving video info: "+err.Error(), false)
+			m.emitTaskUpdate(task)
+			m.saveTasks()
+			return
+		}
+
+		if len(info.Qualities) > 0 {
+			// Qualities are sorted by height desc, so first is best
+			best := info.Qualities[0]
+			// If first is "Audio Only" and there are others, we might want video?
+			// But "best" usually implies best video+audio.
+			// Our downloader logic puts "Audio Only" at the end usually?
+			// Let's check downloader.go sort logic.
+			// It sorts heights desc. "Audio Only" is appended at the end.
+			// So index 0 should be best video.
+			// However, we should double check if it's audio only task?
+			// task.Quality == "best" implies we want best available.
+
+			task.FormatID = best.FormatID
+			task.TotalBytes = best.TotalBytes
+			task.TotalSize = utils.FormatBytes(best.TotalBytes)
+			if task.Title == "" || task.Title == task.URL {
+				task.Title = info.Title
+			}
+			if task.Thumbnail == "" {
+				task.Thumbnail = info.Thumbnail
+			}
+			m.emitTaskLog(task.ID, fmt.Sprintf("已选择最佳分辨率: %s (%s)", best.Label, best.TotalSize), false)
+			m.saveTasks()
+			m.emitTaskUpdate(task)
+		} else {
+			m.emitTaskLog(task.ID, "无法获取分辨率列表，将尝试使用默认最佳格式", false)
+		}
+	}
+
 	// Build args based on quality
 	format := ""
 	if task.FormatID != "" {
@@ -126,7 +170,6 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		"-o", "%(title)s.%(ext)s",
 		"-P", task.Dir,
 		"-f", format,
-		"--playlist-items", "1",
 	}
 
 	if limit := config.GetDownloadRateLimit(); limit != "" {

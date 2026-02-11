@@ -14,6 +14,9 @@ export interface Task {
   quality: string;
   format: string;
   format_id?: string;
+  playlist_items?: number[];
+  parent_id?: string;
+  is_playlist?: boolean;
   status: TaskStatus;
   progress: number;
   title: string;
@@ -25,4 +28,6 @@ export interface Task {
   log_path?: string;
   file_exists?: boolean;
   files?: TaskFile[];
+  current_item?: number;
+  total_items?: number;
 }

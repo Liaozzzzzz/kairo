@@ -43,16 +43,16 @@ const DEFAULT_SETTINGS: AppSettings = {
 const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
   const downloadConcurrency =
     typeof value.downloadConcurrency === 'number' &&
-      Number.isFinite(value.downloadConcurrency) &&
-      value.downloadConcurrency >= 1 &&
-      value.downloadConcurrency <= 5
+    Number.isFinite(value.downloadConcurrency) &&
+    value.downloadConcurrency >= 1 &&
+    value.downloadConcurrency <= 5
       ? value.downloadConcurrency
       : DEFAULT_SETTINGS.downloadConcurrency;
   const maxDownloadSpeed =
     typeof value.maxDownloadSpeed === 'number' &&
-      Number.isFinite(value.maxDownloadSpeed) &&
-      value.maxDownloadSpeed >= 0 &&
-      value.maxDownloadSpeed <= 150
+    Number.isFinite(value.maxDownloadSpeed) &&
+    value.maxDownloadSpeed >= 0 &&
+    value.maxDownloadSpeed <= 150
       ? value.maxDownloadSpeed
       : null;
   const language = value.language === 'en' ? 'en' : 'zh';

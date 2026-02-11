@@ -37,22 +37,17 @@ function App() {
     }));
   }, [menuItems, t]);
 
-  const {
-    language,
-    setDefaultDir,
-    setDownloadConcurrency,
-    setMaxDownloadSpeed,
-    loadSettings,
-  } = useSettingStore(
-    useShallow((state) => ({
-      defaultDir: state.defaultDir,
-      language: state.language,
-      setDefaultDir: state.setDefaultDir,
-      setDownloadConcurrency: state.setDownloadConcurrency,
-      setMaxDownloadSpeed: state.setMaxDownloadSpeed,
-      loadSettings: state.loadSettings,
-    }))
-  );
+  const { language, setDefaultDir, setDownloadConcurrency, setMaxDownloadSpeed, loadSettings } =
+    useSettingStore(
+      useShallow((state) => ({
+        defaultDir: state.defaultDir,
+        language: state.language,
+        setDefaultDir: state.setDefaultDir,
+        setDownloadConcurrency: state.setDownloadConcurrency,
+        setMaxDownloadSpeed: state.setMaxDownloadSpeed,
+        loadSettings: state.loadSettings,
+      }))
+    );
 
   const { setTasks, updateTask, updateTaskProgress, addTaskLog } = useTaskStore(
     useShallow((state) => ({

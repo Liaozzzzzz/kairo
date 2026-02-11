@@ -5,7 +5,9 @@ import { useTaskStore } from '@/store/useTaskStore';
 import { PlusOutlined } from '@ant-design/icons';
 import { MenuItemKey, TaskStatus } from '@/data/variables';
 import { TaskItem } from './TaskItem';
+import { PlaylistTaskItem } from './PlaylistTaskItem';
 import { useAppStore } from '@/store/useAppStore';
+import { Task } from '@/types';
 
 interface TaskListProps {
   onViewLog: (taskId: string) => void;
@@ -17,26 +19,80 @@ export function TaskList({ onViewLog, filter }: TaskListProps) {
   const tasks = useTaskStore((state) => state.tasks);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
 
+  const { topLevelTasks, childrenMap } = useMemo(() => {
+    const allTasks = Object.values(tasks);
+    // Sort by ID descending (newest first)
+    allTasks.sort((a, b) => b.id.localeCompare(a.id));
+
+    const topLevel: Task[] = [];
+    const children: Record<string, Task[]> = {};
+
+    allTasks.forEach((task) => {
+      if (task.parent_id) {
+        if (!children[task.parent_id]) {
+          children[task.parent_id] = [];
+        }
+        children[task.parent_id].push(task);
+      } else {
+        topLevel.push(task);
+      }
+    });
+
+    // Sort children by ID ascending (creation order for playlist items)
+    Object.keys(children).forEach((key) => {
+      children[key].sort((a, b) => a.id.localeCompare(b.id));
+    });
+
+    return { topLevelTasks: topLevel, childrenMap: children };
+  }, [tasks]);
+
   const taskList = useMemo(() => {
-    return Object.values(tasks)
-      .filter((task) => {
-        if (filter === 'downloading') {
-          return (
-            task.status === TaskStatus.Pending ||
-            task.status === TaskStatus.Starting ||
-            task.status === TaskStatus.Downloading ||
-            task.status === TaskStatus.Merging ||
-            task.status === TaskStatus.Paused ||
-            task.status === TaskStatus.Error
-          );
+    return topLevelTasks.filter((task) => {
+      const childs = childrenMap[task.id] || [];
+
+      let isDownloading = false;
+      let isCompleted = false;
+
+      if (task.is_playlist) {
+        const hasDownloading = childs.some(
+          (c) =>
+            c.status === TaskStatus.Pending ||
+            c.status === TaskStatus.Starting ||
+            c.status === TaskStatus.Downloading ||
+            c.status === TaskStatus.Merging ||
+            c.status === TaskStatus.Paused ||
+            c.status === TaskStatus.Error
+        );
+
+        // If has active children, or no children yet (just created), consider downloading
+        if (hasDownloading || childs.length === 0) {
+          isDownloading = true;
+        } else {
+          // If all children are completed
+          const allCompleted =
+            childs.length > 0 && childs.every((c) => c.status === TaskStatus.Completed);
+          if (allCompleted) isCompleted = true;
         }
-        if (filter === 'completed') {
-          return task.status === TaskStatus.Completed;
-        }
-        return true;
-      })
-      .reverse();
-  }, [tasks, filter]);
+      } else {
+        isDownloading =
+          task.status === TaskStatus.Pending ||
+          task.status === TaskStatus.Starting ||
+          task.status === TaskStatus.Downloading ||
+          task.status === TaskStatus.Merging ||
+          task.status === TaskStatus.Paused ||
+          task.status === TaskStatus.Error;
+        isCompleted = task.status === TaskStatus.Completed;
+      }
+
+      if (filter === 'downloading') {
+        return isDownloading;
+      }
+      if (filter === 'completed') {
+        return isCompleted;
+      }
+      return true;
+    });
+  }, [topLevelTasks, childrenMap, filter]);
 
   if (taskList.length === 0) {
     return (
@@ -58,9 +114,19 @@ export function TaskList({ onViewLog, filter }: TaskListProps) {
 
   return (
     <div className="space-y-4">
-      {taskList.map((task) => (
-        <TaskItem key={task.id} task={task} onViewLog={() => onViewLog(task.id)} />
-      ))}
+      {taskList.map((task) => {
+        if (task.is_playlist) {
+          return (
+            <PlaylistTaskItem
+              key={task.id}
+              task={task}
+              childrenTasks={childrenMap[task.id] || []}
+              onViewLog={onViewLog}
+            />
+          );
+        }
+        return <TaskItem key={task.id} task={task} onViewLog={() => onViewLog(task.id)} />;
+      })}
     </div>
   );
 }

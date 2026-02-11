@@ -1,18 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
-import { Input, Button, Select, Space, Image, Card, notification, message } from 'antd';
-import { FolderOutlined, DownloadOutlined } from '@ant-design/icons';
-import { GetVideoInfo, AddTask as AddTaskGo, ChooseDirectory } from '@root/wailsjs/go/main/App';
+import { Input, Card, notification, message } from 'antd';
+import { GetVideoInfo, AddTask as AddTaskGo, AddPlaylistTask } from '@root/wailsjs/go/main/App';
 import { models } from '@root/wailsjs/go/models';
-import { useSettingStore } from '@/store/useSettingStore';
 import { useAppStore } from '@/store/useAppStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import PageContainer from '@/components/PageContainer';
 import PageHeader from '@/components/PageHeader';
 import bilibiliIcon from '@/assets/images/bilibili.png';
 import youtubeIcon from '@/assets/images/Youtube.png';
-import { ImageFallback, MenuItemKey } from '@/data/variables';
+import { MenuItemKey } from '@/data/variables';
+import SingleVideoResult from './SingleVideoResult';
+import PlaylistResult from './PlaylistResult';
 
 export default function Downloads() {
   const { t } = useTranslation();
@@ -20,27 +20,18 @@ export default function Downloads() {
   const [api, contextHolder] = notification.useNotification();
   const [messageApi, messageContextHolder] = message.useMessage();
 
-  const defaultDir = useSettingStore(useShallow((state) => state.defaultDir));
+  const [newUrl, setNewUrl] = useState('');
+
   const setActiveTab = useAppStore(useShallow((state) => state.setActiveTab));
 
-  const [newUrl, setNewUrl] = useState('');
-  const [newDir, setNewDir] = useState('');
-  const [newQuality, setNewQuality] = useState('best');
-  const [newFormat, setNewFormat] = useState('original');
   const [videoInfo, setVideoInfo] = useState<models.VideoInfo | null>(null);
   const [isFetchingInfo, setIsFetchingInfo] = useState(false);
 
-  // Initialize directory when defaultDir is loaded
-  useEffect(() => {
-    if (defaultDir && !newDir) {
-      setNewDir(defaultDir);
-    }
-  }, [defaultDir, newDir]);
+  const playlistItems = videoInfo?.playlist_items || [];
+  const isPlaylist = Boolean(videoInfo?.is_playlist && playlistItems.length);
 
   const fetchVideoInfo = async () => {
     if (!newUrl) return;
-
-    if (!newUrl || !newDir) return;
 
     // Check duplicate
     const isDuplicate = Object.values(tasks).some((t) => t.url === newUrl);
@@ -54,11 +45,6 @@ export default function Downloads() {
     try {
       const info = await GetVideoInfo(newUrl);
       setVideoInfo(info);
-      if (info.qualities && info.qualities.length > 0) {
-        setNewQuality(info.qualities[0].value);
-      } else {
-        setNewQuality('best');
-      }
     } catch (e) {
       console.error(e);
       api.error({
@@ -70,22 +56,20 @@ export default function Downloads() {
     }
   };
 
-  const handleChooseDir = async () => {
-    try {
-      const d = await ChooseDirectory();
-      if (d) setNewDir(d);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleStartDownload = async () => {
+  const handleStartDownload = async ({
+    newDir,
+    newQuality,
+    newFormat,
+  }: {
+    newDir: string;
+    newQuality: string;
+    newFormat: string;
+  }) => {
     if (!newUrl || !newDir) return;
     try {
       const selectedQuality = videoInfo?.qualities?.find((q) => q.value === newQuality);
-      const totalBytes = selectedQuality?.total_bytes || 0;
+      const totalBytes = isPlaylist ? 0 : selectedQuality?.total_bytes || 0;
       const formatId = selectedQuality?.format_id || '';
-
       await AddTaskGo({
         url: newUrl,
         quality: newQuality,
@@ -96,13 +80,47 @@ export default function Downloads() {
         thumbnail: videoInfo?.thumbnail || '',
         total_bytes: totalBytes,
       });
-      // Reset form
       setNewUrl('');
-      setNewQuality('best');
-      setNewFormat('original');
-      setVideoInfo(null);
-      if (defaultDir) setNewDir(defaultDir);
+      setActiveTab(MenuItemKey.Tasks);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
+  const handleStartPlaylistDownload = async ({
+    newDir,
+    playList = [],
+  }: {
+    newDir: string;
+    playList?: number[];
+  }) => {
+    if (!newUrl || !newDir) return;
+    try {
+      const sortedItems = [...playList].sort((a, b) => a - b);
+      const selectedItems: models.PlaylistItem[] = [];
+
+      for (const index of sortedItems) {
+        const item = playlistItems.find((playlistItem) => playlistItem.index === index);
+        if (item) {
+          selectedItems.push(item);
+        }
+      }
+
+      if (selectedItems.length === 0) {
+        return;
+      }
+
+      await AddPlaylistTask(
+        new models.AddPlaylistTaskInput({
+          url: newUrl,
+          dir: newDir,
+          title: videoInfo?.title || newUrl,
+          thumbnail: videoInfo?.thumbnail || '',
+          playlist_items: selectedItems,
+        })
+      );
+
+      setNewUrl('');
       setActiveTab(MenuItemKey.Tasks);
     } catch (e) {
       console.error(e);
@@ -141,104 +159,15 @@ export default function Downloads() {
               placeholder="https://www.youtube.com/watch?v=..."
               enterButton={t('downloads.analyze')}
               onSearch={fetchVideoInfo}
-              size="large"
             />
           </div>
 
-          {videoInfo && (
-            <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg flex gap-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="flex-shrink-0 w-40 aspect-video rounded-md overflow-hidden border border-black/10">
-                <Image
-                  src={videoInfo.thumbnail}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover"
-                  alt=""
-                  width="100%"
-                  height="100%"
-                  fallback={ImageFallback}
-                />
-              </div>
-              <div className="flex-1 min-w-0 flex flex-col justify-center">
-                <div
-                  className="font-medium text-lg truncate text-foreground"
-                  title={videoInfo.title}
-                >
-                  {videoInfo.title}
-                </div>
-                <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
-                  <span className="bg-white px-2 py-0.5 rounded border border-slate-200 text-xs">
-                    {t('downloads.duration')}
-                    {Math.floor(videoInfo.duration / 60)}:
-                    {String(Math.floor(videoInfo.duration % 60)).padStart(2, '0')}
-                  </span>
-                </div>
-              </div>
-            </div>
+          {videoInfo && !isPlaylist && (
+            <SingleVideoResult videoInfo={videoInfo} onStartDownload={handleStartDownload} />
           )}
 
-          {videoInfo && (
-            <div className="grid grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-300 delay-75">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t('downloads.quality')}</label>
-                <Select
-                  value={newQuality}
-                  onChange={setNewQuality}
-                  style={{ width: '100%' }}
-                  size="large"
-                  options={(videoInfo?.qualities || []).map((q) => ({
-                    label: (
-                      <div className="flex justify-between items-center w-full gap-4">
-                        <span>{q.label}</span>
-                        <span className="text-gray-400 text-xs font-normal">{q.total_size}</span>
-                      </div>
-                    ),
-                    value: q.value,
-                  }))}
-                  placeholder={t('downloads.bestQuality')}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t('downloads.format')}</label>
-                <Select
-                  value={newFormat}
-                  onChange={setNewFormat}
-                  style={{ width: '100%' }}
-                  size="large"
-                  options={[
-                    // 不转码
-                    { label: 'ORIGINAL', value: 'original' },
-                    { label: 'WEBM', value: 'webm' },
-                    { label: 'MP4', value: 'mp4' },
-                    { label: 'MKV', value: 'mkv' },
-                    { label: 'AVI', value: 'avi' },
-                    { label: 'FLV', value: 'flv' },
-                    { label: 'MOV', value: 'mov' },
-                  ]}
-                />
-              </div>
-              <div className="space-y-2 col-span-2">
-                <label className="text-sm font-medium">{t('downloads.saveTo')}</label>
-                <Space.Compact style={{ width: '100%' }} size="large">
-                  <Input value={newDir} readOnly />
-                  <Button icon={<FolderOutlined />} onClick={handleChooseDir}>
-                    {t('downloads.chooseDir')}
-                  </Button>
-                </Space.Compact>
-              </div>
-
-              <div className="col-span-2 pt-4 flex justify-end">
-                <Button
-                  type="primary"
-                  size="large"
-                  onClick={handleStartDownload}
-                  disabled={!newUrl || !newDir || !videoInfo}
-                  icon={<DownloadOutlined />}
-                  className="px-8"
-                >
-                  {t('downloads.start')}
-                </Button>
-              </div>
-            </div>
+          {videoInfo && isPlaylist && (
+            <PlaylistResult videoInfo={videoInfo} onStartDownload={handleStartPlaylistDownload} />
           )}
         </div>
       </Card>

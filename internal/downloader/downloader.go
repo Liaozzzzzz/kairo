@@ -284,7 +284,7 @@ func (d *Downloader) getSingleVideoInfo(url string) (*models.VideoInfo, error) {
 		args = append(args, "--proxy", proxy)
 	}
 
-	if cookieArgs := config.GetCookieArgs(url); len(cookieArgs) > 0 {
+	if cookieArgs := config.GetCookieArgs(); len(cookieArgs) > 0 {
 		args = append(args, cookieArgs...)
 	}
 
@@ -309,7 +309,7 @@ func (d *Downloader) getPlaylistInfo(url string) (*models.VideoInfo, error) {
 	if proxy := config.GetProxyUrl(); proxy != "" {
 		args = append(args, "--proxy", proxy)
 	}
-	if cookieArgs := config.GetCookieArgs(url); len(cookieArgs) > 0 {
+	if cookieArgs := config.GetCookieArgs(); len(cookieArgs) > 0 {
 		args = append(args, cookieArgs...)
 	}
 	args = append(args, url)

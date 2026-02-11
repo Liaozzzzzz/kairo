@@ -17,8 +17,7 @@ export interface AppSettings {
   maxDownloadSpeed: number | null;
   language: AppLanguage;
   proxyUrl: string;
-  bilibiliCookie: CookieConfig;
-  youtubeCookie: CookieConfig;
+  cookie: CookieConfig;
 }
 
 const SETTINGS_STORAGE_KEY = 'Kairo.settings';
@@ -36,8 +35,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   maxDownloadSpeed: null,
   language: 'zh',
   proxyUrl: '',
-  bilibiliCookie: { ...DEFAULT_COOKIE_CONFIG },
-  youtubeCookie: { ...DEFAULT_COOKIE_CONFIG },
+  cookie: { ...DEFAULT_COOKIE_CONFIG },
 };
 
 const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
@@ -69,8 +67,7 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
     };
   };
 
-  const bilibiliCookie = normalizeCookie(value.bilibiliCookie);
-  const youtubeCookie = normalizeCookie(value.youtubeCookie);
+  const cookie = normalizeCookie(value.cookie);
 
   return {
     ...DEFAULT_SETTINGS,
@@ -79,8 +76,7 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
     language,
     downloadDir,
     proxyUrl,
-    bilibiliCookie,
-    youtubeCookie,
+    cookie,
   };
 };
 
@@ -90,8 +86,7 @@ interface SettingState {
   maxDownloadSpeed: number | null;
   language: AppLanguage;
   proxyUrl: string;
-  bilibiliCookie: CookieConfig;
-  youtubeCookie: CookieConfig;
+  cookie: CookieConfig;
 
   // Actions
   setDefaultDir: (dir: string) => void;
@@ -99,8 +94,7 @@ interface SettingState {
   setMaxDownloadSpeed: (value: number | null) => void;
   setLanguage: (value: AppLanguage) => void;
   setProxyUrl: (value: string) => void;
-  setBilibiliCookie: (value: CookieConfig) => void;
-  setYoutubeCookie: (value: CookieConfig) => void;
+  setCookie: (value: CookieConfig) => void;
   loadSettings: () => void;
 }
 
@@ -110,8 +104,7 @@ export const useSettingStore = create<SettingState>((set, get) => ({
   maxDownloadSpeed: DEFAULT_SETTINGS.maxDownloadSpeed,
   language: DEFAULT_SETTINGS.language,
   proxyUrl: DEFAULT_SETTINGS.proxyUrl,
-  bilibiliCookie: DEFAULT_SETTINGS.bilibiliCookie,
-  youtubeCookie: DEFAULT_SETTINGS.youtubeCookie,
+  cookie: DEFAULT_SETTINGS.cookie,
 
   setDefaultDir: (dir) => {
     set({ defaultDir: dir });
@@ -133,12 +126,8 @@ export const useSettingStore = create<SettingState>((set, get) => ({
     set({ proxyUrl: value });
     saveAppSettings(get());
   },
-  setBilibiliCookie: (value) => {
-    set({ bilibiliCookie: value });
-    saveAppSettings(get());
-  },
-  setYoutubeCookie: (value) => {
-    set({ youtubeCookie: value });
+  setCookie: (value) => {
+    set({ cookie: value });
     saveAppSettings(get());
   },
   loadSettings: () => {
@@ -152,8 +141,7 @@ export const useSettingStore = create<SettingState>((set, get) => ({
           maxDownloadSpeed: normalized.maxDownloadSpeed,
           language: normalized.language,
           proxyUrl: normalized.proxyUrl,
-          bilibiliCookie: normalized.bilibiliCookie,
-          youtubeCookie: normalized.youtubeCookie,
+          cookie: normalized.cookie,
         });
       })
       .catch((e) => {
@@ -166,8 +154,7 @@ export const useSettingStore = create<SettingState>((set, get) => ({
           maxDownloadSpeed: settings.maxDownloadSpeed,
           language: settings.language,
           proxyUrl: settings.proxyUrl,
-          bilibiliCookie: settings.bilibiliCookie,
-          youtubeCookie: settings.youtubeCookie,
+          cookie: settings.cookie,
         });
       });
   },
@@ -192,8 +179,7 @@ function saveAppSettings(state: SettingState) {
     maxDownloadSpeed: state.maxDownloadSpeed,
     language: state.language,
     proxyUrl: state.proxyUrl,
-    bilibiliCookie: state.bilibiliCookie,
-    youtubeCookie: state.youtubeCookie,
+    cookie: state.cookie,
   };
   localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
   UpdateSettings(toWailsSettings(settings));

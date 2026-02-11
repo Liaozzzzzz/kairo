@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-
-	"Kairo/internal/utils"
 )
 
 type CookieConfig struct {
@@ -23,8 +21,7 @@ type AppSettings struct {
 	MaxDownloadSpeed    *int         `json:"maxDownloadSpeed"` // MB/s
 	Language            string       `json:"language"`
 	ProxyUrl            string       `json:"proxyUrl"`
-	BilibiliCookie      CookieConfig `json:"bilibiliCookie"`
-	YoutubeCookie       CookieConfig `json:"youtubeCookie"`
+	Cookie              CookieConfig `json:"cookie"`
 }
 
 var (
@@ -196,18 +193,10 @@ func GetProxyUrl() string {
 	return currentConfig.ProxyUrl
 }
 
-func GetCookieArgs(url string) []string {
-	site := utils.GetSiteName(url)
-	var cookieConfig CookieConfig
-	if site == "bilibili" {
-		configMu.RLock()
-		cookieConfig = currentConfig.BilibiliCookie
-		configMu.RUnlock()
-	} else if site == "youtube" {
-		configMu.RLock()
-		cookieConfig = currentConfig.YoutubeCookie
-		configMu.RUnlock()
-	}
+func GetCookieArgs() []string {
+	configMu.RLock()
+	cookieConfig := currentConfig.Cookie
+	configMu.RUnlock()
 
 	if cookieConfig.Enabled {
 		if cookieConfig.Source == "browser" && cookieConfig.Browser != "" {

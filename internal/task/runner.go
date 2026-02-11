@@ -180,7 +180,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		args = append(args, "--proxy", proxy)
 	}
 
-	if cookieArgs := config.GetCookieArgs(task.URL); len(cookieArgs) > 0 {
+	if cookieArgs := config.GetCookieArgs(); len(cookieArgs) > 0 {
 		args = append(args, cookieArgs...)
 	}
 

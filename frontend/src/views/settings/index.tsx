@@ -34,10 +34,8 @@ const Settings = () => {
     setLanguage,
     proxyUrl,
     setProxyUrl,
-    bilibiliCookie,
-    setBilibiliCookie,
-    youtubeCookie,
-    setYoutubeCookie,
+    cookie,
+    setCookie,
   } = useSettingStore(
     useShallow((state) => ({
       defaultDir: state.defaultDir,
@@ -50,10 +48,8 @@ const Settings = () => {
       setLanguage: state.setLanguage,
       proxyUrl: state.proxyUrl,
       setProxyUrl: state.setProxyUrl,
-      bilibiliCookie: state.bilibiliCookie,
-      setBilibiliCookie: state.setBilibiliCookie,
-      youtubeCookie: state.youtubeCookie,
-      setYoutubeCookie: state.setYoutubeCookie,
+      cookie: state.cookie,
+      setCookie: state.setCookie,
     }))
   );
 
@@ -68,16 +64,12 @@ const Settings = () => {
     }
   };
 
-  const handleChooseCookiesFile = async (
-    site: 'bilibili' | 'youtube',
-    currentConfig: CookieConfig
-  ) => {
+  const handleChooseCookiesFile = async (currentConfig: CookieConfig) => {
     try {
       const file = await ChooseFile();
       if (file) {
         const update = { ...currentConfig, file };
-        if (site === 'bilibili') setBilibiliCookie(update);
-        else setYoutubeCookie(update);
+        setCookie(update);
       }
     } catch (e) {
       console.error(e);
@@ -86,11 +78,7 @@ const Settings = () => {
 
   const maxSpeedSliderValue = maxDownloadSpeed === null ? 151 : maxDownloadSpeed;
 
-  const renderCookieSettings = (
-    site: 'bilibili' | 'youtube',
-    config: CookieConfig,
-    setConfig: (val: CookieConfig) => void
-  ) => {
+  const renderCookieSettings = (config: CookieConfig, setConfig: (val: CookieConfig) => void) => {
     return (
       <>
         {/* Enable Switch */}
@@ -180,7 +168,7 @@ const Settings = () => {
                     />
                     <Button
                       icon={<FileTextOutlined />}
-                      onClick={() => handleChooseCookiesFile(site, config)}
+                      onClick={() => handleChooseCookiesFile(config)}
                       type="default"
                     >
                       {t('settings.network.chooseFile')}
@@ -325,22 +313,7 @@ const Settings = () => {
                 />
               </div>
             </div>
-            <div className="flex items-center gap-3 my-2">
-              <div className="w-6 border-t border-gray-200" />
-              <span className="text-[12px] text-gray-500 font-medium">
-                {t('settings.site.bilibili')}
-              </span>
-              <div className="flex-1 border-t border-gray-200" />
-            </div>
-            {renderCookieSettings('bilibili', bilibiliCookie, setBilibiliCookie)}
-            <div className="flex items-center gap-3 my-2">
-              <div className="w-6 border-t border-gray-200" />
-              <span className="text-[12px] text-gray-500 font-medium">
-                {t('settings.site.youtube')}
-              </span>
-              <div className="flex-1 border-t border-gray-200" />
-            </div>
-            {renderCookieSettings('youtube', youtubeCookie, setYoutubeCookie)}
+            {renderCookieSettings(cookie, setCookie)}
           </div>
         </Card>
 

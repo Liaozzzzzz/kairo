@@ -315,6 +315,7 @@ func (d *Downloader) getPlaylistInfo(url string) (*models.VideoInfo, error) {
 	args = append(args, url)
 
 	cmd := exec.Command(d.BinPath, args...)
+	utils.HideWindow(cmd)
 	output, err := cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {

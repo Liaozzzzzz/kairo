@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { Card, Progress, Dropdown, MenuProps, Image, Badge, Modal } from 'antd';
 import {
   PlayCircleOutlined,
@@ -175,12 +175,20 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
 
   const isActive = task.status === TaskStatus.Starting || task.status === TaskStatus.Downloading;
 
-  const RibbonWrap = showSiteLabel ? Badge.Ribbon : Fragment;
+  const RibbonWrap = (children: ReactNode) => {
+    return showSiteLabel ? (
+      <Badge.Ribbon text={showSiteLabel ? siteLabel : ''} color="cyan">
+        {children}
+      </Badge.Ribbon>
+    ) : (
+      <>{children}</>
+    );
+  };
 
   return (
     <Dropdown menu={{ items: menuItems }} trigger={['contextMenu']}>
       <div>
-        <RibbonWrap text={showSiteLabel ? siteLabel : ''} color="cyan">
+        {RibbonWrap(
           <Card
             hoverable
             variant="borderless"
@@ -300,7 +308,7 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
               </div>
             </div>
           </Card>
-        </RibbonWrap>
+        )}
       </div>
     </Dropdown>
   );

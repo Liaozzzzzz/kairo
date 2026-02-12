@@ -2,8 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 import { ConfigProvider, Layout, Menu } from 'antd';
-import { GetAppVersion, GetTasks } from '@root/wailsjs/go/main/App';
-import { EventsOn, WindowSetTitle } from '@root/wailsjs/runtime/runtime';
+import { GetAppVersion, GetTasks, GetPlatform } from '@root/wailsjs/go/main/App';
+import {
+  EventsOn,
+  WindowSetTitle,
+  WindowToggleMaximise,
+  WindowMinimise,
+  Quit,
+} from '@root/wailsjs/runtime/runtime';
 import { useSettingStore } from '@/store/useSettingStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useAppStore } from '@/store/useAppStore';
@@ -18,6 +24,7 @@ const { Sider, Content } = Layout;
 
 function App() {
   const [version, setVersion] = useState<string>('');
+  const [platform, setPlatform] = useState<string>('');
 
   const { t, i18n } = useTranslation();
 
@@ -77,6 +84,8 @@ function App() {
         setVersion(v);
       })
       .catch(console.error);
+
+    GetPlatform().then(setPlatform).catch(console.error);
 
     const cleanupUpdate = EventsOn('task:update', (task: Task) => {
       // The backend sends the full task object on update
@@ -174,6 +183,11 @@ function App() {
           style={{ borderRight: '1px solid #e2e8f0', background: 'transparent' }}
         >
           <div className="flex flex-col h-full">
+            <div
+              style={{ height: 40, '--wails-draggable': 'drag' } as React.CSSProperties}
+              className="flex-shrink-0"
+              onDoubleClick={WindowToggleMaximise}
+            />
             <div className="p-4 border-b border-gray-300 mb-2 ml-4 flex items-center gap-3">
               <img src={appIcon} alt="App Icon" className="w-8 h-8 shadow-sm" />
               <h1 className="font-extrabold text-2xl mt-0.5 select-text">{t('app.title')}</h1>
@@ -190,18 +204,72 @@ function App() {
             </div>
           </div>
         </Sider>
-        <Content
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            overflowY: 'auto',
-            minHeight: '100vh',
-          }}
-        >
-          {activeTab === 'downloads' && <Downloads />}
-          {activeTab === 'tasks' && <Tasks />}
-          {activeTab === 'settings' && <Settings />}
-        </Content>
+        <div className="flex-1 flex flex-col relative min-w-0">
+          <div
+            style={
+              {
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 40,
+                zIndex: 9999,
+                '--wails-draggable': 'drag',
+              } as React.CSSProperties
+            }
+            onDoubleClick={WindowToggleMaximise}
+          >
+            {platform === 'windows' && (
+              <div className="absolute top-0 right-0 h-full flex items-center">
+                <div
+                  className="h-full w-12 flex items-center justify-center hover:bg-gray-200 cursor-default transition-colors text-gray-600"
+                  onClick={WindowMinimise}
+                  style={{ '--wails-draggable': 'no-drag' } as React.CSSProperties}
+                >
+                  <svg width="10" height="1" viewBox="0 0 10 1">
+                    <rect width="10" height="1" fill="currentColor" />
+                  </svg>
+                </div>
+                <div
+                  className="h-full w-12 flex items-center justify-center hover:bg-gray-200 cursor-default transition-colors text-gray-600"
+                  onClick={WindowToggleMaximise}
+                  style={{ '--wails-draggable': 'no-drag' } as React.CSSProperties}
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10">
+                    <path
+                      d="M1,1 L9,1 L9,9 L1,9 L1,1 M0,0 L0,10 L10,10 L10,0 L0,0"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </div>
+                <div
+                  className="h-full w-12 flex items-center justify-center hover:bg-[#E81123] hover:text-white cursor-default transition-colors text-gray-600"
+                  onClick={Quit}
+                  style={{ '--wails-draggable': 'no-drag' } as React.CSSProperties}
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10">
+                    <path
+                      d="M1.0,0.0 L5.0,4.0 L9.0,0.0 L10.0,1.0 L6.0,5.0 L10.0,9.0 L9.0,10.0 L5.0,6.0 L1.0,10.0 L0.0,9.0 L4.0,5.0 L0.0,1.0 L1.0,0.0"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </div>
+              </div>
+            )}
+          </div>
+          <Content
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              overflowY: 'auto',
+              height: '100vh',
+            }}
+          >
+            {activeTab === 'downloads' && <Downloads />}
+            {activeTab === 'tasks' && <Tasks />}
+            {activeTab === 'settings' && <Settings />}
+          </Content>
+        </div>
       </Layout>
     </ConfigProvider>
   );

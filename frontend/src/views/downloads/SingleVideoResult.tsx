@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Select, Image, Button, Divider } from 'antd';
-import { DownloadOutlined, PlayCircleOutlined } from '@ant-design/icons';
+import {
+  DownloadOutlined,
+  PlayCircleOutlined,
+  ClockCircleOutlined,
+  YoutubeOutlined,
+  CustomerServiceOutlined,
+} from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { models } from '@root/wailsjs/go/models';
 import { ImageFallback } from '@/data/variables';
@@ -58,16 +64,45 @@ const SingleVideoResult = ({ videoInfo, onStartDownload }: SingleVideoResultProp
               </div>
             )}
           </div>
-          <div className="flex-1 min-w-0 flex flex-col justify-center">
-            <div className="font-medium text-lg truncate text-foreground" title={videoInfo.title}>
+          <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+            <div
+              className="font-semibold text-lg leading-tight truncate text-foreground mb-1"
+              title={videoInfo.title}
+            >
               {videoInfo.title}
             </div>
-            <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
-              <span className="bg-white dark:bg-white/5 px-2 py-0.5 rounded border border-border text-xs text-foreground">
-                {t('downloads.duration')}
-                {Math.floor(videoInfo.duration / 60)}:
-                {String(Math.floor(videoInfo.duration % 60)).padStart(2, '0')}
+
+            <div className="flex items-center flex-wrap gap-2">
+              {/* Duration Tag */}
+              <span className="bg-primary/10 dark:bg-primary/20 px-2.5 py-1 rounded-md border border-primary/20 text-xs text-primary flex items-center gap-1.5 font-medium transition-colors hover:bg-primary/15">
+                <ClockCircleOutlined />
+                <span>
+                  {Math.floor(videoInfo.duration / 60)}:
+                  {String(Math.floor(videoInfo.duration % 60)).padStart(2, '0')}
+                </span>
               </span>
+
+              {/* Type Tag */}
+              <span className="bg-orange-50 dark:bg-orange-500/10 px-2.5 py-1 rounded-md border border-orange-200 dark:border-orange-500/20 text-xs text-orange-600 dark:text-orange-400 flex items-center gap-1.5 font-medium">
+                {videoInfo.qualities?.some((q) => q.audio_bytes > 0 && q.video_bytes === 0) ? (
+                  <CustomerServiceOutlined />
+                ) : (
+                  <YoutubeOutlined />
+                )}
+                <span>
+                  {videoInfo.qualities?.some((q) => q.audio_bytes > 0 && q.video_bytes === 0)
+                    ? 'Audio'
+                    : 'Video'}
+                </span>
+              </span>
+
+              {/* Best Quality Tag */}
+              {videoInfo.qualities && videoInfo.qualities.length > 0 && (
+                <span className="bg-blue-50 dark:bg-blue-500/10 px-2.5 py-1 rounded-md border border-blue-200 dark:border-blue-500/20 text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1.5 font-medium">
+                  <span className="font-bold">HD</span>
+                  <span>{videoInfo.qualities[0].label.split(' ')[0]}</span>
+                </span>
+              )}
             </div>
           </div>
         </div>

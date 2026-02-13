@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	stdruntime "runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -399,11 +400,9 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 			m.emitTaskLog(task.ID, "Exit Error: "+err.Error(), false)
 		}
 	} else {
-		task.Status = models.TaskStatusCompleted
 		task.Progress = 100
 		task.FileExists = false
-	}
-	if task.Status == models.TaskStatusCompleted {
+
 		if task.FilePath != "" {
 			updateFileEntry(task.FilePath, 0, 100)
 		}
@@ -420,7 +419,78 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 				task.FileExists = true
 			}
 		}
+
+		if task.TrimMode != models.TrimModeNone && task.FileExists && task.FilePath != "" {
+			task.Status = models.TaskStatusTrimming
+			m.emitTaskUpdate(task)
+
+			modeStr := "保留原文件"
+			if task.TrimMode == models.TrimModeOverwrite {
+				modeStr = "覆盖原文件"
+			}
+			m.emitTaskLog(task.ID, fmt.Sprintf("正在进行裁剪 (开始: %s, 结束: %s, 模式: %s)...", task.TrimStart, task.TrimEnd, modeStr), false)
+
+			ext := filepath.Ext(task.FilePath)
+			base := strings.TrimSuffix(task.FilePath, ext)
+			trimmedPath := base + "_trimmed" + ext
+
+			ffmpegPath := filepath.Join(filepath.Dir(m.downloader.BinPath), "ffmpeg")
+			if stdruntime.GOOS == "windows" {
+				ffmpegPath += ".exe"
+			}
+
+			// args: -i input -ss start -to end -c copy output
+			// Use -y to overwrite output if exists
+			// Using output seeking (-ss after -i) to preserve time semantics (end time is absolute)
+			args := []string{"-i", task.FilePath}
+			if task.TrimStart != "" {
+				args = append(args, "-ss", task.TrimStart)
+			}
+			if task.TrimEnd != "" {
+				args = append(args, "-to", task.TrimEnd)
+			}
+			args = append(args, "-c", "copy", "-y", trimmedPath)
+
+			cmd := exec.CommandContext(ctx, ffmpegPath, args...)
+			utils.HideWindow(cmd)
+
+			if output, err := cmd.CombinedOutput(); err != nil {
+				m.emitTaskLog(task.ID, fmt.Sprintf("裁剪失败: %v, %s", err, string(output)), false)
+				task.Status = models.TaskStatusTrimFailed
+			} else {
+				m.emitTaskLog(task.ID, "裁剪完成", false)
+
+				if task.TrimMode == models.TrimModeOverwrite {
+					if err := os.Remove(task.FilePath); err != nil {
+						m.emitTaskLog(task.ID, "删除原文件失败: "+err.Error(), false)
+						task.Status = models.TaskStatusTrimFailed
+					} else {
+						if err := os.Rename(trimmedPath, task.FilePath); err != nil {
+							m.emitTaskLog(task.ID, "重命名裁剪文件失败: "+err.Error(), false)
+							task.Status = models.TaskStatusTrimFailed
+						} else {
+							// Update file size in task
+							if info, err := os.Stat(task.FilePath); err == nil {
+								task.TotalSize = utils.FormatBytes(info.Size())
+								task.TotalBytes = info.Size()
+								updateFileEntry(task.FilePath, info.Size(), 100)
+							}
+							task.Status = models.TaskStatusCompleted
+						}
+					}
+				} else {
+					// Keep both
+					if info, err := os.Stat(trimmedPath); err == nil {
+						updateFileEntry(trimmedPath, info.Size(), 100)
+					}
+					task.Status = models.TaskStatusCompleted
+				}
+			}
+		} else {
+			task.Status = models.TaskStatusCompleted
+		}
 	}
+
 	m.emitTaskUpdate(task)
 	m.saveTasks()
 }

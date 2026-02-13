@@ -10,7 +10,7 @@ import PageContainer from '@/components/PageContainer';
 import PageHeader from '@/components/PageHeader';
 import bilibiliIcon from '@/assets/images/bilibili.png';
 import youtubeIcon from '@/assets/images/Youtube.png';
-import { MenuItemKey } from '@/data/variables';
+import { MenuItemKey, TrimMode } from '@/data/variables';
 import SingleVideoResult from './SingleVideoResult';
 import PlaylistResult from './PlaylistResult';
 
@@ -60,26 +60,37 @@ export default function Downloads() {
     newDir,
     newQuality,
     newFormat,
+    trimStart,
+    trimEnd,
+    trimMode,
   }: {
     newDir: string;
     newQuality: string;
     newFormat: string;
+    trimStart: string;
+    trimEnd: string;
+    trimMode: TrimMode;
   }) => {
     if (!newUrl || !newDir) return;
     try {
       const selectedQuality = videoInfo?.qualities?.find((q) => q.value === newQuality);
       const totalBytes = isPlaylist ? 0 : selectedQuality?.total_bytes || 0;
       const formatId = selectedQuality?.format_id || '';
-      await AddTaskGo({
-        url: newUrl,
-        quality: newQuality,
-        format: newFormat,
-        format_id: formatId,
-        dir: newDir,
-        title: videoInfo?.title || '',
-        thumbnail: videoInfo?.thumbnail || '',
-        total_bytes: totalBytes,
-      });
+      await AddTaskGo(
+        new models.AddTaskInput({
+          url: newUrl,
+          quality: newQuality,
+          format: newFormat,
+          format_id: formatId,
+          dir: newDir,
+          title: videoInfo?.title || '',
+          thumbnail: videoInfo?.thumbnail || '',
+          total_bytes: totalBytes,
+          trim_start: trimStart,
+          trim_end: trimEnd,
+          trim_mode: trimMode,
+        })
+      );
       setNewUrl('');
       setActiveTab(MenuItemKey.Tasks);
     } catch (e) {

@@ -79,7 +79,12 @@
     "selectAll": "全选",
     "playlistIndex": "第{{index}}条",
     "emptyState": "输入视频链接开始下载",
-    "analyzing": "正在解析视频信息..."
+    "analyzing": "正在解析视频信息...",
+    "trimVideo": "视频裁剪",
+    "noTrim": "不裁剪",
+    "trimOverwrite": "覆盖原文件",
+    "trimKeep": "保留原文件",
+    "trimRange": "裁剪范围"
   },
   "tasks": {
     "title": "任务列表",
@@ -100,6 +105,8 @@
       "starting": "启动中",
       "downloading": "下载中",
       "merging": "合并中",
+      "trimming": "裁剪中",
+      "trim_failed": "裁剪失败",
       "pending": "等待中",
       "paused": "暂停中"
     },

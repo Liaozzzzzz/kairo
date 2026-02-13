@@ -3,9 +3,17 @@ export enum TaskStatus {
   Starting = 'starting',
   Downloading = 'downloading',
   Merging = 'merging',
+  Trimming = 'trimming',
   Paused = 'paused',
   Completed = 'completed',
+  TrimFailed = 'trim_failed',
   Error = 'error',
+}
+
+export enum TrimMode {
+  None = 'none',
+  Overwrite = 'overwrite',
+  Keep = 'keep',
 }
 
 export const ImageFallback =

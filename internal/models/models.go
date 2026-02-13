@@ -7,9 +7,19 @@ const (
 	TaskStatusStarting    TaskStatus = "starting"
 	TaskStatusDownloading TaskStatus = "downloading"
 	TaskStatusMerging     TaskStatus = "merging"
+	TaskStatusTrimming    TaskStatus = "trimming"
 	TaskStatusPaused      TaskStatus = "paused"
 	TaskStatusCompleted   TaskStatus = "completed"
+	TaskStatusTrimFailed  TaskStatus = "trim_failed"
 	TaskStatusError       TaskStatus = "error"
+)
+
+type TrimMode string
+
+const (
+	TrimModeNone      TrimMode = "none"
+	TrimModeOverwrite TrimMode = "overwrite"
+	TrimModeKeep      TrimMode = "keep"
 )
 
 type DownloadFile struct {
@@ -51,6 +61,9 @@ type DownloadTask struct {
 	FilePath      string         `json:"file_path"`
 	TotalBytes    int64          `json:"total_bytes"`
 	Files         []DownloadFile `json:"files"`
+	TrimStart     string         `json:"trim_start"`
+	TrimEnd       string         `json:"trim_end"`
+	TrimMode      TrimMode       `json:"trim_mode"`
 }
 
 type QualityOption struct {
@@ -76,14 +89,17 @@ type VideoInfo struct {
 }
 
 type AddTaskInput struct {
-	URL        string `json:"url"`
-	Quality    string `json:"quality"`
-	Format     string `json:"format"`
-	FormatID   string `json:"format_id"`
-	Dir        string `json:"dir"`
-	Title      string `json:"title"`
-	Thumbnail  string `json:"thumbnail"`
-	TotalBytes int64  `json:"total_bytes"`
+	URL        string   `json:"url"`
+	Quality    string   `json:"quality"`
+	Format     string   `json:"format"`
+	FormatID   string   `json:"format_id"`
+	Dir        string   `json:"dir"`
+	Title      string   `json:"title"`
+	Thumbnail  string   `json:"thumbnail"`
+	TotalBytes int64    `json:"total_bytes"`
+	TrimStart  string   `json:"trim_start"`
+	TrimEnd    string   `json:"trim_end"`
+	TrimMode   TrimMode `json:"trim_mode"`
 }
 
 type AddPlaylistTaskInput struct {

@@ -178,6 +178,9 @@ func (m *Manager) AddTask(input models.AddTaskInput) (string, error) {
 		CurrentItem: 1,
 		TotalItems:  1,
 		LogPath:     config.GetLogPath(id),
+		TrimStart:   input.TrimStart,
+		TrimEnd:     input.TrimEnd,
+		TrimMode:    input.TrimMode,
 	}
 
 	if task.Title == "" {
@@ -206,7 +209,7 @@ func (m *Manager) scheduleTasks() {
 
 	downloadingCount := 0
 	for _, task := range m.tasks {
-		if task.Status == models.TaskStatusDownloading || task.Status == models.TaskStatusStarting || task.Status == models.TaskStatusMerging {
+		if task.Status == models.TaskStatusDownloading || task.Status == models.TaskStatusStarting || task.Status == models.TaskStatusMerging || task.Status == models.TaskStatusTrimming {
 			downloadingCount++
 		}
 	}
@@ -233,7 +236,7 @@ func (m *Manager) DeleteTask(id string, deleteFile bool) {
 	// 1. Cancel running task
 	// 2. Delete file if requested and remove from tasks
 	if task, ok := m.tasks[id]; ok {
-		if task.Status == models.TaskStatusMerging {
+		if task.Status == models.TaskStatusMerging || task.Status == models.TaskStatusTrimming {
 			return
 		}
 
@@ -272,7 +275,7 @@ func (m *Manager) DeleteTask(id string, deleteFile bool) {
 		}
 		delete(m.tasks, id)
 		m.deleteTaskLog(id)
-		if task.Status != models.TaskStatusStarting && task.Status != models.TaskStatusDownloading && task.Status != models.TaskStatusMerging {
+		if task.Status != models.TaskStatusStarting && task.Status != models.TaskStatusDownloading && task.Status != models.TaskStatusMerging && task.Status != models.TaskStatusTrimming {
 			delete(m.deletedTasks, id)
 		}
 	}
@@ -290,7 +293,7 @@ func (m *Manager) PauseTask(id string) {
 	}
 
 	// If not running, can't pause
-	if task.Status != models.TaskStatusDownloading && task.Status != models.TaskStatusStarting && task.Status != models.TaskStatusMerging {
+	if task.Status != models.TaskStatusDownloading && task.Status != models.TaskStatusStarting {
 		m.mu.Unlock()
 		return
 	}

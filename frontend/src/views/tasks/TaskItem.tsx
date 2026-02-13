@@ -43,9 +43,11 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
       case TaskStatus.Completed:
         return <CheckCircleOutlined className="w-4 h-4 text-green-500" />;
       case TaskStatus.Error:
+      case TaskStatus.TrimFailed:
         return <CloseCircleOutlined className="w-4 h-4 text-red-500" />;
       case TaskStatus.Starting:
       case TaskStatus.Merging:
+      case TaskStatus.Trimming:
       case TaskStatus.Downloading:
         return (
           <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
@@ -69,6 +71,10 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
         return t('tasks.status.downloading');
       case TaskStatus.Merging:
         return t('tasks.status.merging');
+      case TaskStatus.Trimming:
+        return t('tasks.status.trimming');
+      case TaskStatus.TrimFailed:
+        return t('tasks.status.trim_failed');
       case TaskStatus.Pending:
         return t('tasks.status.pending');
       case TaskStatus.Paused:
@@ -82,7 +88,7 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
   const displaySize = task.total_size;
 
   const confirmDelete = (purge: boolean) => {
-    if (task.status === TaskStatus.Merging) {
+    if (task.status === TaskStatus.Merging || task.status === TaskStatus.Trimming) {
       return;
     }
     const modalKey = purge ? 'tasks.confirmPurge' : 'tasks.confirmDelete';
@@ -136,7 +142,7 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
       danger: true,
       onClick: () => confirmDelete(false),
     },
-    ...(task.status !== TaskStatus.Merging
+    ...(task.status !== TaskStatus.Merging && task.status !== TaskStatus.Trimming
       ? [
           {
             key: 'purge',
@@ -159,6 +165,7 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
         return 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20';
       case TaskStatus.Starting:
       case TaskStatus.Merging:
+      case TaskStatus.Trimming:
       case TaskStatus.Downloading:
         return 'bg-primary/10 text-primary border border-primary/20';
       case TaskStatus.Paused:

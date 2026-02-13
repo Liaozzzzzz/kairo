@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Select, Image, Button, Divider } from 'antd';
+import { Select, Image, Button, Divider, Radio, Slider } from 'antd';
 import {
   DownloadOutlined,
   PlayCircleOutlined,
@@ -14,16 +14,24 @@ import { useSettingStore } from '@/store/useSettingStore';
 import { useShallow } from 'zustand/react/shallow';
 import DownloadDir from '@/components/DownloadDir';
 
+import { TrimMode } from '@/data/variables';
+
 interface SingleVideoResultProps {
   videoInfo: models.VideoInfo;
   onStartDownload: ({
     newDir,
     newQuality,
     newFormat,
+    trimStart,
+    trimEnd,
+    trimMode,
   }: {
     newDir: string;
     newQuality: string;
     newFormat: string;
+    trimStart: string;
+    trimEnd: string;
+    trimMode: TrimMode;
   }) => void;
 }
 
@@ -34,6 +42,8 @@ const SingleVideoResult = ({ videoInfo, onStartDownload }: SingleVideoResultProp
 
   const [newQuality, setNewQuality] = useState('');
   const [newFormat, setNewFormat] = useState('original');
+  const [trimRange, setTrimRange] = useState<[number, number]>([0, 0]);
+  const [trimMode, setTrimMode] = useState<TrimMode>(TrimMode.None);
 
   useEffect(() => {
     if (videoInfo.qualities && videoInfo.qualities.length > 0) {
@@ -41,7 +51,15 @@ const SingleVideoResult = ({ videoInfo, onStartDownload }: SingleVideoResultProp
     } else {
       setNewQuality('');
     }
-  }, [videoInfo.qualities]);
+    setTrimRange([0, Math.floor(videoInfo.duration || 0)]);
+  }, [videoInfo]);
+
+  const formatSeconds = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   return (
     <>
@@ -148,13 +166,55 @@ const SingleVideoResult = ({ videoInfo, onStartDownload }: SingleVideoResultProp
             <label className="text-sm font-medium text-foreground">{t('downloads.saveTo')}</label>
             <DownloadDir defaultDir={newDir} setNewDir={setNewDir} />
           </div>
+          <div></div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              {t('downloads.trimVideo')}
+            </label>
+            <Radio.Group
+              className="flex items-center h-8"
+              value={trimMode}
+              onChange={(e) => setTrimMode(e.target.value)}
+            >
+              <Radio value={TrimMode.None}>{t('downloads.noTrim')}</Radio>
+              <Radio value={TrimMode.Overwrite}>{t('downloads.trimOverwrite')}</Radio>
+              <Radio value={TrimMode.Keep}>{t('downloads.trimKeep')}</Radio>
+            </Radio.Group>
+          </div>
+          {trimMode !== TrimMode.None && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                {t('downloads.trimRange')}
+              </label>
+              <div className="w-full flex items-center h-8">
+                <Slider
+                  range
+                  className="w-full"
+                  min={0}
+                  max={Math.floor(videoInfo.duration || 0)}
+                  value={trimRange}
+                  onChange={(val) => setTrimRange(val as [number, number])}
+                  tooltip={{ formatter: (val) => formatSeconds(val || 0) }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <Divider size="large" />
       <div className="flex justify-end">
         <Button
           type="primary"
-          onClick={() => onStartDownload({ newDir, newQuality, newFormat })}
+          onClick={() =>
+            onStartDownload({
+              newDir,
+              newQuality,
+              newFormat,
+              trimStart: formatSeconds(trimRange[0]),
+              trimEnd: formatSeconds(trimRange[1]),
+              trimMode,
+            })
+          }
           disabled={!newDir || !videoInfo}
           icon={<DownloadOutlined />}
           className="px-8"

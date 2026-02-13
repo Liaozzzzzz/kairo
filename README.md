@@ -15,6 +15,16 @@ Kairo is a modern cross-platform video downloader built with [Wails](https://wai
   - **Site-Specific Configuration**: Set authentication methods separately for different sites (e.g., Bilibili, YouTube).
 - **Internationalization**: Built-in support for English and Chinese.
 
+## 📸 Screenshots
+
+| Video Parsing | Playlist |
+|:---:|:---:|
+| <img src="docs/images/downloads.png" width="400" /> | <img src="docs/images/downloads_playlist.png" width="400" /> |
+
+| Task Management | Settings |
+|:---:|:---:|
+| <img src="docs/images/tasks.png" width="400" /> | <img src="docs/images/settings.png" width="400" /> |
+
 ## 🧩 Function Details
 
 ### 🎥 Video Download

@@ -15,6 +15,16 @@ Kairo 是一个基于 [Wails](https://wails.io/) 构建的现代化跨平台视�
   - **站点独立配置**：可针对不同站点（如 Bilibili、YouTube）单独设置认证方式。
 - **国际化**：内置中英文多语言支持。
 
+## 📸 应用截图
+
+| 视频解析 | 播放列表 |
+|:---:|:---:|
+| <img src="docs/images/downloads.png" width="400" /> | <img src="docs/images/downloads_playlist.png" width="400" /> |
+
+| 任务管理 | 应用设置 |
+|:---:|:---:|
+| <img src="docs/images/tasks.png" width="400" /> | <img src="docs/images/settings.png" width="400" /> |
+
 ## 🧩 功能详情
 
 ### 🎥 视频下载

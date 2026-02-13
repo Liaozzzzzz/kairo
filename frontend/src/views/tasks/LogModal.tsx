@@ -83,7 +83,7 @@ export function LogModal({ viewLogId, onClose }: LogModalProps) {
           taskLogs[viewLogId]?.map((log, i) => (
             <div
               key={i}
-              className="break-all whitespace-pre-wrap mb-0.5 border-b border-white/5 pb-0.5 last:border-0"
+              className="break-all whitespace-pre-wrap mb-0.5 border-b border-white/5 pb-0.5 last:border-0 select-auto"
             >
               {log}
             </div>

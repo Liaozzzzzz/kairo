@@ -236,7 +236,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 	destinationRegex := regexp.MustCompile(`\[download\] Destination: (.+)`)
 	alreadyDownloadedRegex := regexp.MustCompile(`\[download\] (.+) has already been downloaded`)
 	mergerRegex := regexp.MustCompile(`\[Merger\] Merging formats into "(.+)"`)
-	deletingRegex := regexp.MustCompile(`Deleting original file (.+)`)
+	deletingRegex := regexp.MustCompile(`Deleting original file (.+?)(?: \(pass -k to keep\))?$`)
 
 	var wg sync.WaitGroup
 	wg.Add(2)

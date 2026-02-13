@@ -134,7 +134,9 @@ export default function Downloads() {
         <div className="flex items-end justify-between">
           <PageHeader title={t('downloads.title')} subtitle={t('downloads.subtitle')} />
           <div className="flex items-center gap-4">
-            <span className="text-sm ont-medium mt-1">{t('downloads.supportedSites')}</span>
+            <span className="text-sm font-medium mt-1 text-muted-foreground">
+              {t('downloads.supportedSites')}
+            </span>
             <div className="flex items-center gap-3">
               <img src={bilibiliIcon} alt="Bilibili" title="Bilibili" className="w-10 h-4.5" />
               <img src={youtubeIcon} alt="YouTube" title="YouTube" className="w-14 h-6" />
@@ -148,7 +150,7 @@ export default function Downloads() {
       <Card variant="borderless" className="shadow-sm">
         <div className="space-y-6">
           <div className="space-y-2">
-            <label className="text-sm font-medium">{t('downloads.videoUrl')}</label>
+            <label className="text-sm font-medium text-foreground">{t('downloads.videoUrl')}</label>
             <Input.Search
               value={newUrl}
               onChange={(e) => {

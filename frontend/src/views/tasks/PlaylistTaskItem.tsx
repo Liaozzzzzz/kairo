@@ -83,29 +83,29 @@ export function PlaylistTaskItem({ task, childrenTasks, onViewLog }: PlaylistTas
       >
         <Dropdown menu={{ items: menuItems }} trigger={['contextMenu']}>
           <div
-            className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
             onClick={() => setExpanded(!expanded)}
           >
-            <div className="text-gray-400 text-sm">
+            <div className="text-muted-foreground text-sm">
               {expanded ? <DownOutlined /> : <RightOutlined />}
             </div>
 
             <div className="flex-1 min-w-0">
               <div
-                className="font-semibold text-[15px] truncate text-gray-900 mb-1"
+                className="font-semibold text-[15px] truncate text-foreground mb-1"
                 title={task.title || task.url}
               >
                 {task.title || task.url}
               </div>
-              <div className="text-xs text-gray-500 flex items-center gap-1">
+              <div className="text-xs text-muted-foreground flex items-center gap-1">
                 <span>{t('tasks.playlist.statusPrefix')}</span>
-                <span className="text-green-600">
+                <span className="text-green-600 dark:text-green-400">
                   {t('tasks.playlist.progress', { completed: completedCount, total: totalCount })}
                 </span>
                 {failedCount > 0 && (
                   <>
                     <span>·</span>
-                    <span className="text-red-500">
+                    <span className="text-red-500 dark:text-red-400">
                       {t('tasks.playlist.failed', { count: failedCount })}
                     </span>
                   </>
@@ -117,7 +117,7 @@ export function PlaylistTaskItem({ task, childrenTasks, onViewLog }: PlaylistTas
         </Dropdown>
 
         {expanded && (
-          <div className="bg-gray-50/50 border-t border-gray-100 p-2 space-y-2 pl-8">
+          <div className="bg-gray-50/50 dark:bg-black/20 border-t border-gray-100 dark:border-white/5 p-2 space-y-2 pl-8">
             {childrenTasks.map((child) => (
               <TaskItem
                 key={child.id}

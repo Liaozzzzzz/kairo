@@ -6,9 +6,10 @@ import { useTranslation } from 'react-i18next';
 export interface DownloadDirProps {
   defaultDir: string;
   setNewDir: (dir: string) => void;
+  className?: string;
 }
 
-const DownloadDir = ({ defaultDir, setNewDir }: DownloadDirProps) => {
+const DownloadDir = ({ defaultDir, setNewDir, className }: DownloadDirProps) => {
   const { t } = useTranslation();
 
   const handleChooseDir = async () => {
@@ -21,11 +22,11 @@ const DownloadDir = ({ defaultDir, setNewDir }: DownloadDirProps) => {
   };
 
   return (
-    <Space.Compact style={{ width: '100%' }}>
+    <Space.Compact className={`w-full ${className}`}>
       <Input
         value={defaultDir}
         readOnly
-        className="cursor-default bg-gray-50 hover:bg-gray-50 text-gray-700"
+        className="cursor-default bg-gray-50 hover:bg-gray-50 text-gray-700 dark:bg-gray-800 dark:hover:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
       />
       <Button icon={<FolderOpenOutlined />} onClick={handleChooseDir} type="default">
         {t('settings.downloads.chooseDir')}

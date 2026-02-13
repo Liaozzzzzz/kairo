@@ -40,8 +40,8 @@ const SingleVideoResult = ({ videoInfo, onStartDownload }: SingleVideoResultProp
   return (
     <>
       <div className="space-y-3">
-        <div className="bg-slate-50 border border-slate-200 p-4 rounded-lg flex gap-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="flex-shrink-0 w-40 aspect-video rounded-md overflow-hidden border border-black/10 bg-gray-100">
+        <div className="bg-slate-50 dark:bg-card border border-slate-200 dark:border-border p-4 rounded-lg flex gap-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex-shrink-0 w-40 aspect-video rounded-md overflow-hidden border border-black/10 dark:border-white/10 bg-gray-100 dark:bg-black/20">
             {videoInfo.thumbnail ? (
               <Image
                 src={videoInfo.thumbnail}
@@ -53,7 +53,7 @@ const SingleVideoResult = ({ videoInfo, onStartDownload }: SingleVideoResultProp
                 fallback={ImageFallback}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-300">
+              <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-muted-foreground/50">
                 <PlayCircleOutlined className="text-2xl" />
               </div>
             )}
@@ -63,7 +63,7 @@ const SingleVideoResult = ({ videoInfo, onStartDownload }: SingleVideoResultProp
               {videoInfo.title}
             </div>
             <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
-              <span className="bg-white px-2 py-0.5 rounded border border-slate-200 text-xs">
+              <span className="bg-white dark:bg-white/5 px-2 py-0.5 rounded border border-slate-200 dark:border-white/10 text-xs text-foreground">
                 {t('downloads.duration')}
                 {Math.floor(videoInfo.duration / 60)}:
                 {String(Math.floor(videoInfo.duration % 60)).padStart(2, '0')}
@@ -73,7 +73,7 @@ const SingleVideoResult = ({ videoInfo, onStartDownload }: SingleVideoResultProp
         </div>
         <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300 delay-75">
           <div className="space-y-2">
-            <label className="text-sm font-medium">{t('downloads.quality')}</label>
+            <label className="text-sm font-medium text-foreground">{t('downloads.quality')}</label>
             <Select
               value={newQuality}
               onChange={setNewQuality}
@@ -82,7 +82,9 @@ const SingleVideoResult = ({ videoInfo, onStartDownload }: SingleVideoResultProp
                 label: (
                   <div className="flex justify-between items-center w-full gap-4">
                     <span>{q.label}</span>
-                    <span className="text-gray-400 text-xs font-normal">{q.total_size}</span>
+                    <span className="text-gray-400 dark:text-muted-foreground text-xs font-normal">
+                      {q.total_size}
+                    </span>
                   </div>
                 ),
                 value: q.value,
@@ -91,7 +93,7 @@ const SingleVideoResult = ({ videoInfo, onStartDownload }: SingleVideoResultProp
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">{t('downloads.format')}</label>
+            <label className="text-sm font-medium text-foreground">{t('downloads.format')}</label>
             <Select
               value={newFormat}
               onChange={setNewFormat}
@@ -108,7 +110,7 @@ const SingleVideoResult = ({ videoInfo, onStartDownload }: SingleVideoResultProp
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">{t('downloads.saveTo')}</label>
+            <label className="text-sm font-medium text-foreground">{t('downloads.saveTo')}</label>
             <DownloadDir defaultDir={newDir} setNewDir={setNewDir} />
           </div>
         </div>

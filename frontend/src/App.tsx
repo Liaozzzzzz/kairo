@@ -13,6 +13,7 @@ import {
 import { useSettingStore } from '@/store/useSettingStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useAppStore } from '@/store/useAppStore';
+import { useTheme } from '@/hooks/useTheme';
 import { Task } from '@/types';
 import Tasks from '@/views/tasks';
 import Downloads from '@/views/downloads';
@@ -25,6 +26,7 @@ const { Sider, Content } = Layout;
 function App() {
   const [version, setVersion] = useState<string>('');
   const [platform, setPlatform] = useState<string>('');
+  const { antAlgorithm, isDark } = useTheme();
 
   const { t, i18n } = useTranslation();
 
@@ -141,46 +143,55 @@ function App() {
   return (
     <ConfigProvider
       theme={{
+        algorithm: antAlgorithm,
         token: {
           colorPrimary: '#007AFF',
           borderRadius: 8,
           fontFamily: 'Nunito, sans-serif',
+          colorBgContainer: isDark ? '#282828' : '#ffffff',
+          colorBgElevated: isDark ? '#333333' : '#ffffff',
+          colorText: isDark ? '#e5e7eb' : '#000000',
+          colorBorder: isDark ? '#3f3f3f' : '#d9d9d9',
         },
         components: {
           Layout: {
-            bodyBg: '#ffffff',
+            bodyBg: isDark ? '#1e1e1e' : '#ffffff',
             siderBg: undefined,
           },
           Menu: {
             itemBg: 'transparent',
-            itemSelectedBg: '#ffffff',
+            itemSelectedBg: isDark ? 'rgba(255, 255, 255, 0.1)' : '#ffffff',
             itemSelectedColor: '#007AFF',
+            itemColor: isDark ? '#e5e7eb' : 'rgba(0, 0, 0, 0.88)',
             itemBorderRadius: 8,
             itemMarginInline: 16,
           },
           Segmented: {
-            itemSelectedBg: '#ffffff',
-            itemSelectedColor: '#000000',
-            trackBg: '#7676801f', // Apple style gray with opacity
+            itemSelectedBg: isDark ? '#4d4d4d' : '#ffffff',
+            itemSelectedColor: isDark ? '#ffffff' : '#000000',
+            trackBg: isDark ? '#2c2c2c' : '#7676801f',
             trackPadding: 2,
             borderRadius: 8,
-            controlHeightLG: 32, // Match macOS standard height
+            controlHeightLG: 32,
+          },
+          Input: {
+            colorBgContainer: isDark ? '#2c2c2c' : '#ffffff',
+            colorBorder: isDark ? '#3f3f3f' : '#d9d9d9',
+            colorText: isDark ? '#e5e7eb' : '#000000',
+            colorTextPlaceholder: isDark ? '#6b7280' : '#bfbfbf',
+          },
+          Card: {
+            colorBgContainer: isDark ? '#282828' : '#ffffff',
+            colorBorderSecondary: isDark ? '#333333' : '#f0f0f0',
           },
         },
       }}
     >
-      <Layout
-        style={{
-          height: '100vh',
-          overflow: 'hidden',
-          background:
-            'linear-gradient(to right, #f1f5f9 0, #f1f5f9 200px, #eef2f7 220px, #f8fafc 400px, #ffffff 420px, #ffffff 100%)',
-        }}
-      >
+      <Layout className="h-screen overflow-hidden bg-background">
         <Sider
           width={200}
-          theme="light"
-          style={{ borderRight: '1px solid #e2e8f0', background: 'transparent' }}
+          theme={isDark ? 'dark' : 'light'}
+          className="border-r border-border bg-transparent"
         >
           <div className="flex flex-col h-full">
             <div
@@ -188,18 +199,20 @@ function App() {
               className="flex-shrink-0"
               onDoubleClick={WindowToggleMaximise}
             />
-            <div className="p-4 border-b border-gray-300 mb-2 ml-4 flex items-center gap-3">
+            <div className="p-4 border-b border-border mb-2 ml-4 flex items-center gap-3">
               <img src={appIcon} alt="App Icon" className="w-8 h-8 shadow-sm" />
-              <h1 className="font-extrabold text-2xl mt-0.5 select-text">{t('app.title')}</h1>
+              <h1 className="font-extrabold text-2xl mt-0.5 select-text text-foreground">
+                {t('app.title')}
+              </h1>
             </div>
             <Menu
               mode="inline"
               selectedKeys={[activeTab]}
               onClick={({ key }) => setActiveTab(key as MenuItemKey)}
               items={TABS}
-              style={{ borderRight: 0, background: 'transparent', flex: 1 }}
+              className="border-r-0 bg-transparent flex-1"
             />
-            <div className="border-t border-gray-300 p-3 text-center text-xs text-gray-400">
+            <div className="border-t border-border p-3 text-center text-xs text-muted-foreground">
               v{version}
             </div>
           </div>

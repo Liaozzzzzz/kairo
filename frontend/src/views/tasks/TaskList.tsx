@@ -96,12 +96,14 @@ export function TaskList({ onViewLog, filter }: TaskListProps) {
 
   if (taskList.length === 0) {
     return (
-      <button className="w-full flex flex-col items-center justify-center py-20 rounded-2xl border-2 border-dashed border-black/5 bg-card/50 text-muted-foreground">
-        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-black/5 mb-4 text-black/40">
-          <PlusOutlined className="text-3xl" />
+      <button className="w-full flex flex-col items-center justify-center py-20 rounded-2xl border-2 border-dashed border-border bg-card/50 text-muted-foreground">
+        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-4 text-muted-foreground">
+          <PlusOutlined className="text-xl" />
         </div>
-        <div className="text-[15px] font-medium text-black/60">{t('tasks.noDownloads')}</div>
-        <div className="flex items-center justify-center gap-1 text-[13px] text-black/40 mt-1">
+        <div className="text-[15px] font-medium text-muted-foreground">
+          {t('tasks.noDownloads')}
+        </div>
+        <div className="flex items-center gap-1.5 mt-2 text-sm text-muted-foreground/60">
           <span>{t('tasks.startDownloadingPrefix')}</span>
           <Button className="px-0" type="link" onClick={() => setActiveTab(MenuItemKey.Downloads)}>
             {t('tasks.startDownloading')}

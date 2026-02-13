@@ -12,12 +12,13 @@ import {
   Switch,
   Radio,
 } from 'antd';
-import { FolderOpenOutlined, FileTextOutlined } from '@ant-design/icons';
+import { FileTextOutlined } from '@ant-design/icons';
 import { useShallow } from 'zustand/react/shallow';
-import { ChooseDirectory, ChooseFile, GetPlatform } from '@root/wailsjs/go/main/App';
+import { ChooseFile, GetPlatform } from '@root/wailsjs/go/main/App';
 import PageContainer from '@/components/PageContainer';
 import PageHeader from '@/components/PageHeader';
-import { AppLanguage, useSettingStore, CookieConfig } from '@/store/useSettingStore';
+import { AppLanguage, AppTheme, useSettingStore, CookieConfig } from '@/store/useSettingStore';
+import DownloadDir from '@/components/DownloadDir';
 
 const { Text } = Typography;
 
@@ -38,6 +39,8 @@ const Settings = () => {
     setMaxDownloadSpeed,
     language,
     setLanguage,
+    theme,
+    setTheme,
     proxyUrl,
     setProxyUrl,
     cookie,
@@ -52,23 +55,14 @@ const Settings = () => {
       setMaxDownloadSpeed: state.setMaxDownloadSpeed,
       language: state.language,
       setLanguage: state.setLanguage,
+      theme: state.theme,
+      setTheme: state.setTheme,
       proxyUrl: state.proxyUrl,
       setProxyUrl: state.setProxyUrl,
       cookie: state.cookie,
       setCookie: state.setCookie,
     }))
   );
-
-  const handleChooseDir = async () => {
-    try {
-      const dir = await ChooseDirectory();
-      if (dir) {
-        setDefaultDir(dir);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   const handleChooseCookiesFile = async (currentConfig: CookieConfig) => {
     try {
@@ -90,7 +84,7 @@ const Settings = () => {
         {/* Enable Switch */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
           <div className="md:col-span-4">
-            <Text strong className="block text-[13px] text-gray-600 mb-0">
+            <Text strong className="block text-[13px] text-gray-600 dark:text-gray-400 mb-0">
               {t('settings.site.enableAuth')}
             </Text>
           </div>
@@ -107,7 +101,7 @@ const Settings = () => {
             {/* Auth Mode */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
               <div className="md:col-span-4">
-                <Text strong className="block text-[13px] text-gray-600 mb-0">
+                <Text strong className="block text-[13px] text-gray-600 dark:text-gray-400 mb-0">
                   {t('settings.site.authMode')}
                 </Text>
               </div>
@@ -126,7 +120,7 @@ const Settings = () => {
             {config.source === 'browser' && (
               <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
                 <div className="md:col-span-4">
-                  <Text strong className="block text-[13px] text-gray-600 mb-0">
+                  <Text strong className="block text-[13px] text-gray-600 dark:text-gray-400 mb-0">
                     {t('settings.network.cookies')}
                   </Text>
                 </div>
@@ -156,7 +150,7 @@ const Settings = () => {
             {config.source === 'file' && (
               <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
                 <div className="md:col-span-4">
-                  <Text strong className="block text-[13px] text-gray-600 mb-0">
+                  <Text strong className="block text-[13px] text-gray-600 dark:text-gray-400 mb-0">
                     {t('settings.network.cookiesFile')}
                   </Text>
                 </div>
@@ -166,7 +160,7 @@ const Settings = () => {
                       value={config.file}
                       readOnly
                       placeholder={t('settings.network.cookiesFilePlaceholder')}
-                      className="cursor-default bg-gray-50 hover:bg-gray-50 text-gray-700"
+                      className="cursor-default bg-gray-50 hover:bg-gray-50 text-gray-700 dark:bg-gray-800 dark:hover:bg-gray-800 dark:text-gray-300"
                       allowClear
                       onChange={(e) => {
                         if (!e.target.value) setConfig({ ...config, file: '' });
@@ -204,7 +198,7 @@ const Settings = () => {
           variant="borderless"
           size="small"
           title={
-            <span className="text-base font-semibold text-gray-800">
+            <span className="text-base font-semibold text-gray-800 dark:text-gray-200">
               {t('settings.tabs.downloads')}
             </span>
           }
@@ -213,21 +207,12 @@ const Settings = () => {
             {/* Directory */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
               <div className="md:col-span-4">
-                <Text strong className="block text-[13px] text-gray-600 mb-0">
+                <Text strong className="block text-[13px] text-gray-600 dark:text-gray-400 mb-0">
                   {t('settings.downloads.dir')}
                 </Text>
               </div>
               <div className="md:col-span-8">
-                <Space.Compact style={{ width: '100%' }}>
-                  <Input
-                    value={defaultDir}
-                    readOnly
-                    className="cursor-default bg-gray-50 hover:bg-gray-50 text-gray-700"
-                  />
-                  <Button icon={<FolderOpenOutlined />} onClick={handleChooseDir} type="default">
-                    {t('settings.downloads.chooseDir')}
-                  </Button>
-                </Space.Compact>
+                <DownloadDir defaultDir={defaultDir} setNewDir={setDefaultDir} />
               </div>
             </div>
 
@@ -247,7 +232,7 @@ const Settings = () => {
                     setDownloadConcurrency(v);
                   }}
                   options={[1, 2, 3, 4, 5]}
-                  className="bg-gray-100 font-medium"
+                  className="font-medium"
                 />
               </div>
             </div>
@@ -255,7 +240,7 @@ const Settings = () => {
             {/* Max Speed */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-start">
               <div className="md:col-span-4 pt-1">
-                <Text strong className="block text-[13px] text-gray-600 mb-0">
+                <Text strong className="block text-[13px] text-gray-600 dark:text-gray-400 mb-0">
                   {t('settings.downloads.maxSpeed')}
                 </Text>
                 <div className="text-xs text-gray-500 mt-0.5">
@@ -293,12 +278,46 @@ const Settings = () => {
           </div>
         </Card>
 
+        {/* Appearance Settings */}
+        <Card
+          variant="borderless"
+          size="small"
+          title={
+            <span className="text-base font-semibold text-gray-800 dark:text-gray-200">
+              {t('settings.appearance.title')}
+            </span>
+          }
+        >
+          <div className="space-y-5 px-2 py-0">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+              <div className="md:col-span-4">
+                <Text strong className="block text-[13px] text-gray-600 dark:text-gray-400 mb-0">
+                  {t('settings.appearance.theme')}
+                </Text>
+              </div>
+              <div className="md:col-span-8">
+                <Segmented
+                  block
+                  value={theme}
+                  onChange={(val) => setTheme(val as AppTheme)}
+                  options={[
+                    { label: t('settings.appearance.light'), value: 'light' },
+                    { label: t('settings.appearance.dark'), value: 'dark' },
+                    { label: t('settings.appearance.system'), value: 'system' },
+                  ]}
+                  className="font-medium"
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
+
         {/* Network Settings */}
         <Card
           variant="borderless"
           size="small"
           title={
-            <span className="text-base font-semibold text-gray-800">
+            <span className="text-base font-semibold text-gray-800 dark:text-gray-200">
               {t('settings.tabs.network')}
             </span>
           }
@@ -306,7 +325,7 @@ const Settings = () => {
           <div className="px-2 py-0 space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
               <div className="md:col-span-4">
-                <Text strong className="block text-[13px] text-gray-600 mb-0">
+                <Text strong className="block text-[13px] text-gray-600 dark:text-gray-400 mb-0">
                   {t('settings.network.proxy')}
                 </Text>
               </div>
@@ -316,6 +335,7 @@ const Settings = () => {
                   onChange={(e) => setProxyUrl(e.target.value)}
                   placeholder={t('settings.network.proxyPlaceholder')}
                   allowClear
+                  className="dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                 />
               </div>
             </div>
@@ -328,30 +348,31 @@ const Settings = () => {
           variant="borderless"
           size="small"
           title={
-            <span className="text-base font-semibold text-gray-800">
+            <span className="text-base font-semibold text-gray-800 dark:text-gray-200">
               {t('settings.tabs.language')}
             </span>
           }
         >
-          <div className="px-2 py-0">
+          <div className="space-y-5 px-2 py-0">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
               <div className="md:col-span-4">
-                <Text strong className="block text-[13px] text-gray-600 mb-0">
+                <Text strong className="block text-[13px] text-gray-600 dark:text-gray-400 mb-0">
                   {t('settings.language')}
                 </Text>
               </div>
               <div className="md:col-span-8">
-                <Select
+                <Segmented
+                  block
                   value={language}
-                  onChange={(val: AppLanguage) => {
-                    i18n.changeLanguage(val);
-                    setLanguage(val);
+                  onChange={(val) => {
+                    i18n.changeLanguage(val as AppLanguage);
+                    setLanguage(val as AppLanguage);
                   }}
-                  style={{ width: '100%' }}
                   options={[
-                    { value: 'zh', label: '中文 (Chinese)' },
-                    { value: 'en', label: 'English' },
+                    { label: '中文', value: 'zh' },
+                    { label: 'English', value: 'en' },
                   ]}
+                  className="font-medium"
                 />
               </div>
             </div>

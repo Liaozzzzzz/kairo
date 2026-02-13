@@ -3,6 +3,7 @@ import { UpdateSettings, GetSettings } from '@root/wailsjs/go/main/App';
 import { config as WailsConfig } from '@root/wailsjs/go/models';
 
 export type AppLanguage = 'zh' | 'en';
+export type AppTheme = 'light' | 'dark' | 'system';
 
 export interface CookieConfig {
   enabled: boolean;
@@ -16,6 +17,7 @@ export interface AppSettings {
   downloadConcurrency: number;
   maxDownloadSpeed: number | null;
   language: AppLanguage;
+  theme: AppTheme;
   proxyUrl: string;
   cookie: CookieConfig;
 }
@@ -34,6 +36,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   downloadConcurrency: 3,
   maxDownloadSpeed: null,
   language: 'zh',
+  theme: 'system',
   proxyUrl: '',
   cookie: { ...DEFAULT_COOKIE_CONFIG },
 };
@@ -54,6 +57,7 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
       ? value.maxDownloadSpeed
       : null;
   const language = value.language === 'en' ? 'en' : 'zh';
+  const theme = value.theme === 'light' || value.theme === 'dark' ? value.theme : 'system';
   const downloadDir = typeof value.downloadDir === 'string' ? value.downloadDir : '';
   const proxyUrl = typeof value.proxyUrl === 'string' ? value.proxyUrl : '';
 
@@ -74,6 +78,7 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
     downloadConcurrency,
     maxDownloadSpeed,
     language,
+    theme,
     downloadDir,
     proxyUrl,
     cookie,
@@ -85,6 +90,7 @@ interface SettingState {
   downloadConcurrency: number;
   maxDownloadSpeed: number | null;
   language: AppLanguage;
+  theme: AppTheme;
   proxyUrl: string;
   cookie: CookieConfig;
 
@@ -93,6 +99,7 @@ interface SettingState {
   setDownloadConcurrency: (value: number) => void;
   setMaxDownloadSpeed: (value: number | null) => void;
   setLanguage: (value: AppLanguage) => void;
+  setTheme: (value: AppTheme) => void;
   setProxyUrl: (value: string) => void;
   setCookie: (value: CookieConfig) => void;
   loadSettings: () => void;
@@ -103,6 +110,7 @@ export const useSettingStore = create<SettingState>((set, get) => ({
   downloadConcurrency: DEFAULT_SETTINGS.downloadConcurrency,
   maxDownloadSpeed: DEFAULT_SETTINGS.maxDownloadSpeed,
   language: DEFAULT_SETTINGS.language,
+  theme: DEFAULT_SETTINGS.theme,
   proxyUrl: DEFAULT_SETTINGS.proxyUrl,
   cookie: DEFAULT_SETTINGS.cookie,
 
@@ -120,6 +128,10 @@ export const useSettingStore = create<SettingState>((set, get) => ({
   },
   setLanguage: (value) => {
     set({ language: value });
+    saveAppSettings(get());
+  },
+  setTheme: (value) => {
+    set({ theme: value });
     saveAppSettings(get());
   },
   setProxyUrl: (value) => {
@@ -140,6 +152,7 @@ export const useSettingStore = create<SettingState>((set, get) => ({
           downloadConcurrency: normalized.downloadConcurrency,
           maxDownloadSpeed: normalized.maxDownloadSpeed,
           language: normalized.language,
+          theme: normalized.theme,
           proxyUrl: normalized.proxyUrl,
           cookie: normalized.cookie,
         });
@@ -153,6 +166,7 @@ export const useSettingStore = create<SettingState>((set, get) => ({
           downloadConcurrency: settings.downloadConcurrency,
           maxDownloadSpeed: settings.maxDownloadSpeed,
           language: settings.language,
+          theme: settings.theme,
           proxyUrl: settings.proxyUrl,
           cookie: settings.cookie,
         });
@@ -178,6 +192,7 @@ function saveAppSettings(state: SettingState) {
     downloadConcurrency: state.downloadConcurrency,
     maxDownloadSpeed: state.maxDownloadSpeed,
     language: state.language,
+    theme: state.theme,
     proxyUrl: state.proxyUrl,
     cookie: state.cookie,
   };

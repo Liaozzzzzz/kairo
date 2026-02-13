@@ -15,7 +15,15 @@
     "tabs": {
       "downloads": "Download Settings",
       "network": "Network Settings",
-      "language": "Language Settings"
+      "language": "Language Settings",
+      "appearance": "Appearance"
+    },
+    "appearance": {
+      "title": "Appearance",
+      "theme": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
     },
     "network": {
       "proxy": "Proxy URL",

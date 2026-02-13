@@ -39,6 +39,39 @@
     --separator: 210 10% 90%;
 }
 
+.dark {
+    --background: 0 0% 12%; /* #1e1e1e - macOS Dark Mode Background */
+    --foreground: 0 0% 98%; /* #fafafa */
+    
+    --card: 0 0% 16%; /* #282828 */
+    --card-foreground: 0 0% 98%;
+    
+    --popover: 0 0% 16%;
+    --popover-foreground: 0 0% 98%;
+    
+    --primary: 211 100% 50%; /* Keep Blue */
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 98%;
+    
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 60%;
+    
+    --accent: 0 0% 20%;
+    --accent-foreground: 0 0% 98%;
+    
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --border: 0 0% 20%; /* #333333 */
+    --input: 0 0% 20%;
+    --ring: 211 100% 50%;
+    
+    --sidebar-background: 0 0% 14%; /* #242424 */
+    --separator: 0 0% 20%;
+}
+
 html {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));

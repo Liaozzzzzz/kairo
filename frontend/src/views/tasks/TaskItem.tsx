@@ -18,6 +18,7 @@ import { TaskStatus } from '@/data/variables';
 import { PauseTask, ResumeTask, OpenTaskDir, RetryTask } from '@root/wailsjs/go/main/App';
 import { useTaskStore } from '@/store/useTaskStore';
 import { ImageFallback } from '@/data/variables';
+import { useTheme } from '@/hooks/useTheme';
 
 interface TaskItemProps {
   task: Task;
@@ -28,6 +29,7 @@ interface TaskItemProps {
 export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProps) {
   const { t } = useTranslation();
   const deleteTask = useTaskStore((state) => state.deleteTask);
+  const { isDark } = useTheme();
 
   const siteLabel = useMemo(() => {
     const match = task.url.match(/https?:\/\/(?:www\.)?([a-z0-9-]+)\./i);
@@ -151,18 +153,18 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
     switch (status) {
       case TaskStatus.Completed:
         return task.file_exists === false
-          ? 'bg-gray-100 text-gray-400 border border-gray-200' // Disabled/Missing
-          : 'bg-green-50 text-green-600 border border-green-200';
+          ? 'bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-muted-foreground border border-gray-200 dark:border-white/10' // Disabled/Missing
+          : 'bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-500/20';
       case TaskStatus.Error:
-        return 'bg-red-50 text-red-600 border border-red-200';
+        return 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20';
       case TaskStatus.Starting:
       case TaskStatus.Merging:
       case TaskStatus.Downloading:
-        return 'bg-blue-50 text-blue-600 border border-blue-200';
+        return 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20';
       case TaskStatus.Paused:
-        return 'bg-yellow-50 text-yellow-600 border border-yellow-200';
+        return 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-500/20';
       default:
-        return 'bg-gray-50 text-gray-500 border border-gray-200';
+        return 'bg-gray-50 dark:bg-white/5 text-gray-500 dark:text-muted-foreground border border-gray-200 dark:border-white/10';
     }
   };
 
@@ -201,7 +203,7 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
           >
             <div className="flex items-center gap-4">
               {/* Thumbnail Column */}
-              <div className="flex-shrink-0 w-24 h-16 bg-gray-100 rounded-md overflow-hidden relative border border-gray-100">
+              <div className="flex-shrink-0 w-24 h-16 bg-gray-100 dark:bg-white/5 rounded-md overflow-hidden relative border border-gray-100 dark:border-white/5">
                 {task.thumbnail ? (
                   <Image
                     src={task.thumbnail}
@@ -213,11 +215,11 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
                     fallback={ImageFallback}
                   />
                 ) : (
-                  <div className="flex items-center justify-center w-full h-full text-gray-300">
+                  <div className="flex items-center justify-center w-full h-full text-gray-300 dark:text-muted-foreground/50">
                     <PlayCircleOutlined className="w-4 h-4" />
                   </div>
                 )}
-                <div className="flex items-center justify-center absolute w-6 h-6 -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-gray-100 scale-75 z-10">
+                <div className="flex items-center justify-center absolute w-6 h-6 -bottom-1 -right-1 bg-white dark:bg-card rounded-full p-0.5 shadow-sm border border-gray-100 dark:border-border scale-75 z-10">
                   {getStatusIcon(task.status)}
                 </div>
               </div>
@@ -226,7 +228,7 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
               <div className="flex-1 min-w-0 flex flex-col gap-1.5">
                 <div className="flex items-center justify-between gap-4 min-w-0">
                   <div
-                    className="flex-1 min-w-0 font-semibold text-[15px] truncate text-gray-900"
+                    className="flex-1 min-w-0 font-semibold text-[15px] truncate text-foreground"
                     title={task.title || task.url}
                   >
                     {task.title || task.url}
@@ -245,15 +247,15 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
                   showInfo={false}
                   size="small"
                   strokeColor={getProgressColor()}
-                  railColor="#f3f4f6" // gray-100
+                  railColor={isDark ? '#333333' : '#f3f4f6'}
                   className="m-0"
                 />
-                <div className="flex justify-between text-[11px] font-medium text-gray-400 items-center">
+                <div className="flex justify-between text-[11px] font-medium text-muted-foreground items-center">
                   <div className="flex items-center gap-2">
                     <span>{displayProgress.toFixed(1)}%</span>
                     {displaySize && displaySize !== '~' && (
                       <>
-                        <span className="text-gray-300">•</span>
+                        <span className="text-gray-300 dark:text-muted-foreground/50">•</span>
                         <span>~{displaySize}</span>
                       </>
                     )}
@@ -261,7 +263,7 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
                       <>
                         {task.speed && task.speed !== '~' && (
                           <>
-                            <span className="text-gray-300">•</span>
+                            <span className="text-gray-300 dark:text-muted-foreground/50">•</span>
                             <span>{task.speed}</span>
                           </>
                         )}
@@ -278,14 +280,14 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
                   <PauseCircleOutlined
                     title={t('tasks.pause')}
                     onClick={() => PauseTask(task.id)}
-                    className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
+                    className="flex items-center justify-center rounded-full w-8 h-8 text-muted-foreground hover:text-primary hover:bg-blue-50 dark:hover:bg-blue-500/20"
                   />
                 )}
                 {task.status === TaskStatus.Paused && (
                   <PlayCircleOutlined
                     title={t('tasks.resume')}
                     onClick={() => ResumeTask(task.id)}
-                    className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
+                    className="flex items-center justify-center rounded-full w-8 h-8 text-muted-foreground hover:text-primary hover:bg-blue-50 dark:hover:bg-blue-500/20"
                   />
                 )}
                 {((task.status === TaskStatus.Completed && task.file_exists === false) ||
@@ -293,7 +295,7 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
                   <DeleteOutlined
                     title={t('tasks.contextMenu.delete')}
                     onClick={() => confirmDelete(false)}
-                    className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-red-500 hover:bg-red-50"
+                    className="flex items-center justify-center rounded-full w-8 h-8 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/20"
                   />
                 )}
                 {((task.status === TaskStatus.Completed && task.file_exists === true) ||
@@ -302,7 +304,7 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
                   <FileTextOutlined
                     title={t('tasks.viewLogs')}
                     onClick={onViewLog}
-                    className="flex items-center justify-center rounded-full w-8 h-8 text-gray-400 hover:text-primary hover:bg-blue-50"
+                    className="flex items-center justify-center rounded-full w-8 h-8 text-muted-foreground hover:text-primary hover:bg-blue-50 dark:hover:bg-blue-500/20"
                   />
                 )}
               </div>

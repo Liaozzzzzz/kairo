@@ -15,7 +15,15 @@
     "tabs": {
       "downloads": "下载设置",
       "network": "网络设置",
-      "language": "语言设置"
+      "language": "语言设置",
+      "appearance": "外观设置"
+    },
+    "appearance": {
+      "title": "外观",
+      "theme": "主题",
+      "light": "浅色",
+      "dark": "深色",
+      "system": "跟随系统"
     },
     "network": {
       "proxy": "代理地址",

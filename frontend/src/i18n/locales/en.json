@@ -138,6 +138,10 @@
     "logs": {
       "title": "Task Logs",
       "close": "Close"
+    },
+    "notification": {
+      "completed": "Download Completed",
+      "failed": "Download Failed"
     }
   }
 }

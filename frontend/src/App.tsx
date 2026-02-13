@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
-import { ConfigProvider, Layout, Menu } from 'antd';
+import { ConfigProvider, Layout, Menu, notification } from 'antd';
 import { GetAppVersion, GetTasks, GetPlatform } from '@root/wailsjs/go/main/App';
 import {
   EventsOn,
@@ -21,7 +21,7 @@ import Tasks from '@/views/tasks';
 import Downloads from '@/views/downloads';
 import Settings from '@/views/settings';
 import appIcon from '@/assets/images/icon-full.png';
-import { MenuItemKey } from './data/variables';
+import { MenuItemKey, TaskStatus } from './data/variables';
 
 import { getThemeColor } from '@/data/themeColors';
 
@@ -30,6 +30,7 @@ const { Sider, Content } = Layout;
 function App() {
   const [version, setVersion] = useState<string>('');
   const [platform, setPlatform] = useState<string>('');
+  const [api, contextHolder] = notification.useNotification();
   const { antAlgorithm, isDark } = useTheme();
 
   const {
@@ -111,8 +112,31 @@ function App() {
     GetPlatform().then(setPlatform).catch(console.error);
 
     const cleanupUpdate = EventsOn('task:update', (task: Task) => {
+      // Check for status change
+      const currentTasks = useTaskStore.getState().tasks;
+      const prevTask = currentTasks[task.id];
+
       // The backend sends the full task object on update
       updateTask(task.id, task);
+
+      // Skip notification for playlist parent tasks
+      if (task.is_playlist || (prevTask && prevTask.status === task.status)) {
+        return;
+      }
+
+      if (task.status === TaskStatus.Completed) {
+        api.success({
+          message: t('tasks.notification.completed'),
+          description: task.title || task.url,
+          placement: 'topRight',
+        });
+      } else if (task.status === TaskStatus.Error) {
+        api.error({
+          message: t('tasks.notification.failed'),
+          description: task.title || task.url,
+          placement: 'topRight',
+        });
+      }
     });
 
     const cleanupProgress = EventsOn(
@@ -153,6 +177,7 @@ function App() {
     addTaskLog,
     setDownloadConcurrency,
     setMaxDownloadSpeed,
+    t,
   ]);
 
   useEffect(() => {
@@ -212,6 +237,7 @@ function App() {
         },
       }}
     >
+      {contextHolder}
       <ThemeSync palette={currentPalette} />
       <Layout className="h-screen overflow-hidden bg-background">
         <Sider width={200} theme={isDark ? 'dark' : 'light'} className="border-r border-border">

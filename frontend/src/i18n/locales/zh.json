@@ -138,6 +138,10 @@
     "logs": {
       "title": "任务日志",
       "close": "关闭"
+    },
+    "notification": {
+      "completed": "下载完成",
+      "failed": "下载失败"
     }
   }
 }

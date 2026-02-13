@@ -38,15 +38,19 @@ export function PlaylistTaskItem({ task, childrenTasks, onViewLog }: PlaylistTas
     return `${rawLabel[0].toUpperCase()}${rawLabel.slice(1)}`;
   }, [task.url]);
 
-  const confirmDelete = () => {
+  const confirmDelete = (purge: boolean) => {
+    if (task.status === TaskStatus.Merging || task.status === TaskStatus.Trimming) {
+      return;
+    }
+    const modalKey = purge ? 'tasks.confirmPurge' : 'tasks.confirmDelete';
     Modal.confirm({
       centered: true,
-      title: t('tasks.confirmDelete.title'),
-      content: t('tasks.confirmDelete.content'),
-      okText: t('tasks.confirmDelete.ok'),
-      cancelText: t('tasks.confirmDelete.cancel'),
+      title: t(`${modalKey}.title`),
+      content: t(`${modalKey}.content`),
+      okText: t(`${modalKey}.ok`),
+      cancelText: t(`${modalKey}.cancel`),
       okButtonProps: { danger: true },
-      onOk: () => deleteTask(task.id, false),
+      onOk: () => deleteTask(task.id, purge),
     });
   };
 
@@ -71,14 +75,14 @@ export function PlaylistTaskItem({ task, childrenTasks, onViewLog }: PlaylistTas
       label: t('tasks.contextMenu.delete'),
       icon: <DeleteOutlined className="w-4 h-4 mt-[-2px]" />,
       danger: true,
-      onClick: confirmDelete,
+      onClick: () => confirmDelete(false),
     },
     {
       key: 'purge',
       label: t('tasks.contextMenu.purge'),
       icon: <CloseOutlined className="w-4 h-4 mt-[-2px]" />,
       danger: true,
-      onClick: () => deleteTask(task.id, true),
+      onClick: () => confirmDelete(true),
     },
   ];
 

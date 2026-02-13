@@ -158,8 +158,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 
 	args = append(args, task.URL)
 
-	cmd := exec.CommandContext(ctx, m.downloader.BinPath, args...)
-	utils.HideWindow(cmd)
+	cmd := utils.CreateCommandContext(ctx, m.downloader.BinPath, args...)
 
 	// Separate pipes for stdout and stderr
 	stdout, _ := cmd.StdoutPipe()
@@ -383,8 +382,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 			}
 			args = append(args, "-c", "copy", "-y", trimmedPath)
 
-			cmd := exec.CommandContext(ctx, ffmpegPath, args...)
-			utils.HideWindow(cmd)
+			cmd := utils.CreateCommandContext(ctx, ffmpegPath, args...)
 
 			if output, err := cmd.CombinedOutput(); err != nil {
 				m.emitTaskLog(task.ID, fmt.Sprintf("裁剪失败: %v, %s", err, string(output)), false)

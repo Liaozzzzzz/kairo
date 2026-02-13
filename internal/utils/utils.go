@@ -3,10 +3,12 @@ package utils
 import (
 	"archive/tar"
 	"archive/zip"
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -215,4 +217,16 @@ func SanitizeFileName(name string) string {
 		name = "unnamed_file"
 	}
 	return name
+}
+
+func CreateCommand(name string, arg ...string) *exec.Cmd {
+	cmd := exec.Command(name, arg...)
+	HideWindow(cmd)
+	return cmd
+}
+
+func CreateCommandContext(ctx context.Context, name string, arg ...string) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, name, arg...)
+	HideWindow(cmd)
+	return cmd
 }

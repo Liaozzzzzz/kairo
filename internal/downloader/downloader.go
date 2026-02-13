@@ -302,9 +302,7 @@ func (d *Downloader) getSingleVideoInfo(url string) (*models.VideoInfo, error) {
 
 	args = append(args, url)
 
-	cmd := exec.Command(d.BinPath, args...)
-	utils.HideWindow(cmd)
-
+	cmd := utils.CreateCommand(d.BinPath, args...)
 	output, err := cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -339,8 +337,7 @@ func (d *Downloader) getPlaylistInfo(url string) (*models.VideoInfo, error) {
 	}
 	args = append(args, url)
 
-	cmd := exec.Command(d.BinPath, args...)
-	utils.HideWindow(cmd)
+	cmd := utils.CreateCommand(d.BinPath, args...)
 	output, err := cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {

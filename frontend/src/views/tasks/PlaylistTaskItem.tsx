@@ -8,6 +8,7 @@ import {
   FileTextOutlined,
   CloseOutlined,
 } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { Task } from '@/types';
 import { TaskStatus } from '@/data/variables';
@@ -133,6 +134,12 @@ export function PlaylistTaskItem({ task, childrenTasks, onViewLog }: PlaylistTas
                         </span>
                       </>
                     )}
+                  </>
+                )}
+                {task.created_at && (
+                  <>
+                    <span>·</span>
+                    <span>{dayjs.unix(task.created_at).format('YYYY-MM-DD HH:mm')}</span>
                   </>
                 )}
               </div>

@@ -55,7 +55,7 @@ func (m *Manager) initDB() {
 		trim_start TEXT,
 		trim_end TEXT,
 		trim_mode TEXT,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		created_at INTEGER
 	);`
 
 	_, err = db.Exec(createTableSQL)
@@ -78,14 +78,14 @@ func (m *Manager) saveTask(task *models.DownloadTask) {
 		id, url, dir, quality, format, format_id, parent_id, is_playlist,
 		status, progress, title, thumbnail, total_size, speed, eta,
 		current_item, total_items, log_path, file_exists, file_path,
-		total_bytes, playlist_items, trim_start, trim_end, trim_mode
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		total_bytes, playlist_items, trim_start, trim_end, trim_mode, created_at
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	_, err := m.db.Exec(query,
 		task.ID, task.URL, task.Dir, task.Quality, task.Format, task.FormatID, task.ParentID, task.IsPlaylist,
 		task.Status, task.Progress, task.Title, task.Thumbnail, task.TotalSize, task.Speed, task.Eta,
 		task.CurrentItem, task.TotalItems, task.LogPath, task.FileExists, task.FilePath,
-		task.TotalBytes, string(playlistItemsJson), task.TrimStart, task.TrimEnd, task.TrimMode,
+		task.TotalBytes, string(playlistItemsJson), task.TrimStart, task.TrimEnd, task.TrimMode, task.CreatedAt,
 	)
 
 	if err != nil {
@@ -116,7 +116,7 @@ func (m *Manager) loadTasks() {
 		id, url, dir, quality, format, format_id, parent_id, is_playlist,
 		status, progress, title, thumbnail, total_size, speed, eta,
 		current_item, total_items, log_path, file_exists, file_path,
-		total_bytes, playlist_items, trim_start, trim_end, trim_mode
+		total_bytes, playlist_items, trim_start, trim_end, trim_mode, created_at
 	FROM tasks`)
 	if err != nil {
 		fmt.Printf("Failed to query tasks: %v\n", err)
@@ -135,7 +135,7 @@ func (m *Manager) loadTasks() {
 			&t.ID, &t.URL, &t.Dir, &t.Quality, &t.Format, &t.FormatID, &t.ParentID, &t.IsPlaylist,
 			&t.Status, &t.Progress, &t.Title, &t.Thumbnail, &t.TotalSize, &t.Speed, &t.Eta,
 			&t.CurrentItem, &t.TotalItems, &t.LogPath, &t.FileExists, &t.FilePath,
-			&t.TotalBytes, &playlistItemsJson, &t.TrimStart, &t.TrimEnd, &t.TrimMode,
+			&t.TotalBytes, &playlistItemsJson, &t.TrimStart, &t.TrimEnd, &t.TrimMode, &t.CreatedAt,
 		)
 		if err != nil {
 			continue

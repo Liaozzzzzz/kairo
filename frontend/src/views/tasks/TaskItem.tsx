@@ -12,6 +12,7 @@ import {
   DeleteOutlined,
   CloseOutlined,
 } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { Task } from '@/types';
 import { TaskStatus } from '@/data/variables';
@@ -272,6 +273,12 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
                             <span>{task.speed}</span>
                           </>
                         )}
+                      </>
+                    )}
+                    {task.created_at && (
+                      <>
+                        <span className="text-gray-300 dark:text-muted-foreground/50">•</span>
+                        <span>{dayjs.unix(task.created_at).format('YYYY-MM-DD HH:mm')}</span>
                       </>
                     )}
                   </div>

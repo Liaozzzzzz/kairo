@@ -30,4 +30,5 @@ export interface Task {
   files?: TaskFile[];
   current_item?: number;
   total_items?: number;
+  created_at?: number;
 }

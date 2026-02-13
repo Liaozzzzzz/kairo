@@ -83,6 +83,7 @@ func (m *Manager) AddPlaylistTask(input models.AddPlaylistTaskInput) (string, er
 		CurrentItem:   len(input.PlaylistItems),
 		LogPath:       config.GetLogPath(parentID),
 		TrimMode:      models.TrimModeNone,
+		CreatedAt:     time.Now().Unix(),
 	}
 	if parentTask.Title == "" {
 		parentTask.Title = input.URL
@@ -111,6 +112,7 @@ func (m *Manager) AddPlaylistTask(input models.AddPlaylistTaskInput) (string, er
 			TotalItems:  1,
 			LogPath:     config.GetLogPath(childID),
 			TrimMode:    models.TrimModeNone,
+			CreatedAt:   time.Now().Unix(),
 		}
 		if childTask.Title == "" {
 			childTask.Title = item.URL
@@ -192,6 +194,7 @@ func (m *Manager) AddTask(input models.AddTaskInput) (string, error) {
 		TrimStart:   input.TrimStart,
 		TrimEnd:     input.TrimEnd,
 		TrimMode:    input.TrimMode,
+		CreatedAt:   time.Now().Unix(),
 	}
 
 	if task.Title == "" {

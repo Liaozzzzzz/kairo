@@ -63,6 +63,7 @@ type DownloadTask struct {
 	TrimStart     string     `json:"trim_start"`
 	TrimEnd       string     `json:"trim_end"`
 	TrimMode      TrimMode   `json:"trim_mode"`
+	CreatedAt     int64      `json:"created_at"`
 }
 
 type QualityOption struct {

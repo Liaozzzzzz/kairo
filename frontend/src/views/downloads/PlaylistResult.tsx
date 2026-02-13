@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Checkbox, Divider, Image, Tag } from 'antd';
 import { models } from '@root/wailsjs/go/models';
 import { ImageFallback } from '@/data/variables';
-import { formatDuration } from '@/lib/timer';
+import dayjs from 'dayjs';
 import { DownloadOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import DownloadDir from '@/components/DownloadDir';
 import { useShallow } from 'zustand/react/shallow';
@@ -56,6 +56,21 @@ const PlaylistResult = ({ videoInfo, onStartDownload }: VideoResultProps) => {
   }, [videoInfo]);
 
   const renderCard = (item: models.PlaylistItem) => {
+    // Format duration using dayjs directly
+    let durationText = '--:--';
+    if (item.duration && item.duration > 0) {
+      const d = dayjs.duration(item.duration, 'seconds');
+      const hours = d.hours();
+      const format = hours > 0 || d.days() > 0 ? 'H:mm:ss' : 'm:ss';
+
+      if (d.days() > 0) {
+        const totalHours = Math.floor(d.asHours());
+        durationText = `${totalHours}:${d.format('mm:ss')}`;
+      } else {
+        durationText = d.format(format);
+      }
+    }
+
     return (
       <div className="h-full bg-card border border-border rounded-xl overflow-hidden shadow-sm h-full">
         <div className="relative">
@@ -94,7 +109,7 @@ const PlaylistResult = ({ videoInfo, onStartDownload }: VideoResultProps) => {
           </div>
           <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
             <span>{t('downloads.playlistIndex', { index: item.index })}</span>
-            <span>{formatDuration(item.duration)}</span>
+            <span>{durationText}</span>
           </div>
         </div>
       </div>

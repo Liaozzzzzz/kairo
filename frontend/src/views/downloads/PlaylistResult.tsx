@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Grid, CellComponentProps } from 'react-window';
 import { useTranslation } from 'react-i18next';
-import { Button, Checkbox, Divider, Image } from 'antd';
+import { Button, Checkbox, Divider, Image, Tag } from 'antd';
 import { models } from '@root/wailsjs/go/models';
 import { ImageFallback } from '@/data/variables';
 import { formatDuration } from '@/lib/timer';
@@ -18,7 +18,12 @@ interface VideoResultProps {
 const PlaylistResult = ({ videoInfo, onStartDownload }: VideoResultProps) => {
   const { t } = useTranslation();
 
-  const defaultDir = useSettingStore(useShallow((state) => state.defaultDir));
+  const { defaultDir, themeColor } = useSettingStore(
+    useShallow((state) => ({
+      defaultDir: state.defaultDir,
+      themeColor: state.themeColor,
+    }))
+  );
 
   const [newDir, setNewDir] = useState(defaultDir);
   const [selectedPlaylistItems, setSelectedPlaylistItems] = useState<number[]>([]);
@@ -128,31 +133,29 @@ const PlaylistResult = ({ videoInfo, onStartDownload }: VideoResultProps) => {
 
   return (
     <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300 delay-50">
-      <div className="space-y-1">
-        <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground shrink-0">
-            {t('downloads.playlistItems')}
-          </span>
-          {videoInfo.title && (
-            <div className="text-sm font-semibold text-foreground truncate" title={videoInfo.title}>
-              {videoInfo.title}
-            </div>
-          )}
-          <Checkbox
-            indeterminate={
-              selectedPlaylistItems.length > 0 &&
-              selectedPlaylistItems.length < videoInfo.playlist_items.length
-            }
-            checked={
-              selectedPlaylistItems.length > 0 &&
-              selectedPlaylistItems.length === videoInfo.playlist_items.length
-            }
-            className="shrink-0 ml-4"
-            onChange={(e) => onToggleAll(e.target.checked)}
-          >
-            {t('downloads.selectAll')}
-          </Checkbox>
-        </div>
+      <div className="flex items-center justify-between gap-2">
+        <Tag color={themeColor} variant="outlined">
+          {t('downloads.playlistItems')}
+        </Tag>
+        {videoInfo.title && (
+          <div className="text-sm font-semibold text-foreground truncate" title={videoInfo.title}>
+            {videoInfo.title}
+          </div>
+        )}
+        <Checkbox
+          indeterminate={
+            selectedPlaylistItems.length > 0 &&
+            selectedPlaylistItems.length < videoInfo.playlist_items.length
+          }
+          checked={
+            selectedPlaylistItems.length > 0 &&
+            selectedPlaylistItems.length === videoInfo.playlist_items.length
+          }
+          className="shrink-0 ml-4"
+          onChange={(e) => onToggleAll(e.target.checked)}
+        >
+          {t('downloads.selectAll')}
+        </Checkbox>
       </div>
       <Grid
         columnCount={columns.length}
@@ -170,14 +173,14 @@ const PlaylistResult = ({ videoInfo, onStartDownload }: VideoResultProps) => {
       />
       <Divider size="large" />
       <div className="flex items-end justify-between gap-4">
-        <DownloadDir defaultDir={newDir} setNewDir={setNewDir} className="w-auto" />
+        <DownloadDir defaultDir={newDir} setNewDir={setNewDir} className="!w-auto grow-0" />
         <Button
           type="primary"
           onClick={() => onStartDownload({ newDir, playList: selectedPlaylistItems })}
           disabled={selectedPlaylistItems.length === 0}
           icon={<DownloadOutlined />}
         >
-          {t('downloads.start')}
+          {t('downloads.start')} ({selectedPlaylistItems.length}/{videoInfo.playlist_items.length})
         </Button>
       </div>
     </div>

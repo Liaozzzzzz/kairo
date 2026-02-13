@@ -52,6 +52,7 @@ export function TaskList({ onViewLog, filter }: TaskListProps) {
 
       let isDownloading = false;
       let isCompleted = false;
+      let isFailed = false;
 
       if (task.is_playlist) {
         const hasDownloading = childs.some(
@@ -60,18 +61,22 @@ export function TaskList({ onViewLog, filter }: TaskListProps) {
             c.status === TaskStatus.Starting ||
             c.status === TaskStatus.Downloading ||
             c.status === TaskStatus.Merging ||
-            c.status === TaskStatus.Paused ||
-            c.status === TaskStatus.Error
+            c.status === TaskStatus.Paused
         );
+        const hasFailed = childs.some((c) => c.status === TaskStatus.Error);
 
-        // If has active children, or no children yet (just created), consider downloading
         if (hasDownloading || childs.length === 0) {
           isDownloading = true;
-        } else {
+        }
+
+        // Only categorize as failed if no tasks are downloading/active AND there are failed tasks
+        if (!hasDownloading && hasFailed) {
+          isFailed = true;
+        }
+
+        if (!hasDownloading && !hasFailed && childs.length > 0) {
           // If all children are completed
-          const allCompleted =
-            childs.length > 0 && childs.every((c) => c.status === TaskStatus.Completed);
-          if (allCompleted) isCompleted = true;
+          isCompleted = childs.every((c) => c.status === TaskStatus.Completed);
         }
       } else {
         isDownloading =
@@ -79,9 +84,9 @@ export function TaskList({ onViewLog, filter }: TaskListProps) {
           task.status === TaskStatus.Starting ||
           task.status === TaskStatus.Downloading ||
           task.status === TaskStatus.Merging ||
-          task.status === TaskStatus.Paused ||
-          task.status === TaskStatus.Error;
+          task.status === TaskStatus.Paused;
         isCompleted = task.status === TaskStatus.Completed;
+        isFailed = task.status === TaskStatus.Error;
       }
 
       if (filter === 'downloading') {
@@ -89,6 +94,9 @@ export function TaskList({ onViewLog, filter }: TaskListProps) {
       }
       if (filter === 'completed') {
         return isCompleted;
+      }
+      if (filter === 'failed') {
+        return isFailed;
       }
       return true;
     });

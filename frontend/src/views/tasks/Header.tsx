@@ -15,30 +15,73 @@ export function Header({ filter, onFilterChange }: HeaderProps) {
   const tasks = useTaskStore((state) => state.tasks);
 
   const counts = useMemo(() => {
-    const values = Object.values(tasks);
+    const allTasks = Object.values(tasks);
+    const topLevelTasks = allTasks.filter((t) => !t.parent_id);
+    const childrenMap: Record<string, typeof allTasks> = {};
+
+    allTasks.forEach((task) => {
+      if (task.parent_id) {
+        if (!childrenMap[task.parent_id]) {
+          childrenMap[task.parent_id] = [];
+        }
+        childrenMap[task.parent_id].push(task);
+      }
+    });
+
     let downloading = 0;
     let completed = 0;
+    let failed = 0;
 
-    for (const task of values) {
-      if (
-        task.status === TaskStatus.Pending ||
-        task.status === TaskStatus.Starting ||
-        task.status === TaskStatus.Downloading ||
-        task.status === TaskStatus.Merging ||
-        task.status === TaskStatus.Paused ||
-        task.status === TaskStatus.Error
-      ) {
-        downloading += 1;
+    for (const task of topLevelTasks) {
+      const childs = childrenMap[task.id] || [];
+      let isDownloading = false;
+      let isCompleted = false;
+      let isFailed = false;
+
+      if (task.is_playlist) {
+        const hasDownloading = childs.some(
+          (c) =>
+            c.status === TaskStatus.Pending ||
+            c.status === TaskStatus.Starting ||
+            c.status === TaskStatus.Downloading ||
+            c.status === TaskStatus.Merging ||
+            c.status === TaskStatus.Paused
+        );
+        const hasFailed = childs.some((c) => c.status === TaskStatus.Error);
+
+        if (hasDownloading || childs.length === 0) {
+          isDownloading = true;
+        }
+
+        if (!hasDownloading && hasFailed) {
+          isFailed = true;
+        }
+
+        if (!hasDownloading && !hasFailed && childs.length > 0) {
+          const allCompleted = childs.every((c) => c.status === TaskStatus.Completed);
+          if (allCompleted) isCompleted = true;
+        }
+      } else {
+        isDownloading =
+          task.status === TaskStatus.Pending ||
+          task.status === TaskStatus.Starting ||
+          task.status === TaskStatus.Downloading ||
+          task.status === TaskStatus.Merging ||
+          task.status === TaskStatus.Paused;
+        isCompleted = task.status === TaskStatus.Completed;
+        isFailed = task.status === TaskStatus.Error;
       }
-      if (task.status === TaskStatus.Completed) {
-        completed += 1;
-      }
+
+      if (isDownloading) downloading++;
+      if (isCompleted) completed++;
+      if (isFailed) failed++;
     }
 
     return {
       downloading,
       completed,
-      all: values.length,
+      failed,
+      all: topLevelTasks.length,
     };
   }, [tasks]);
 
@@ -58,6 +101,15 @@ export function Header({ filter, onFilterChange }: HeaderProps) {
               </span>
             ),
             value: 'downloading',
+          },
+          {
+            label: (
+              <span className="px-2 text-[14px] font-medium flex items-center gap-1">
+                <span>{t('tasks.filters.failed')}</span>
+                <span className="text-[12px] text-muted-foreground">({counts.failed})</span>
+              </span>
+            ),
+            value: 'failed',
           },
           {
             label: (

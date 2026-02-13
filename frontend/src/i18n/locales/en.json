@@ -85,6 +85,7 @@
     "filters": {
       "all": "All",
       "downloading": "Downloading",
+      "failed": "Failed",
       "completed": "Completed"
     },
     "noDownloads": "No tasks yet",

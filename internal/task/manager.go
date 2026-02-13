@@ -110,6 +110,7 @@ func (m *Manager) AddPlaylistTask(input models.AddPlaylistTaskInput) (string, er
 			CurrentItem: 1,
 			TotalItems:  1,
 			LogPath:     config.GetLogPath(childID),
+			TrimMode:    models.TrimModeNone,
 		}
 		if childTask.Title == "" {
 			childTask.Title = item.URL
@@ -239,10 +240,52 @@ func (m *Manager) scheduleTasks() {
 	}
 }
 
-func (m *Manager) DeleteTask(id string, deleteFile bool) {
+func (m *Manager) DeleteTask(id string, deleteFile bool) []string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	// Collect all IDs to delete including cascaded ones
+	idsToDelete := make(map[string]struct{})
+	idsToDelete[id] = struct{}{}
+
+	// Check if the task exists in memory
+	if task, ok := m.tasks[id]; ok {
+		// 1. If it's a playlist, delete all children
+		if task.IsPlaylist {
+			for tid, t := range m.tasks {
+				if t.ParentID == id {
+					idsToDelete[tid] = struct{}{}
+				}
+			}
+		}
+
+		// 2. If it's a child task, check if it's the last one
+		if task.ParentID != "" {
+			parentID := task.ParentID
+			hasSiblings := false
+			for tid, t := range m.tasks {
+				if t.ParentID == parentID && tid != id {
+					hasSiblings = true
+					break
+				}
+			}
+			if !hasSiblings {
+				idsToDelete[parentID] = struct{}{}
+			}
+		}
+	}
+
+	// Execute deletion for all collected IDs
+	var deletedIDs []string
+	for targetID := range idsToDelete {
+		m.deleteTaskInternal(targetID, deleteFile)
+		deletedIDs = append(deletedIDs, targetID)
+	}
+
+	return deletedIDs
+}
+
+func (m *Manager) deleteTaskInternal(id string, deleteFile bool) {
 	// 1. Cancel running task
 	// 2. Delete file if requested and remove from tasks
 	if task, ok := m.tasks[id]; ok {

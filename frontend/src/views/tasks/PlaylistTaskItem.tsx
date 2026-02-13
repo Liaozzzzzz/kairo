@@ -6,6 +6,7 @@ import {
   DeleteOutlined,
   FolderOutlined,
   FileTextOutlined,
+  CloseOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { Task } from '@/types';
@@ -70,6 +71,13 @@ export function PlaylistTaskItem({ task, childrenTasks, onViewLog }: PlaylistTas
       icon: <DeleteOutlined className="w-4 h-4 mt-[-2px]" />,
       danger: true,
       onClick: confirmDelete,
+    },
+    {
+      key: 'purge',
+      label: t('tasks.contextMenu.purge'),
+      icon: <CloseOutlined className="w-4 h-4 mt-[-2px]" />,
+      danger: true,
+      onClick: () => deleteTask(task.id, true),
     },
   ];
 

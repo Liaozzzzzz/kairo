@@ -329,12 +329,13 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 			task.Progress = 100
 			m.emitTaskLog(task.ID, "Download limit reached (expected)", false)
 		} else {
-			// Check if paused
+			// Check if paused or deleted
 			m.mu.Lock()
 			isPaused := task.Status == models.TaskStatusPaused
+			_, isDeleted := m.deletedTasks[task.ID]
 			m.mu.Unlock()
 
-			if isPaused {
+			if isPaused || isDeleted {
 				return
 			}
 

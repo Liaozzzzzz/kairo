@@ -267,15 +267,45 @@ func (d *Downloader) GetVideoInfo(url string, assetProvider AssetProvider) (*mod
 		return nil, errors.New("yt-dlp not found")
 	}
 
-	playlistInfo, err := d.getPlaylistInfo(url)
-	if err != nil {
+	// Optimization: Check pattern first
+	if d.isLikelyPlaylist(url) {
+		playlistInfo, err := d.getPlaylistInfo(url)
+		if err != nil {
+			return nil, err
+		}
+		if playlistInfo != nil && playlistInfo.IsPlaylist {
+			return playlistInfo, nil
+		}
+		// If not a playlist (but looked like one), fall through to single video
+	} else {
+		// Try single video first
+		info, err := d.getSingleVideoInfo(url)
+		if err == nil {
+			return info, nil
+		}
+
+		// If failed, and we haven't checked playlist, check if it might be a playlist
+		playlistInfo, pErr := d.getPlaylistInfo(url)
+		if pErr == nil && playlistInfo != nil && playlistInfo.IsPlaylist {
+			return playlistInfo, nil
+		}
+		// Return original error if both failed
 		return nil, err
-	}
-	if playlistInfo != nil && playlistInfo.IsPlaylist {
-		return playlistInfo, nil
 	}
 
 	return d.getSingleVideoInfo(url)
+}
+
+func (d *Downloader) isLikelyPlaylist(url string) bool {
+	lower := strings.ToLower(url)
+	return strings.Contains(lower, "list=") ||
+		strings.Contains(lower, "/playlist") ||
+		strings.Contains(lower, "/album") ||
+		strings.Contains(lower, "/set/") ||
+		strings.Contains(lower, "collection") ||
+		strings.Contains(lower, "series") ||
+		strings.Contains(lower, "season") ||
+		strings.Contains(lower, "medialist")
 }
 
 func (d *Downloader) getSingleVideoInfo(url string) (*models.VideoInfo, error) {
@@ -315,7 +345,15 @@ func (d *Downloader) getSingleVideoInfo(url string) (*models.VideoInfo, error) {
 }
 
 func (d *Downloader) getPlaylistInfo(url string) (*models.VideoInfo, error) {
-	args := []string{"--dump-single-json", "--flat-playlist"}
+	args := []string{"--dump-single-json"}
+
+	// Bilibili collections don't return titles/thumbnails with --flat-playlist
+	// So we must perform full extraction for Bilibili to get metadata
+	lowerURL := strings.ToLower(url)
+	isBilibili := strings.Contains(lowerURL, "bilibili.com") || strings.Contains(lowerURL, "b23.tv")
+	if !isBilibili {
+		args = append(args, "--flat-playlist")
+	}
 	if proxy := config.GetProxyUrl(); proxy != "" {
 		args = append(args, "--proxy", proxy)
 	}
@@ -400,9 +438,10 @@ func (d *Downloader) getPlaylistInfo(url string) (*models.VideoInfo, error) {
 		})
 	}
 
+	playlistThumbnail := pickThumbnail(rawInfo.Thumbnail, rawInfo.Thumbnails)
 	info := models.VideoInfo{
 		Title:         rawInfo.Title,
-		Thumbnail:     "",
+		Thumbnail:     playlistThumbnail,
 		IsPlaylist:    true,
 		PlaylistItems: items,
 		TotalItems:    len(items),

@@ -101,16 +101,27 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     })),
 
   deleteTask: async (taskId, purge = false) => {
-    const task = get().tasks[taskId];
-    if (task?.status === TaskStatus.Merging) {
+    const state = get();
+    const task = state.tasks[taskId];
+    if (!task) return;
+
+    // Validate: Abort if the target task is in a protected state
+    if (task.status === TaskStatus.Merging || task.status === TaskStatus.Trimming) {
       return;
     }
-    await DeleteTaskWails(taskId, purge);
+
+    // Backend returns the list of all deleted task IDs (including cascaded ones)
+    const deletedIds = await DeleteTaskWails(taskId, purge);
+
     set((state) => {
       const newTasks = { ...state.tasks };
       const newTaskLogs = { ...state.taskLogs };
-      delete newTasks[taskId];
-      delete newTaskLogs[taskId];
+
+      deletedIds.forEach((id) => {
+        delete newTasks[id];
+        delete newTaskLogs[id];
+      });
+
       return { tasks: newTasks, taskLogs: newTaskLogs };
     });
   },

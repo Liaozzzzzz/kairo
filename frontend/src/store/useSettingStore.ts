@@ -21,6 +21,9 @@ export interface AppSettings {
   theme: AppTheme;
   themeColor: string;
   proxyUrl: string;
+  userAgent: string;
+  referer: string;
+  geoBypass: boolean;
   cookie: CookieConfig;
 }
 
@@ -41,6 +44,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   theme: 'system',
   themeColor: DEFAULT_THEME_COLOR,
   proxyUrl: '',
+  userAgent: '',
+  referer: '',
+  geoBypass: true,
   cookie: { ...DEFAULT_COOKIE_CONFIG },
 };
 
@@ -64,6 +70,9 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
   const themeColor = typeof value.themeColor === 'string' ? value.themeColor : DEFAULT_THEME_COLOR;
   const downloadDir = typeof value.downloadDir === 'string' ? value.downloadDir : '';
   const proxyUrl = typeof value.proxyUrl === 'string' ? value.proxyUrl : '';
+  const userAgent = typeof value.userAgent === 'string' ? value.userAgent : '';
+  const referer = typeof value.referer === 'string' ? value.referer : '';
+  const geoBypass = typeof value.geoBypass === 'boolean' ? value.geoBypass : true;
 
   const normalizeCookie = (c: unknown): CookieConfig => {
     const value = typeof c === 'object' && c !== null ? (c as Partial<CookieConfig>) : {};
@@ -86,6 +95,9 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
     themeColor,
     downloadDir,
     proxyUrl,
+    userAgent,
+    referer,
+    geoBypass,
     cookie,
   };
 };
@@ -98,6 +110,9 @@ interface SettingState {
   theme: AppTheme;
   themeColor: string;
   proxyUrl: string;
+  userAgent: string;
+  referer: string;
+  geoBypass: boolean;
   cookie: CookieConfig;
 
   // Actions
@@ -108,6 +123,9 @@ interface SettingState {
   setTheme: (value: AppTheme) => void;
   setThemeColor: (value: string) => void;
   setProxyUrl: (value: string) => void;
+  setUserAgent: (value: string) => void;
+  setReferer: (value: string) => void;
+  setGeoBypass: (value: boolean) => void;
   setCookie: (value: CookieConfig) => void;
   loadSettings: () => void;
 }
@@ -120,6 +138,9 @@ export const useSettingStore = create<SettingState>((set, get) => ({
   theme: DEFAULT_SETTINGS.theme,
   themeColor: DEFAULT_SETTINGS.themeColor,
   proxyUrl: DEFAULT_SETTINGS.proxyUrl,
+  userAgent: DEFAULT_SETTINGS.userAgent,
+  referer: DEFAULT_SETTINGS.referer,
+  geoBypass: DEFAULT_SETTINGS.geoBypass,
   cookie: DEFAULT_SETTINGS.cookie,
 
   setDefaultDir: (dir) => {
@@ -150,6 +171,18 @@ export const useSettingStore = create<SettingState>((set, get) => ({
     set({ proxyUrl: value });
     saveAppSettings(get());
   },
+  setUserAgent: (value) => {
+    set({ userAgent: value });
+    saveAppSettings(get());
+  },
+  setReferer: (value) => {
+    set({ referer: value });
+    saveAppSettings(get());
+  },
+  setGeoBypass: (value) => {
+    set({ geoBypass: value });
+    saveAppSettings(get());
+  },
   setCookie: (value) => {
     set({ cookie: value });
     saveAppSettings(get());
@@ -167,6 +200,9 @@ export const useSettingStore = create<SettingState>((set, get) => ({
           theme: normalized.theme,
           themeColor: normalized.themeColor,
           proxyUrl: normalized.proxyUrl,
+          userAgent: normalized.userAgent,
+          referer: normalized.referer,
+          geoBypass: normalized.geoBypass,
           cookie: normalized.cookie,
         });
       })
@@ -182,6 +218,9 @@ export const useSettingStore = create<SettingState>((set, get) => ({
           theme: settings.theme,
           themeColor: settings.themeColor,
           proxyUrl: settings.proxyUrl,
+          userAgent: settings.userAgent,
+          referer: settings.referer,
+          geoBypass: settings.geoBypass,
           cookie: settings.cookie,
         });
       });
@@ -209,6 +248,9 @@ function saveAppSettings(state: SettingState) {
     theme: state.theme,
     themeColor: state.themeColor,
     proxyUrl: state.proxyUrl,
+    userAgent: state.userAgent,
+    referer: state.referer,
+    geoBypass: state.geoBypass,
     cookie: state.cookie,
   };
   localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));

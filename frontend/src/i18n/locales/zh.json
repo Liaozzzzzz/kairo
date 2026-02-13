@@ -29,6 +29,13 @@
     "network": {
       "proxy": "代理地址",
       "proxyPlaceholder": "http://user:pass@host:port",
+      "anonymity": "匿名伪装",
+      "userAgent": "User Agent",
+      "userAgentPlaceholder": "留空使用默认",
+      "referer": "Referer 来源",
+      "refererPlaceholder": "自定义 Referer URL",
+      "geoBypass": "绕过地理限制",
+      "auth": "认证设置",
       "cookies": "Cookies 来源浏览器",
       "cookiesPlaceholder": "选择浏览器 (例如: chrome)",
       "cookiesFile": "Cookies 文件",

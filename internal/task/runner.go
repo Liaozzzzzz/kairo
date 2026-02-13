@@ -180,6 +180,18 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		args = append(args, "--proxy", proxy)
 	}
 
+	if ua := config.GetUserAgent(); ua != "" {
+		args = append(args, "--user-agent", ua)
+	}
+	if ref := config.GetReferer(); ref != "" {
+		args = append(args, "--referer", ref)
+	}
+	if config.GetGeoBypass() {
+		args = append(args, "--geo-bypass")
+	} else {
+		args = append(args, "--no-geo-bypass")
+	}
+
 	if cookieArgs := config.GetCookieArgs(); len(cookieArgs) > 0 {
 		args = append(args, cookieArgs...)
 	}

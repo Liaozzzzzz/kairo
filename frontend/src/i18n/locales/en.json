@@ -29,6 +29,13 @@
     "network": {
       "proxy": "Proxy URL",
       "proxyPlaceholder": "http://user:pass@host:port",
+      "anonymity": "Anonymity",
+      "userAgent": "User Agent",
+      "userAgentPlaceholder": "Leave empty for default",
+      "referer": "Referer",
+      "refererPlaceholder": "Custom Referer URL",
+      "geoBypass": "Geo Bypass",
+      "auth": "Authentication",
       "cookies": "Cookies Browser",
       "cookiesPlaceholder": "Select browser (e.g. chrome)",
       "cookiesFile": "Cookies File",

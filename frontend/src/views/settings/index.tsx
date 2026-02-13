@@ -24,6 +24,15 @@ import { THEME_COLORS } from '@/data/themeColors';
 
 const { Text } = Typography;
 
+const SectionDivider = ({ children }: { children: React.ReactNode }) => (
+  <div className="relative flex items-center py-1">
+    <span className="flex-shrink-0 mr-2 text-xs text-gray-500 dark:text-gray-500 font-normal select-none">
+      {children}
+    </span>
+    <div className="flex-grow border-t border-gray-200 dark:border-gray-700 opacity-60"></div>
+  </div>
+);
+
 const Settings = () => {
   const { t, i18n } = useTranslation();
   const [platform, setPlatform] = useState('');
@@ -47,6 +56,12 @@ const Settings = () => {
     setThemeColor,
     proxyUrl,
     setProxyUrl,
+    userAgent,
+    setUserAgent,
+    referer,
+    setReferer,
+    geoBypass,
+    setGeoBypass,
     cookie,
     setCookie,
   } = useSettingStore(
@@ -65,6 +80,12 @@ const Settings = () => {
       setThemeColor: state.setThemeColor,
       proxyUrl: state.proxyUrl,
       setProxyUrl: state.setProxyUrl,
+      userAgent: state.userAgent,
+      setUserAgent: state.setUserAgent,
+      referer: state.referer,
+      setReferer: state.setReferer,
+      geoBypass: state.geoBypass,
+      setGeoBypass: state.setGeoBypass,
       cookie: state.cookie,
       setCookie: state.setCookie,
     }))
@@ -356,7 +377,7 @@ const Settings = () => {
             </span>
           }
         >
-          <div className="px-2 py-0 space-y-5">
+          <div className="px-2 py-0 flex flex-col gap-4">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
               <div className="md:col-span-4">
                 <Text strong className="block text-[13px] text-gray-600 dark:text-gray-400 mb-0">
@@ -373,6 +394,56 @@ const Settings = () => {
                 />
               </div>
             </div>
+
+            <SectionDivider>{t('settings.network.anonymity')}</SectionDivider>
+
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+              <div className="md:col-span-4">
+                <Text strong className="block text-[13px] text-gray-600 dark:text-gray-400 mb-0">
+                  {t('settings.network.userAgent')}
+                </Text>
+              </div>
+              <div className="md:col-span-8">
+                <Input
+                  value={userAgent}
+                  onChange={(e) => setUserAgent(e.target.value)}
+                  placeholder={t('settings.network.userAgentPlaceholder')}
+                  allowClear
+                  className="dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+              <div className="md:col-span-4">
+                <Text strong className="block text-[13px] text-gray-600 dark:text-gray-400 mb-0">
+                  {t('settings.network.referer')}
+                </Text>
+              </div>
+              <div className="md:col-span-8">
+                <Input
+                  value={referer}
+                  onChange={(e) => setReferer(e.target.value)}
+                  placeholder={t('settings.network.refererPlaceholder')}
+                  allowClear
+                  className="dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+              <div className="md:col-span-4">
+                <Text strong className="block text-[13px] text-gray-600 dark:text-gray-400 mb-0">
+                  {t('settings.network.geoBypass')}
+                </Text>
+              </div>
+              <div className="md:col-span-8">
+                <Switch checked={geoBypass} onChange={(checked) => setGeoBypass(checked)} />
+              </div>
+            </div>
+
+            <SectionDivider>{t('settings.network.auth')}</SectionDivider>
+
             {renderCookieSettings(cookie, setCookie)}
           </div>
         </Card>

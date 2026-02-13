@@ -21,6 +21,9 @@ type AppSettings struct {
 	MaxDownloadSpeed    *int         `json:"maxDownloadSpeed"` // MB/s
 	Language            string       `json:"language"`
 	ProxyUrl            string       `json:"proxyUrl"`
+	UserAgent           string       `json:"userAgent"`
+	Referer             string       `json:"referer"`
+	GeoBypass           bool         `json:"geoBypass"`
 	Cookie              CookieConfig `json:"cookie"`
 }
 
@@ -32,6 +35,7 @@ var (
 func init() {
 	currentConfig = AppSettings{
 		DownloadConcurrency: 3,
+		GeoBypass:           true,
 	}
 }
 
@@ -191,6 +195,24 @@ func GetProxyUrl() string {
 	configMu.RLock()
 	defer configMu.RUnlock()
 	return currentConfig.ProxyUrl
+}
+
+func GetUserAgent() string {
+	configMu.RLock()
+	defer configMu.RUnlock()
+	return currentConfig.UserAgent
+}
+
+func GetReferer() string {
+	configMu.RLock()
+	defer configMu.RUnlock()
+	return currentConfig.Referer
+}
+
+func GetGeoBypass() bool {
+	configMu.RLock()
+	defer configMu.RUnlock()
+	return currentConfig.GeoBypass
 }
 
 func GetCookieArgs() []string {

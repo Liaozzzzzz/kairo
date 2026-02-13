@@ -82,6 +82,7 @@ func (m *Manager) AddPlaylistTask(input models.AddPlaylistTaskInput) (string, er
 		TotalItems:    len(input.PlaylistItems),
 		CurrentItem:   len(input.PlaylistItems),
 		LogPath:       config.GetLogPath(parentID),
+		TrimMode:      models.TrimModeNone,
 	}
 	if parentTask.Title == "" {
 		parentTask.Title = input.URL

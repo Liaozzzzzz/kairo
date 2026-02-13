@@ -160,7 +160,7 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
       case TaskStatus.Starting:
       case TaskStatus.Merging:
       case TaskStatus.Downloading:
-        return 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20';
+        return 'bg-primary/10 text-primary border border-primary/20';
       case TaskStatus.Paused:
         return 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-500/20';
       default:
@@ -179,9 +179,7 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
 
   const RibbonWrap = (children: ReactNode) => {
     return showSiteLabel ? (
-      <Badge.Ribbon text={showSiteLabel ? siteLabel : ''} color="cyan">
-        {children}
-      </Badge.Ribbon>
+      <Badge.Ribbon text={showSiteLabel ? siteLabel : ''}>{children}</Badge.Ribbon>
     ) : (
       <>{children}</>
     );

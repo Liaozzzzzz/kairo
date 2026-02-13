@@ -74,7 +74,7 @@ export function PlaylistTaskItem({ task, childrenTasks, onViewLog }: PlaylistTas
   ];
 
   return (
-    <Badge.Ribbon text={siteLabel} color="cyan">
+    <Badge.Ribbon text={siteLabel}>
       <Card
         hoverable
         variant="borderless"

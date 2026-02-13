@@ -11,14 +11,16 @@ import {
   Segmented,
   Switch,
   Radio,
+  Tooltip,
 } from 'antd';
-import { FileTextOutlined } from '@ant-design/icons';
+import { FileTextOutlined, CheckOutlined } from '@ant-design/icons';
 import { useShallow } from 'zustand/react/shallow';
 import { ChooseFile, GetPlatform } from '@root/wailsjs/go/main/App';
 import PageContainer from '@/components/PageContainer';
 import PageHeader from '@/components/PageHeader';
 import { AppLanguage, AppTheme, useSettingStore, CookieConfig } from '@/store/useSettingStore';
 import DownloadDir from '@/components/DownloadDir';
+import { THEME_COLORS } from '@/data/themeColors';
 
 const { Text } = Typography;
 
@@ -41,6 +43,8 @@ const Settings = () => {
     setLanguage,
     theme,
     setTheme,
+    themeColor,
+    setThemeColor,
     proxyUrl,
     setProxyUrl,
     cookie,
@@ -57,6 +61,8 @@ const Settings = () => {
       setLanguage: state.setLanguage,
       theme: state.theme,
       setTheme: state.setTheme,
+      themeColor: state.themeColor,
+      setThemeColor: state.setThemeColor,
       proxyUrl: state.proxyUrl,
       setProxyUrl: state.setProxyUrl,
       cookie: state.cookie,
@@ -219,7 +225,7 @@ const Settings = () => {
             {/* Concurrent Downloads */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
               <div className="md:col-span-4">
-                <Text strong className="block text-[13px] text-gray-600 mb-0">
+                <Text strong className="block text-[13px] text-gray-600 dark:text-gray-400 mb-0">
                   {t('settings.downloads.concurrent')}
                 </Text>
               </div>
@@ -283,12 +289,13 @@ const Settings = () => {
           variant="borderless"
           size="small"
           title={
-            <span className="text-base font-semibold text-gray-800 dark:text-gray-200">
-              {t('settings.appearance.title')}
-            </span>
+            <Text strong className="text-base text-gray-800 dark:text-gray-200">
+              {t('settings.tabs.appearance')}
+            </Text>
           }
         >
-          <div className="space-y-5 px-2 py-0">
+          <div className="flex flex-col gap-6 px-2 py-1">
+            {/* Theme Mode */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
               <div className="md:col-span-4">
                 <Text strong className="block text-[13px] text-gray-600 dark:text-gray-400 mb-0">
@@ -297,7 +304,6 @@ const Settings = () => {
               </div>
               <div className="md:col-span-8">
                 <Segmented
-                  block
                   value={theme}
                   onChange={(val) => setTheme(val as AppTheme)}
                   options={[
@@ -305,8 +311,36 @@ const Settings = () => {
                     { label: t('settings.appearance.dark'), value: 'dark' },
                     { label: t('settings.appearance.system'), value: 'system' },
                   ]}
-                  className="font-medium"
+                  block
                 />
+              </div>
+            </div>
+
+            {/* Theme Color */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+              <div className="md:col-span-4">
+                <Text strong className="block text-[13px] text-gray-600 dark:text-gray-400 mb-0">
+                  {t('settings.appearance.themeColor')}
+                </Text>
+              </div>
+              <div className="md:col-span-8">
+                <div className="flex flex-wrap gap-2">
+                  {THEME_COLORS.map((c) => (
+                    <Tooltip key={c.name} title={c.name}>
+                      <div
+                        className={`w-6 h-6 rounded-full cursor-pointer flex items-center justify-center transition-all ${
+                          themeColor === c.color ? 'ring-2 ring-offset-2 ring-primary' : ''
+                        }`}
+                        style={{ backgroundColor: c.primary }}
+                        onClick={() => setThemeColor(c.color)}
+                      >
+                        {themeColor === c.color && (
+                          <CheckOutlined style={{ color: '#fff', fontSize: 12 }} />
+                        )}
+                      </div>
+                    </Tooltip>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

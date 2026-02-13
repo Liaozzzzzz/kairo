@@ -40,7 +40,7 @@ const SingleVideoResult = ({ videoInfo, onStartDownload }: SingleVideoResultProp
   return (
     <>
       <div className="space-y-3">
-        <div className="bg-slate-50 dark:bg-card border border-slate-200 dark:border-border p-4 rounded-lg flex gap-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="bg-muted/30 border border-border p-4 rounded-lg flex gap-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="flex-shrink-0 w-40 aspect-video rounded-md overflow-hidden border border-black/10 dark:border-white/10 bg-gray-100 dark:bg-black/20">
             {videoInfo.thumbnail ? (
               <Image
@@ -63,7 +63,7 @@ const SingleVideoResult = ({ videoInfo, onStartDownload }: SingleVideoResultProp
               {videoInfo.title}
             </div>
             <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
-              <span className="bg-white dark:bg-white/5 px-2 py-0.5 rounded border border-slate-200 dark:border-white/10 text-xs text-foreground">
+              <span className="bg-white dark:bg-white/5 px-2 py-0.5 rounded border border-border text-xs text-foreground">
                 {t('downloads.duration')}
                 {Math.floor(videoInfo.duration / 60)}:
                 {String(Math.floor(videoInfo.duration % 60)).padStart(2, '0')}

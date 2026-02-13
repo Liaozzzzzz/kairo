@@ -14,6 +14,8 @@ import { useSettingStore } from '@/store/useSettingStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useAppStore } from '@/store/useAppStore';
 import { useTheme } from '@/hooks/useTheme';
+import { generateDarkPalette, generateLightPalette } from '@/lib/theme';
+import ThemeSync from '@/components/ThemeSync';
 import { Task } from '@/types';
 import Tasks from '@/views/tasks';
 import Downloads from '@/views/downloads';
@@ -21,12 +23,43 @@ import Settings from '@/views/settings';
 import appIcon from '@/assets/images/icon-full.png';
 import { MenuItemKey } from './data/variables';
 
+import { getThemeColor } from '@/data/themeColors';
+
 const { Sider, Content } = Layout;
 
 function App() {
   const [version, setVersion] = useState<string>('');
   const [platform, setPlatform] = useState<string>('');
   const { antAlgorithm, isDark } = useTheme();
+
+  const {
+    language,
+    themeColor,
+    setDefaultDir,
+    setDownloadConcurrency,
+    setMaxDownloadSpeed,
+    loadSettings,
+  } = useSettingStore(
+    useShallow((state) => ({
+      defaultDir: state.defaultDir,
+      language: state.language,
+      themeColor: state.themeColor,
+      setDefaultDir: state.setDefaultDir,
+      setDownloadConcurrency: state.setDownloadConcurrency,
+      setMaxDownloadSpeed: state.setMaxDownloadSpeed,
+      loadSettings: state.loadSettings,
+    }))
+  );
+
+  const brandColor = useMemo(() => getThemeColor(themeColor), [themeColor]);
+
+  const darkPalette = useMemo(() => {
+    return generateDarkPalette(brandColor);
+  }, [brandColor]);
+
+  const lightPalette = useMemo(() => {
+    return generateLightPalette(brandColor);
+  }, [brandColor]);
 
   const { t, i18n } = useTranslation();
 
@@ -45,18 +78,6 @@ function App() {
       label: <span className="text-sm font-bold">{t(tab.labelKey)}</span>,
     }));
   }, [menuItems, t]);
-
-  const { language, setDefaultDir, setDownloadConcurrency, setMaxDownloadSpeed, loadSettings } =
-    useSettingStore(
-      useShallow((state) => ({
-        defaultDir: state.defaultDir,
-        language: state.language,
-        setDefaultDir: state.setDefaultDir,
-        setDownloadConcurrency: state.setDownloadConcurrency,
-        setMaxDownloadSpeed: state.setMaxDownloadSpeed,
-        loadSettings: state.loadSettings,
-      }))
-    );
 
   const { setTasks, updateTask, updateTaskProgress, addTaskLog } = useTaskStore(
     useShallow((state) => ({
@@ -140,59 +161,60 @@ function App() {
     }
   }, [language, i18n]);
 
+  const currentPalette = isDark ? darkPalette : lightPalette;
+
   return (
     <ConfigProvider
       theme={{
         algorithm: antAlgorithm,
         token: {
-          colorPrimary: '#007AFF',
+          colorPrimary: brandColor,
           borderRadius: 8,
           fontFamily: 'Nunito, sans-serif',
-          colorBgContainer: isDark ? '#282828' : '#ffffff',
-          colorBgElevated: isDark ? '#333333' : '#ffffff',
-          colorText: isDark ? '#e5e7eb' : '#000000',
-          colorBorder: isDark ? '#3f3f3f' : '#d9d9d9',
+          colorBgContainer: isDark ? darkPalette.containerBg : lightPalette.containerBg,
+          colorBgElevated: isDark ? darkPalette.elevatedBg : lightPalette.elevatedBg,
+          colorText: isDark ? darkPalette.text : lightPalette.text,
+          colorBorder: isDark ? darkPalette.border : lightPalette.border,
         },
         components: {
           Layout: {
-            bodyBg: isDark ? '#1e1e1e' : '#ffffff',
-            siderBg: undefined,
+            bodyBg: isDark ? darkPalette.bodyBg : lightPalette.bodyBg,
+            siderBg: isDark ? darkPalette.siderBg : lightPalette.siderBg,
           },
           Menu: {
             itemBg: 'transparent',
-            itemSelectedBg: isDark ? 'rgba(255, 255, 255, 0.1)' : '#ffffff',
-            itemSelectedColor: '#007AFF',
-            itemColor: isDark ? '#e5e7eb' : 'rgba(0, 0, 0, 0.88)',
+            itemSelectedBg: isDark
+              ? darkPalette.itemSelectedBg + '1a'
+              : lightPalette.itemSelectedBg, // Light mode uses solid color from palette
+            itemSelectedColor: brandColor,
+            itemColor: isDark ? darkPalette.textSecondary : lightPalette.text,
             itemBorderRadius: 8,
             itemMarginInline: 16,
           },
           Segmented: {
-            itemSelectedBg: isDark ? '#4d4d4d' : '#ffffff',
-            itemSelectedColor: isDark ? '#ffffff' : '#000000',
-            trackBg: isDark ? '#2c2c2c' : '#7676801f',
+            itemSelectedBg: isDark ? darkPalette.elevatedBg : lightPalette.elevatedBg,
+            itemSelectedColor: isDark ? darkPalette.text : lightPalette.text,
+            trackBg: isDark ? darkPalette.containerBg : 'rgba(0, 0, 0, 0.04)',
             trackPadding: 2,
             borderRadius: 8,
             controlHeightLG: 32,
           },
           Input: {
-            colorBgContainer: isDark ? '#2c2c2c' : '#ffffff',
-            colorBorder: isDark ? '#3f3f3f' : '#d9d9d9',
-            colorText: isDark ? '#e5e7eb' : '#000000',
-            colorTextPlaceholder: isDark ? '#6b7280' : '#bfbfbf',
+            colorBgContainer: isDark ? darkPalette.containerBg : lightPalette.containerBg,
+            colorBorder: isDark ? darkPalette.border : lightPalette.border,
+            colorText: isDark ? darkPalette.text : lightPalette.text,
+            colorTextPlaceholder: isDark ? darkPalette.textSecondary : 'rgba(0, 0, 0, 0.25)',
           },
           Card: {
-            colorBgContainer: isDark ? '#282828' : '#ffffff',
-            colorBorderSecondary: isDark ? '#333333' : '#f0f0f0',
+            colorBgContainer: isDark ? darkPalette.containerBg : lightPalette.containerBg,
+            colorBorderSecondary: isDark ? darkPalette.border : '#f0f0f0',
           },
         },
       }}
     >
+      <ThemeSync palette={currentPalette} />
       <Layout className="h-screen overflow-hidden bg-background">
-        <Sider
-          width={200}
-          theme={isDark ? 'dark' : 'light'}
-          className="border-r border-border bg-transparent"
-        >
+        <Sider width={200} theme={isDark ? 'dark' : 'light'} className="border-r border-border">
           <div className="flex flex-col h-full">
             <div
               style={{ height: 40, '--wails-draggable': 'drag' } as React.CSSProperties}

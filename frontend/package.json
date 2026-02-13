@@ -12,6 +12,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@ant-design/colors": "^8.0.1",
     "@ant-design/icons": "^6.1.0",
     "antd": "^6.2.3",
     "clsx": "^2.1.1",

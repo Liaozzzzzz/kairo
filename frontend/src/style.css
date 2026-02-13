@@ -2,74 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-
 :root {
-    --background: 0 0% 96%; /* #F5F5F5 - macOS App Background */
-    --foreground: 0 0% 0%; /* Black */
-    
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 0%;
-    
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 0%;
-    
-    --primary: 211 100% 50%; /* #007AFF - macOS Blue */
-    --primary-foreground: 0 0% 100%;
-    
-    --secondary: 0 0% 100%;
-    --secondary-foreground: 0 0% 0%;
-    
-    --muted: 210 10% 96%;
-    --muted-foreground: 215 10% 55%; /* System Gray Text */
-    
-    --accent: 211 100% 50%;
-    --accent-foreground: 0 0% 100%;
-    
-    --destructive: 0 84% 60%; /* System Red */
-    --destructive-foreground: 0 0% 100%;
-    
-    --border: 210 10% 90%;
-    --input: 210 10% 90%;
-    --ring: 211 100% 50%; /* Focus Ring Blue */
-    
-    --radius: 0.75rem; /* 12px */
-    
-    /* Apple Specifics */
-    --sidebar-background: 240 5% 96%;
-    --separator: 210 10% 90%;
-}
-
-.dark {
-    --background: 0 0% 12%; /* #1e1e1e - macOS Dark Mode Background */
-    --foreground: 0 0% 98%; /* #fafafa */
-    
-    --card: 0 0% 16%; /* #282828 */
-    --card-foreground: 0 0% 98%;
-    
-    --popover: 0 0% 16%;
-    --popover-foreground: 0 0% 98%;
-    
-    --primary: 211 100% 50%; /* Keep Blue */
-    --primary-foreground: 0 0% 100%;
-    
-    --secondary: 0 0% 20%;
-    --secondary-foreground: 0 0% 98%;
-    
-    --muted: 0 0% 20%;
-    --muted-foreground: 0 0% 60%;
-    
-    --accent: 0 0% 20%;
-    --accent-foreground: 0 0% 98%;
-    
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 0 0% 98%;
-    
-    --border: 0 0% 20%; /* #333333 */
-    --input: 0 0% 20%;
-    --ring: 211 100% 50%;
-    
-    --sidebar-background: 0 0% 14%; /* #242424 */
-    --separator: 0 0% 20%;
+   /* Initial fallbacks (optional, to prevent FOUC) */
+   --background: 0 0% 100%;
+   --foreground: 0 0% 0%;
 }
 
 html {
@@ -96,39 +32,4 @@ body {
 
 #app {
     height: 100vh;
-}
-
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.25);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.4);
-}
-
-* {
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-}
-
-.scrollbar-none {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
-.scrollbar-none::-webkit-scrollbar {
-    display: none;
 }

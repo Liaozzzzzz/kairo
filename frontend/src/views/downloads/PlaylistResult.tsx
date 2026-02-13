@@ -52,7 +52,7 @@ const PlaylistResult = ({ videoInfo, onStartDownload }: VideoResultProps) => {
 
   const renderCard = (item: models.PlaylistItem) => {
     return (
-      <div className="h-full bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl overflow-hidden shadow-sm h-full">
+      <div className="h-full bg-card border border-border rounded-xl overflow-hidden shadow-sm h-full">
         <div className="relative">
           {item.thumbnail ? (
             <Image
@@ -130,7 +130,7 @@ const PlaylistResult = ({ videoInfo, onStartDownload }: VideoResultProps) => {
     <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300 delay-50">
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex items-center rounded-full bg-slate-200 dark:bg-white/10 px-2 py-0.5 text-xs font-medium text-slate-600 dark:text-foreground shrink-0">
+          <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground shrink-0">
             {t('downloads.playlistItems')}
           </span>
           {videoInfo.title && (

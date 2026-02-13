@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { UpdateSettings, GetSettings } from '@root/wailsjs/go/main/App';
 import { config as WailsConfig } from '@root/wailsjs/go/models';
+import { DEFAULT_THEME_COLOR } from '@/data/themeColors';
 
 export type AppLanguage = 'zh' | 'en';
 export type AppTheme = 'light' | 'dark' | 'system';
@@ -18,6 +19,7 @@ export interface AppSettings {
   maxDownloadSpeed: number | null;
   language: AppLanguage;
   theme: AppTheme;
+  themeColor: string;
   proxyUrl: string;
   cookie: CookieConfig;
 }
@@ -37,6 +39,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   maxDownloadSpeed: null,
   language: 'zh',
   theme: 'system',
+  themeColor: DEFAULT_THEME_COLOR,
   proxyUrl: '',
   cookie: { ...DEFAULT_COOKIE_CONFIG },
 };
@@ -58,6 +61,7 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
       : null;
   const language = value.language === 'en' ? 'en' : 'zh';
   const theme = value.theme === 'light' || value.theme === 'dark' ? value.theme : 'system';
+  const themeColor = typeof value.themeColor === 'string' ? value.themeColor : DEFAULT_THEME_COLOR;
   const downloadDir = typeof value.downloadDir === 'string' ? value.downloadDir : '';
   const proxyUrl = typeof value.proxyUrl === 'string' ? value.proxyUrl : '';
 
@@ -79,6 +83,7 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
     maxDownloadSpeed,
     language,
     theme,
+    themeColor,
     downloadDir,
     proxyUrl,
     cookie,
@@ -91,6 +96,7 @@ interface SettingState {
   maxDownloadSpeed: number | null;
   language: AppLanguage;
   theme: AppTheme;
+  themeColor: string;
   proxyUrl: string;
   cookie: CookieConfig;
 
@@ -100,6 +106,7 @@ interface SettingState {
   setMaxDownloadSpeed: (value: number | null) => void;
   setLanguage: (value: AppLanguage) => void;
   setTheme: (value: AppTheme) => void;
+  setThemeColor: (value: string) => void;
   setProxyUrl: (value: string) => void;
   setCookie: (value: CookieConfig) => void;
   loadSettings: () => void;
@@ -111,6 +118,7 @@ export const useSettingStore = create<SettingState>((set, get) => ({
   maxDownloadSpeed: DEFAULT_SETTINGS.maxDownloadSpeed,
   language: DEFAULT_SETTINGS.language,
   theme: DEFAULT_SETTINGS.theme,
+  themeColor: DEFAULT_SETTINGS.themeColor,
   proxyUrl: DEFAULT_SETTINGS.proxyUrl,
   cookie: DEFAULT_SETTINGS.cookie,
 
@@ -134,6 +142,10 @@ export const useSettingStore = create<SettingState>((set, get) => ({
     set({ theme: value });
     saveAppSettings(get());
   },
+  setThemeColor: (value) => {
+    set({ themeColor: value });
+    saveAppSettings(get());
+  },
   setProxyUrl: (value) => {
     set({ proxyUrl: value });
     saveAppSettings(get());
@@ -153,6 +165,7 @@ export const useSettingStore = create<SettingState>((set, get) => ({
           maxDownloadSpeed: normalized.maxDownloadSpeed,
           language: normalized.language,
           theme: normalized.theme,
+          themeColor: normalized.themeColor,
           proxyUrl: normalized.proxyUrl,
           cookie: normalized.cookie,
         });
@@ -167,6 +180,7 @@ export const useSettingStore = create<SettingState>((set, get) => ({
           maxDownloadSpeed: settings.maxDownloadSpeed,
           language: settings.language,
           theme: settings.theme,
+          themeColor: settings.themeColor,
           proxyUrl: settings.proxyUrl,
           cookie: settings.cookie,
         });
@@ -193,6 +207,7 @@ function saveAppSettings(state: SettingState) {
     maxDownloadSpeed: state.maxDownloadSpeed,
     language: state.language,
     theme: state.theme,
+    themeColor: state.themeColor,
     proxyUrl: state.proxyUrl,
     cookie: state.cookie,
   };

@@ -13,7 +13,7 @@ import (
 	"Kairo/internal/models"
 	"Kairo/internal/utils"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 func (m *Manager) initDB() {
@@ -23,7 +23,7 @@ func (m *Manager) initDB() {
 		return
 	}
 	dbPath := filepath.Join(appDir, "tasks.db")
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		fmt.Printf("Failed to open database: %v\n", err)
 		return

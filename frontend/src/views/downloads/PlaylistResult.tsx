@@ -66,6 +66,7 @@ const PlaylistResult = ({ videoInfo, onStartDownload }: VideoResultProps) => {
               alt=""
               width="100%"
               height="88px"
+              style={{ objectFit: 'cover' }}
               fallback={ImageFallback}
             />
           ) : (

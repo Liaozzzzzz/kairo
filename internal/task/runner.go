@@ -30,50 +30,6 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		go m.scheduleTasks()
 	}()
 
-	updateFileEntry := func(path string, sizeBytes int64, progress float64) {
-		path = utils.NormalizePath(task.Dir, path)
-		if path == "" {
-			return
-		}
-		for i := range task.Files {
-			if task.Files[i].Path == path {
-				if sizeBytes > 0 {
-					task.Files[i].SizeBytes = sizeBytes
-					task.Files[i].Size = utils.FormatBytes(sizeBytes)
-				}
-				if progress >= 0 {
-					task.Files[i].Progress = progress
-				}
-				return
-			}
-		}
-		entry := models.DownloadFile{
-			Path: path,
-		}
-		if sizeBytes > 0 {
-			entry.SizeBytes = sizeBytes
-			entry.Size = utils.FormatBytes(sizeBytes)
-		}
-		if progress >= 0 {
-			entry.Progress = progress
-		}
-		task.Files = append(task.Files, entry)
-	}
-
-	removeFileEntry := func(path string) {
-		path = utils.NormalizePath(task.Dir, path)
-		if path == "" || len(task.Files) == 0 {
-			return
-		}
-		next := task.Files[:0]
-		for _, file := range task.Files {
-			if file.Path != path {
-				next = append(next, file)
-			}
-		}
-		task.Files = next
-	}
-
 	m.downloader.EnsureYtDlp(m.assetProvider)
 	if m.downloader.BinPath == "" {
 		task.Status = models.TaskStatusError
@@ -109,14 +65,6 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		if len(info.Qualities) > 0 {
 			// Qualities are sorted by height desc, so first is best
 			best := info.Qualities[0]
-			// If first is "Audio Only" and there are others, we might want video?
-			// But "best" usually implies best video+audio.
-			// Our downloader logic puts "Audio Only" at the end usually?
-			// Let's check downloader.go sort logic.
-			// It sorts heights desc. "Audio Only" is appended at the end.
-			// So index 0 should be best video.
-			// However, we should double check if it's audio only task?
-			// task.Quality == "best" implies we want best available.
 
 			task.FormatID = best.FormatID
 			task.TotalBytes = best.TotalBytes
@@ -133,6 +81,13 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		} else {
 			m.emitTaskLog(task.ID, "无法获取分辨率列表，将尝试使用默认最佳格式", false)
 		}
+	}
+
+	// Create output directory based on title
+	sanitizedTitle := utils.SanitizeFileName(task.Title)
+	outputDir := filepath.Join(task.Dir, sanitizedTitle)
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		m.emitTaskLog(task.ID, "Failed to create directory: "+err.Error(), false)
 	}
 
 	// Build args based on quality
@@ -169,7 +124,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		// "--js-runtimes", "node,deno", // Removed: auto-detection is preferred, or use specific path if needed
 		"--ffmpeg-location", filepath.Dir(m.downloader.BinPath), // Explicitly set ffmpeg location
 		"-o", "%(title)s.%(ext)s",
-		"-P", task.Dir,
+		"-P", outputDir,
 		"-f", format,
 	}
 
@@ -246,7 +201,6 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 	var currentPartBytes int64
 	var currentPartDownloaded int64
 	var currentPartLogged bool
-	var currentPartPath string
 
 	// Stdout reader
 	go func() {
@@ -264,10 +218,9 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 				// If path is relative, join with task.Dir?
 				// yt-dlp usually outputs full path or relative to cwd.
 				// We set -P task.Dir.
-				path := utils.NormalizePath(task.Dir, filename)
+				path := utils.NormalizePath(outputDir, filename)
 				if info, err := os.Stat(path); err == nil {
 					completedBytes += info.Size()
-					updateFileEntry(path, info.Size(), 100)
 				}
 
 				// Re-calculate progress?
@@ -293,20 +246,15 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 				currentPartDownloaded = 0
 				currentPartLogged = false
 
-				currentPartPath = matches[1]
-				task.FilePath = currentPartPath
-				updateFileEntry(currentPartPath, 0, 0)
+				task.FilePath = matches[1]
 			}
 
 			if matches := mergerRegex.FindStringSubmatch(line); len(matches) > 1 {
 				mergedPath := matches[1]
 				task.FilePath = mergedPath
-				updateFileEntry(mergedPath, 0, 0)
 			}
 
 			if matches := deletingRegex.FindStringSubmatch(line); len(matches) > 1 {
-				deletedPath := matches[1]
-				removeFileEntry(deletedPath)
 				m.emitTaskUpdate(task)
 			}
 
@@ -330,9 +278,6 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 				if size > 0 {
 					currentPartBytes = int64(size)
 					currentPartDownloaded = int64(percent / 100 * size)
-				}
-				if currentPartPath != "" {
-					updateFileEntry(currentPartPath, currentPartBytes, percent)
 				}
 
 				// Calculate total progress
@@ -369,8 +314,6 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 			line := sc.Text()
 			m.emitTaskLog(task.ID, line, false)
 			if matches := deletingRegex.FindStringSubmatch(line); len(matches) > 1 {
-				deletedPath := matches[1]
-				removeFileEntry(deletedPath)
 				m.emitTaskUpdate(task)
 			}
 		}
@@ -403,17 +346,6 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		task.Progress = 100
 		task.FileExists = false
 
-		if task.FilePath != "" {
-			updateFileEntry(task.FilePath, 0, 100)
-		}
-		for i := range task.Files {
-			if info, statErr := os.Stat(task.Files[i].Path); statErr == nil {
-				task.Files[i].SizeBytes = info.Size()
-				task.Files[i].Size = utils.FormatBytes(info.Size())
-				task.Files[i].Progress = 100
-				task.FileExists = true
-			}
-		}
 		if !task.FileExists && task.FilePath != "" {
 			if _, statErr := os.Stat(task.FilePath); statErr == nil {
 				task.FileExists = true
@@ -473,16 +405,12 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 							if info, err := os.Stat(task.FilePath); err == nil {
 								task.TotalSize = utils.FormatBytes(info.Size())
 								task.TotalBytes = info.Size()
-								updateFileEntry(task.FilePath, info.Size(), 100)
 							}
 							task.Status = models.TaskStatusCompleted
 						}
 					}
 				} else {
 					// Keep both
-					if info, err := os.Stat(trimmedPath); err == nil {
-						updateFileEntry(trimmedPath, info.Size(), 100)
-					}
 					task.Status = models.TaskStatusCompleted
 				}
 			}

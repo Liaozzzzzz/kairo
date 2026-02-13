@@ -4,9 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	stdruntime "runtime"
-	"strings"
 	"sync"
 	"time"
 
@@ -256,30 +257,11 @@ func (m *Manager) DeleteTask(id string, deleteFile bool) {
 		}
 
 		if deleteFile {
-			paths := map[string]struct{}{}
-			if task.FilePath != "" {
-				normalized := utils.NormalizePath(task.Dir, task.FilePath)
-				paths[normalized] = struct{}{}
-				if !strings.HasSuffix(normalized, ".part") {
-					paths[normalized+".part"] = struct{}{}
-				}
-			}
-			for _, file := range task.Files {
-				if file.Path != "" {
-					normalized := utils.NormalizePath(task.Dir, file.Path)
-					paths[normalized] = struct{}{}
-					if !strings.HasSuffix(normalized, ".part") {
-						paths[normalized+".part"] = struct{}{}
-					}
-				}
-			}
-			for path := range paths {
-				if path == "" {
-					continue
-				}
-				p := path
-				go utils.DeleteFile(p)
-			}
+			sanitizedTitle := utils.SanitizeFileName(task.Title)
+			targetDir := filepath.Join(task.Dir, sanitizedTitle)
+			go func(dir string) {
+				_ = os.RemoveAll(dir)
+			}(targetDir)
 		}
 		delete(m.tasks, id)
 		m.deleteTaskLog(id)
@@ -379,15 +361,22 @@ func (m *Manager) OpenTaskDir(id string) {
 		return
 	}
 
+	// Try to open the title directory first, fallback to task.Dir
+	sanitizedTitle := utils.SanitizeFileName(task.Title)
+	targetDir := filepath.Join(task.Dir, sanitizedTitle)
+	if _, err := os.Stat(targetDir); os.IsNotExist(err) {
+		targetDir = task.Dir
+	}
+
 	// Open directory
 	var cmd *exec.Cmd
 	switch stdruntime.GOOS {
 	case "windows":
-		cmd = exec.Command("explorer", task.Dir)
+		cmd = exec.Command("explorer", targetDir)
 	case "darwin":
-		cmd = exec.Command("open", task.Dir)
+		cmd = exec.Command("open", targetDir)
 	case "linux":
-		cmd = exec.Command("xdg-open", task.Dir)
+		cmd = exec.Command("xdg-open", targetDir)
 	default:
 		return
 	}

@@ -51,7 +51,6 @@ func (m *Manager) initDB() {
 		file_exists INTEGER,
 		file_path TEXT,
 		total_bytes INTEGER,
-		files TEXT,
 		playlist_items TEXT,
 		trim_start TEXT,
 		trim_end TEXT,
@@ -66,55 +65,6 @@ func (m *Manager) initDB() {
 	}
 
 	m.db = db
-
-	// Try to migrate from JSON if DB is empty
-	m.migrateFromJSON()
-}
-
-func (m *Manager) migrateFromJSON() {
-	jsonPath, err := config.GetStorePath()
-	if err != nil {
-		return
-	}
-
-	// Check if JSON file exists
-	if _, err := os.Stat(jsonPath); os.IsNotExist(err) {
-		return
-	}
-
-	// Check if DB is empty
-	var count int
-	err = m.db.QueryRow("SELECT COUNT(*) FROM tasks").Scan(&count)
-	if err != nil || count > 0 {
-		return
-	}
-
-	fmt.Println("Migrating tasks from JSON to SQLite...")
-
-	// Read JSON file
-	data, err := os.ReadFile(jsonPath)
-	if err != nil {
-		fmt.Printf("Failed to read tasks.json: %v\n", err)
-		return
-	}
-
-	var tasks map[string]*models.DownloadTask
-	if err := json.Unmarshal(data, &tasks); err != nil {
-		fmt.Printf("Failed to unmarshal tasks.json: %v\n", err)
-		return
-	}
-
-	// Save to DB
-	for _, task := range tasks {
-		m.saveTask(task)
-	}
-
-	// Rename JSON file to backup
-	if err := os.Rename(jsonPath, jsonPath+".bak"); err != nil {
-		fmt.Printf("Failed to rename tasks.json: %v\n", err)
-	} else {
-		fmt.Println("Migration completed, tasks.json renamed to tasks.json.bak")
-	}
 }
 
 func (m *Manager) saveTask(task *models.DownloadTask) {
@@ -122,21 +72,20 @@ func (m *Manager) saveTask(task *models.DownloadTask) {
 		return
 	}
 
-	filesJson, _ := json.Marshal(task.Files)
 	playlistItemsJson, _ := json.Marshal(task.PlaylistItems)
 
 	query := `INSERT OR REPLACE INTO tasks (
 		id, url, dir, quality, format, format_id, parent_id, is_playlist,
 		status, progress, title, thumbnail, total_size, speed, eta,
 		current_item, total_items, log_path, file_exists, file_path,
-		total_bytes, files, playlist_items, trim_start, trim_end, trim_mode
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		total_bytes, playlist_items, trim_start, trim_end, trim_mode
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	_, err := m.db.Exec(query,
 		task.ID, task.URL, task.Dir, task.Quality, task.Format, task.FormatID, task.ParentID, task.IsPlaylist,
 		task.Status, task.Progress, task.Title, task.Thumbnail, task.TotalSize, task.Speed, task.Eta,
 		task.CurrentItem, task.TotalItems, task.LogPath, task.FileExists, task.FilePath,
-		task.TotalBytes, string(filesJson), string(playlistItemsJson), task.TrimStart, task.TrimEnd, task.TrimMode,
+		task.TotalBytes, string(playlistItemsJson), task.TrimStart, task.TrimEnd, task.TrimMode,
 	)
 
 	if err != nil {
@@ -163,7 +112,12 @@ func (m *Manager) loadTasks() {
 		return
 	}
 
-	rows, err := m.db.Query("SELECT * FROM tasks")
+	rows, err := m.db.Query(`SELECT 
+		id, url, dir, quality, format, format_id, parent_id, is_playlist,
+		status, progress, title, thumbnail, total_size, speed, eta,
+		current_item, total_items, log_path, file_exists, file_path,
+		total_bytes, playlist_items, trim_start, trim_end, trim_mode
+	FROM tasks`)
 	if err != nil {
 		fmt.Printf("Failed to query tasks: %v\n", err)
 		return
@@ -175,26 +129,26 @@ func (m *Manager) loadTasks() {
 
 	for rows.Next() {
 		var t models.DownloadTask
-		var filesJson string
 		var playlistItemsJson string
-		var createdAt string // ignore for now
 
 		err := rows.Scan(
 			&t.ID, &t.URL, &t.Dir, &t.Quality, &t.Format, &t.FormatID, &t.ParentID, &t.IsPlaylist,
 			&t.Status, &t.Progress, &t.Title, &t.Thumbnail, &t.TotalSize, &t.Speed, &t.Eta,
 			&t.CurrentItem, &t.TotalItems, &t.LogPath, &t.FileExists, &t.FilePath,
-			&t.TotalBytes, &filesJson, &playlistItemsJson, &t.TrimStart, &t.TrimEnd, &t.TrimMode, &createdAt,
+			&t.TotalBytes, &playlistItemsJson, &t.TrimStart, &t.TrimEnd, &t.TrimMode,
 		)
 		if err != nil {
 			continue
 		}
 
-		_ = json.Unmarshal([]byte(filesJson), &t.Files)
 		_ = json.Unmarshal([]byte(playlistItemsJson), &t.PlaylistItems)
 
 		// Reset interrupted tasks
-		if t.Status == models.TaskStatusDownloading || t.Status == models.TaskStatusStarting || t.Status == models.TaskStatusMerging {
-			t.Status = models.TaskStatusError
+		if t.Status == models.TaskStatusDownloading ||
+			t.Status == models.TaskStatusStarting ||
+			t.Status == models.TaskStatusMerging ||
+			t.Status == models.TaskStatusTrimming {
+			t.Status = models.TaskStatusPaused
 		}
 
 		// Check if file exists
@@ -203,22 +157,6 @@ func (m *Manager) loadTasks() {
 			if t.FilePath != "" {
 				if _, err := os.Stat(t.FilePath); err == nil {
 					t.FileExists = true
-				}
-			}
-		}
-
-		if len(t.Files) > 0 {
-			for i := range t.Files {
-				if t.Files[i].Path != "" {
-					t.Files[i].Path = utils.NormalizePath(t.Dir, t.Files[i].Path)
-				}
-				if info, err := os.Stat(t.Files[i].Path); err == nil {
-					t.Files[i].SizeBytes = info.Size()
-					t.Files[i].Size = utils.FormatBytes(info.Size())
-					if t.Status == models.TaskStatusCompleted {
-						t.Files[i].Progress = 100
-						t.FileExists = true
-					}
 				}
 			}
 		}

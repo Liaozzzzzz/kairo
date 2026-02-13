@@ -203,3 +203,16 @@ func GetSiteName(url string) string {
 	}
 	return "other"
 }
+
+func SanitizeFileName(name string) string {
+	invalid := []string{"<", ">", ":", "\"", "/", "\\", "|", "?", "*"}
+	for _, char := range invalid {
+		name = strings.ReplaceAll(name, char, "_")
+	}
+	name = strings.TrimSpace(name)
+	name = strings.Trim(name, ".")
+	if name == "" {
+		name = "unnamed_file"
+	}
+	return name
+}

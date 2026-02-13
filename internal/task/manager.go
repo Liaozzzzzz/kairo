@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"os/exec"
 	stdruntime "runtime"
@@ -25,6 +26,7 @@ type Manager struct {
 	cancelFuncs   map[string]context.CancelFunc
 	deletedTasks  map[string]struct{}
 	mu            sync.Mutex
+	db            *sql.DB
 }
 
 func NewManager(ctx context.Context, d *downloader.Downloader, ap downloader.AssetProvider) *Manager {
@@ -36,6 +38,7 @@ func NewManager(ctx context.Context, d *downloader.Downloader, ap downloader.Ass
 		cancelFuncs:   make(map[string]context.CancelFunc),
 		deletedTasks:  make(map[string]struct{}),
 	}
+	m.initDB()
 	m.loadTasks()
 	return m
 }
@@ -115,7 +118,12 @@ func (m *Manager) AddPlaylistTask(input models.AddPlaylistTaskInput) (string, er
 	}
 
 	// 3. Save
-	m.saveTasksInternal()
+	m.saveTask(parentTask)
+	for _, t := range m.tasks {
+		if t.ParentID == parentID {
+			m.saveTask(t)
+		}
+	}
 
 	// 4. Emit updates
 	// Since we are holding the lock, we can't call emitTaskUpdate which locks again.
@@ -192,7 +200,7 @@ func (m *Manager) AddTask(input models.AddTaskInput) (string, error) {
 	m.cancelFuncs[id] = func() {}
 	m.mu.Unlock()
 
-	m.saveTasks()
+	m.saveTask(task)
 
 	// Emit initial state
 	m.emitTaskUpdate(task)
@@ -281,7 +289,7 @@ func (m *Manager) DeleteTask(id string, deleteFile bool) {
 	}
 
 	// 3. Save
-	m.saveTasksInternal()
+	m.deleteTaskFromDB(id)
 }
 
 func (m *Manager) PauseTask(id string) {
@@ -308,7 +316,7 @@ func (m *Manager) PauseTask(id string) {
 	m.mu.Unlock()
 
 	m.emitTaskUpdate(task)
-	m.saveTasks()
+	m.saveTask(task)
 }
 
 func (m *Manager) ResumeTask(id string) {
@@ -329,7 +337,7 @@ func (m *Manager) ResumeTask(id string) {
 	// We don't reset progress like RetryTask
 
 	m.emitTaskUpdate(task)
-	m.saveTasks()
+	m.saveTask(task)
 
 	ctx, cancel := context.WithCancel(m.ctx)
 	m.mu.Lock()
@@ -352,7 +360,7 @@ func (m *Manager) RetryTask(id string) {
 	task.Progress = 0
 
 	m.emitTaskUpdate(task)
-	m.saveTasks()
+	m.saveTask(task)
 
 	ctx, cancel := context.WithCancel(m.ctx)
 	m.mu.Lock()

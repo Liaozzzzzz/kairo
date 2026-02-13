@@ -90,7 +90,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 
 	m.emitTaskLog(task.ID, "正在启动下载引擎...", false)
 	m.emitTaskUpdate(task)
-	m.saveTasks()
+	m.saveTask(task)
 
 	// 如果是子任务且未指定格式ID，则获取视频信息以选择最佳分辨率
 	if task.ParentID != "" && task.FormatID == "" {
@@ -102,7 +102,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 			m.mu.Unlock()
 			m.emitTaskLog(task.ID, "Error resolving video info: "+err.Error(), false)
 			m.emitTaskUpdate(task)
-			m.saveTasks()
+			m.saveTask(task)
 			return
 		}
 
@@ -128,7 +128,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 				task.Thumbnail = info.Thumbnail
 			}
 			m.emitTaskLog(task.ID, fmt.Sprintf("已选择最佳分辨率: %s (%s)", best.Label, best.TotalSize), false)
-			m.saveTasks()
+			m.saveTask(task)
 			m.emitTaskUpdate(task)
 		} else {
 			m.emitTaskLog(task.ID, "无法获取分辨率列表，将尝试使用默认最佳格式", false)
@@ -221,7 +221,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		task.Status = models.TaskStatusError
 		m.emitTaskLog(task.ID, "Start Error: "+err.Error(), false)
 		m.emitTaskUpdate(task)
-		m.saveTasks()
+		m.saveTask(task)
 		return
 	}
 
@@ -492,5 +492,5 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 	}
 
 	m.emitTaskUpdate(task)
-	m.saveTasks()
+	m.saveTask(task)
 }

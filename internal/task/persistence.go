@@ -2,56 +2,197 @@ package task
 
 import (
 	"bufio"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"Kairo/internal/config"
 	"Kairo/internal/models"
 	"Kairo/internal/utils"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
-func (m *Manager) saveTasks() {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+func (m *Manager) initDB() {
+	appDir, err := config.GetAppConfigDir()
+	if err != nil {
+		fmt.Printf("Failed to get app config dir: %v\n", err)
+		return
+	}
+	dbPath := filepath.Join(appDir, "tasks.db")
+	db, err := sql.Open("sqlite3", dbPath)
+	if err != nil {
+		fmt.Printf("Failed to open database: %v\n", err)
+		return
+	}
 
-	m.saveTasksInternal()
+	createTableSQL := `CREATE TABLE IF NOT EXISTS tasks (
+		id TEXT PRIMARY KEY,
+		url TEXT,
+		dir TEXT,
+		quality TEXT,
+		format TEXT,
+		format_id TEXT,
+		parent_id TEXT,
+		is_playlist INTEGER,
+		status TEXT,
+		progress REAL,
+		title TEXT,
+		thumbnail TEXT,
+		total_size TEXT,
+		speed TEXT,
+		eta TEXT,
+		current_item INTEGER,
+		total_items INTEGER,
+		log_path TEXT,
+		file_exists INTEGER,
+		file_path TEXT,
+		total_bytes INTEGER,
+		files TEXT,
+		playlist_items TEXT,
+		trim_start TEXT,
+		trim_end TEXT,
+		trim_mode TEXT,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);`
+
+	_, err = db.Exec(createTableSQL)
+	if err != nil {
+		fmt.Printf("Failed to create table: %v\n", err)
+		return
+	}
+
+	m.db = db
+
+	// Try to migrate from JSON if DB is empty
+	m.migrateFromJSON()
 }
 
-func (m *Manager) saveTasksInternal() {
-	path, err := config.GetStorePath()
-	if err != nil {
-		return
-	}
-	data, err := json.MarshalIndent(m.tasks, "", "  ")
+func (m *Manager) migrateFromJSON() {
+	jsonPath, err := config.GetStorePath()
 	if err != nil {
 		return
 	}
 
-	_ = os.WriteFile(path, data, 0644)
+	// Check if JSON file exists
+	if _, err := os.Stat(jsonPath); os.IsNotExist(err) {
+		return
+	}
+
+	// Check if DB is empty
+	var count int
+	err = m.db.QueryRow("SELECT COUNT(*) FROM tasks").Scan(&count)
+	if err != nil || count > 0 {
+		return
+	}
+
+	fmt.Println("Migrating tasks from JSON to SQLite...")
+
+	// Read JSON file
+	data, err := os.ReadFile(jsonPath)
+	if err != nil {
+		fmt.Printf("Failed to read tasks.json: %v\n", err)
+		return
+	}
+
+	var tasks map[string]*models.DownloadTask
+	if err := json.Unmarshal(data, &tasks); err != nil {
+		fmt.Printf("Failed to unmarshal tasks.json: %v\n", err)
+		return
+	}
+
+	// Save to DB
+	for _, task := range tasks {
+		m.saveTask(task)
+	}
+
+	// Rename JSON file to backup
+	if err := os.Rename(jsonPath, jsonPath+".bak"); err != nil {
+		fmt.Printf("Failed to rename tasks.json: %v\n", err)
+	} else {
+		fmt.Println("Migration completed, tasks.json renamed to tasks.json.bak")
+	}
+}
+
+func (m *Manager) saveTask(task *models.DownloadTask) {
+	if m.db == nil {
+		return
+	}
+
+	filesJson, _ := json.Marshal(task.Files)
+	playlistItemsJson, _ := json.Marshal(task.PlaylistItems)
+
+	query := `INSERT OR REPLACE INTO tasks (
+		id, url, dir, quality, format, format_id, parent_id, is_playlist,
+		status, progress, title, thumbnail, total_size, speed, eta,
+		current_item, total_items, log_path, file_exists, file_path,
+		total_bytes, files, playlist_items, trim_start, trim_end, trim_mode
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+
+	_, err := m.db.Exec(query,
+		task.ID, task.URL, task.Dir, task.Quality, task.Format, task.FormatID, task.ParentID, task.IsPlaylist,
+		task.Status, task.Progress, task.Title, task.Thumbnail, task.TotalSize, task.Speed, task.Eta,
+		task.CurrentItem, task.TotalItems, task.LogPath, task.FileExists, task.FilePath,
+		task.TotalBytes, string(filesJson), string(playlistItemsJson), task.TrimStart, task.TrimEnd, task.TrimMode,
+	)
+
+	if err != nil {
+		fmt.Printf("Failed to save task %s: %v\n", task.ID, err)
+	}
+}
+
+func (m *Manager) deleteTaskFromDB(id string) {
+	if m.db == nil {
+		return
+	}
+	_, _ = m.db.Exec("DELETE FROM tasks WHERE id = ?", id)
+}
+
+func (m *Manager) deleteAllTasksFromDB() {
+	if m.db == nil {
+		return
+	}
+	_, _ = m.db.Exec("DELETE FROM tasks")
 }
 
 func (m *Manager) loadTasks() {
-	path, err := config.GetStorePath()
-	if err != nil {
+	if m.db == nil {
 		return
 	}
 
-	data, err := os.ReadFile(path)
+	rows, err := m.db.Query("SELECT * FROM tasks")
 	if err != nil {
+		fmt.Printf("Failed to query tasks: %v\n", err)
 		return
 	}
+	defer rows.Close()
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if err := json.Unmarshal(data, &m.tasks); err != nil {
-		return
-	}
+	for rows.Next() {
+		var t models.DownloadTask
+		var filesJson string
+		var playlistItemsJson string
+		var createdAt string // ignore for now
 
-	// Reset interrupted tasks
-	for _, t := range m.tasks {
+		err := rows.Scan(
+			&t.ID, &t.URL, &t.Dir, &t.Quality, &t.Format, &t.FormatID, &t.ParentID, &t.IsPlaylist,
+			&t.Status, &t.Progress, &t.Title, &t.Thumbnail, &t.TotalSize, &t.Speed, &t.Eta,
+			&t.CurrentItem, &t.TotalItems, &t.LogPath, &t.FileExists, &t.FilePath,
+			&t.TotalBytes, &filesJson, &playlistItemsJson, &t.TrimStart, &t.TrimEnd, &t.TrimMode, &createdAt,
+		)
+		if err != nil {
+			continue
+		}
+
+		_ = json.Unmarshal([]byte(filesJson), &t.Files)
+		_ = json.Unmarshal([]byte(playlistItemsJson), &t.PlaylistItems)
+
+		// Reset interrupted tasks
 		if t.Status == models.TaskStatusDownloading || t.Status == models.TaskStatusStarting || t.Status == models.TaskStatusMerging {
 			t.Status = models.TaskStatusError
 		}
@@ -81,6 +222,8 @@ func (m *Manager) loadTasks() {
 				}
 			}
 		}
+
+		m.tasks[t.ID] = &t
 	}
 }
 

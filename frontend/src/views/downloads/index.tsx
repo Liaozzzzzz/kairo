@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
-import { Input, Card, notification, message } from 'antd';
+import { Input, Card, notification, message, Empty, Spin } from 'antd';
 import { GetVideoInfo, AddTask as AddTaskGo, AddPlaylistTask } from '@root/wailsjs/go/main/App';
 import { models } from '@root/wailsjs/go/models';
 import { useAppStore } from '@/store/useAppStore';
@@ -163,6 +163,19 @@ export default function Downloads() {
               onSearch={fetchVideoInfo}
             />
           </div>
+
+          {isFetchingInfo && (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <Spin size="large" />
+              <span className="text-muted-foreground">{t('downloads.analyzing')}</span>
+            </div>
+          )}
+
+          {!videoInfo && !isFetchingInfo && (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('downloads.emptyState')} />
+            </div>
+          )}
 
           {videoInfo && !isPlaylist && (
             <SingleVideoResult videoInfo={videoInfo} onStartDownload={handleStartDownload} />

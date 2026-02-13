@@ -77,7 +77,9 @@
     "duration": "Duration: ",
     "playlistItems": "Playlist Videos",
     "selectAll": "Select All",
-    "playlistIndex": "No. {{index}}"
+    "playlistIndex": "No. {{index}}",
+    "emptyState": "Enter a video URL to start",
+    "analyzing": "Analyzing video info..."
   },
   "tasks": {
     "title": "Tasks",

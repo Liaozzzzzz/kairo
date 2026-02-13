@@ -77,7 +77,9 @@
     "duration": "时长: ",
     "playlistItems": "合集视频",
     "selectAll": "全选",
-    "playlistIndex": "第{{index}}条"
+    "playlistIndex": "第{{index}}条",
+    "emptyState": "输入视频链接开始下载",
+    "analyzing": "正在解析视频信息..."
   },
   "tasks": {
     "title": "任务列表",

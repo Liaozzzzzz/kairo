@@ -219,7 +219,7 @@ const Settings = () => {
         </div>
       }
     >
-      <div className="space-y-4 max-w-4xl mx-auto">
+      <div className="space-y-4 mx-auto">
         {/* Downloads Settings */}
         <Card
           variant="borderless"

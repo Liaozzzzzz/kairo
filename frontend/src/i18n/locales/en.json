@@ -101,9 +101,12 @@
       "paused": "Paused"
     },
     "playlist": {
-      "statusPrefix": "Downloading playlist: ",
+      "statusPrefix": "Playlist: ",
       "progress": "Completed {{completed}} / {{total}}",
-      "failed": "{{count}} failed"
+      "failed": "{{count}} failed",
+      "allCompleted": "All downloaded",
+      "allFailed": "All failed",
+      "partiallyFailed": "failed"
     },
     "contextMenu": {
       "details": "Task Details",

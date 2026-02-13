@@ -99,15 +99,32 @@ export function PlaylistTaskItem({ task, childrenTasks, onViewLog }: PlaylistTas
               </div>
               <div className="text-xs text-muted-foreground flex items-center gap-1">
                 <span>{t('tasks.playlist.statusPrefix')}</span>
-                <span className="text-green-600 dark:text-green-400">
-                  {t('tasks.playlist.progress', { completed: completedCount, total: totalCount })}
-                </span>
-                {failedCount > 0 && (
+                {totalCount > 0 && completedCount === totalCount ? (
+                  <span className="text-green-600 dark:text-green-400">
+                    {t('tasks.playlist.allCompleted')}
+                  </span>
+                ) : totalCount > 0 && failedCount === totalCount ? (
+                  <span className="text-red-500 dark:text-red-400">
+                    {t('tasks.playlist.allFailed')}
+                  </span>
+                ) : (
                   <>
-                    <span>·</span>
-                    <span className="text-red-500 dark:text-red-400">
-                      {t('tasks.playlist.failed', { count: failedCount })}
+                    <span className="text-green-600 dark:text-green-400">
+                      {t('tasks.playlist.progress', {
+                        completed: completedCount,
+                        total: totalCount,
+                      })}
                     </span>
+                    {failedCount > 0 && (
+                      <>
+                        <span>·</span>
+                        <span className="text-red-500 dark:text-red-400">
+                          {failedCount}
+                          &ensp;
+                          {t('tasks.playlist.partiallyFailed')}
+                        </span>
+                      </>
+                    )}
                   </>
                 )}
               </div>

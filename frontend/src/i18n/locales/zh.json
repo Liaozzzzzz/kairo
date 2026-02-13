@@ -101,9 +101,12 @@
       "paused": "暂停中"
     },
     "playlist": {
-      "statusPrefix": "正在下载播放列表：",
+      "statusPrefix": "合集：",
       "progress": "已完成 {{completed}} / {{total}}",
-      "failed": "{{count}} 失败"
+      "failed": "{{count}} 失败",
+      "allCompleted": "全部下载完成",
+      "allFailed": "全部失败",
+      "partiallyFailed": "失败"
     },
     "contextMenu": {
       "details": "任务详情",

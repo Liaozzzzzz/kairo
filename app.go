@@ -114,6 +114,10 @@ func (a *App) AddPlaylistTask(input models.AddPlaylistTaskInput) (string, error)
 	return a.taskManager.AddPlaylistTask(input)
 }
 
+func (a *App) AddRSSTask(input models.AddRSSTaskInput) (string, error) {
+	return a.taskManager.AddRSSTask(input)
+}
+
 func (a *App) GetTasks() map[string]*models.DownloadTask {
 	return a.taskManager.GetTasks()
 }

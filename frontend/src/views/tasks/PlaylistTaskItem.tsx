@@ -11,7 +11,7 @@ import {
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { Task } from '@/types';
-import { TaskStatus } from '@/data/variables';
+import { TaskStatus, SourceType } from '@/data/variables';
 import { TaskItem } from './TaskItem';
 import { useTaskStore } from '@/store/useTaskStore';
 import { OpenTaskDir } from '@root/wailsjs/go/main/App';
@@ -111,7 +111,11 @@ export function PlaylistTaskItem({ task, childrenTasks, onViewLog }: PlaylistTas
                 {task.title || task.url}
               </div>
               <div className="text-xs text-muted-foreground flex items-center gap-1">
-                <span>{t('tasks.playlist.statusPrefix')}</span>
+                <span>
+                  {task.source_type === SourceType.RSS
+                    ? t('tasks.playlist.rssPrefix')
+                    : t('tasks.playlist.statusPrefix')}
+                </span>
                 {totalCount > 0 && completedCount === totalCount ? (
                   <span className="text-green-600 dark:text-green-400">
                     {t('tasks.playlist.allCompleted')}

@@ -10,7 +10,7 @@ import PageContainer from '@/components/PageContainer';
 import PageHeader from '@/components/PageHeader';
 import bilibiliIcon from '@/assets/images/bilibili.png';
 import youtubeIcon from '@/assets/images/Youtube.png';
-import { MenuItemKey, TrimMode } from '@/data/variables';
+import { MenuItemKey, TrimMode, SourceType } from '@/data/variables';
 import SingleVideoResult from './SingleVideoResult';
 import PlaylistResult from './PlaylistResult';
 
@@ -28,7 +28,9 @@ export default function Downloads() {
   const [isFetchingInfo, setIsFetchingInfo] = useState(false);
 
   const playlistItems = videoInfo?.playlist_items || [];
-  const isPlaylist = Boolean(videoInfo?.is_playlist && playlistItems.length);
+  const isPlaylist = Boolean(
+    videoInfo?.source_type === SourceType.Playlist && playlistItems.length
+  );
 
   const fetchVideoInfo = async () => {
     if (!newUrl) return;
@@ -89,6 +91,7 @@ export default function Downloads() {
           trim_start: trimStart,
           trim_end: trimEnd,
           trim_mode: trimMode,
+          source_type: SourceType.Single,
         })
       );
       setNewUrl('');

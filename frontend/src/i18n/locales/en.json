@@ -114,6 +114,7 @@
     },
     "playlist": {
       "statusPrefix": "Playlist: ",
+      "rssPrefix": "RSS: ",
       "progress": "Completed {{completed}} / {{total}}",
       "failed": "{{count}} failed",
       "allCompleted": "All downloaded",

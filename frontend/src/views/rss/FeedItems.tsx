@@ -5,7 +5,8 @@ import { Button, Spin, message, Card, Empty } from 'antd';
 import { ExportOutlined } from '@ant-design/icons';
 import { cn } from '@/lib/utils';
 import { BrowserOpenURL } from '@root/wailsjs/runtime/runtime';
-import { AddTask } from '@root/wailsjs/go/main/App';
+import { AddRSSTask } from '@root/wailsjs/go/main/App';
+import { models } from '@root/wailsjs/go/models';
 import dayjs from 'dayjs';
 import { RSSItem, RSSFeed, RSSItemStatus } from '@/types';
 import { Grid, CellComponentProps, GridProps } from 'react-window';
@@ -174,19 +175,17 @@ const FeedItems: React.FC = () => {
           return;
         }
 
-        await AddTask({
-          url: item.link,
-          quality: 'best',
-          format: 'original',
-          format_id: '',
-          dir: currentFeed?.custom_dir || '',
-          title: item.title,
-          thumbnail: item.thumbnail,
-          total_bytes: 0,
-          trim_start: '',
-          trim_end: '',
-          trim_mode: 'none',
-        });
+        await AddRSSTask(
+          new models.AddRSSTaskInput({
+            feed_url: currentFeed?.url || '',
+            feed_title: currentFeed?.title || '',
+            feed_thumbnail: currentFeed?.thumbnail || '',
+            item_url: item.link,
+            item_title: item.title,
+            item_thumbnail: item.thumbnail,
+            dir: currentFeed?.custom_dir || '',
+          })
+        );
         await markItemRead(item.id);
         await setRSSItemQueued(item.id, true);
         message.success(t('rss.taskAdded'));

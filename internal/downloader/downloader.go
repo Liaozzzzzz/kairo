@@ -263,7 +263,7 @@ func (d *Downloader) GetVideoInfo(url string, assetProvider AssetProvider) (*mod
 		if err != nil {
 			return nil, err
 		}
-		if playlistInfo != nil && playlistInfo.IsPlaylist {
+		if playlistInfo != nil && playlistInfo.SourceType == models.SourceTypePlaylist {
 			return playlistInfo, nil
 		}
 		// If not a playlist (but looked like one), fall through to single video
@@ -276,7 +276,7 @@ func (d *Downloader) GetVideoInfo(url string, assetProvider AssetProvider) (*mod
 
 		// If failed, and we haven't checked playlist, check if it might be a playlist
 		playlistInfo, pErr := d.getPlaylistInfo(url)
-		if pErr == nil && playlistInfo != nil && playlistInfo.IsPlaylist {
+		if pErr == nil && playlistInfo != nil && playlistInfo.SourceType == models.SourceTypePlaylist {
 			return playlistInfo, nil
 		}
 		// Return original error if both failed
@@ -432,7 +432,7 @@ func (d *Downloader) getPlaylistInfo(url string) (*models.VideoInfo, error) {
 	info := models.VideoInfo{
 		Title:         rawInfo.Title,
 		Thumbnail:     playlistThumbnail,
-		IsPlaylist:    true,
+		SourceType:    models.SourceTypePlaylist,
 		PlaylistItems: items,
 		TotalItems:    len(items),
 	}

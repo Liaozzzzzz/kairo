@@ -14,6 +14,14 @@ const (
 	TaskStatusError       TaskStatus = "error"
 )
 
+type SourceType int
+
+const (
+	SourceTypeSingle   SourceType = 0
+	SourceTypePlaylist SourceType = 1
+	SourceTypeRSS      SourceType = 2
+)
+
 type TrimMode string
 
 const (
@@ -38,32 +46,31 @@ type PlaylistItem struct {
 }
 
 type DownloadTask struct {
-	ID            string     `json:"id"`
-	URL           string     `json:"url"`
-	Dir           string     `json:"dir"`
-	Quality       string     `json:"quality"` // "best", "1080p", "720p", "audio"
-	Format        string     `json:"format"`  // "original", "webm", "mp4", "mkv", "avi", "flv", "mov"
-	FormatID      string     `json:"format_id"`
-	PlaylistItems []int      `json:"playlist_items"`
-	ParentID      string     `json:"parent_id"`
-	IsPlaylist    bool       `json:"is_playlist"`
-	Status        TaskStatus `json:"status"`
-	Progress      float64    `json:"progress"`
-	Title         string     `json:"title"`
-	Thumbnail     string     `json:"thumbnail"`
-	TotalSize     string     `json:"total_size"`
-	Speed         string     `json:"speed"`
-	Eta           string     `json:"eta"`
-	CurrentItem   int        `json:"current_item"`
-	TotalItems    int        `json:"total_items"`
-	LogPath       string     `json:"log_path"`
-	FileExists    bool       `json:"file_exists"`
-	FilePath      string     `json:"file_path"`
-	TotalBytes    int64      `json:"total_bytes"`
-	TrimStart     string     `json:"trim_start"`
-	TrimEnd       string     `json:"trim_end"`
-	TrimMode      TrimMode   `json:"trim_mode"`
-	CreatedAt     int64      `json:"created_at"`
+	ID          string     `json:"id"`
+	URL         string     `json:"url"`
+	Dir         string     `json:"dir"`
+	Quality     string     `json:"quality"` // "best", "1080p", "720p", "audio"
+	Format      string     `json:"format"`  // "original", "webm", "mp4", "mkv", "avi", "flv", "mov"
+	FormatID    string     `json:"format_id"`
+	ParentID    string     `json:"parent_id"`
+	SourceType  SourceType `json:"source_type"`
+	Status      TaskStatus `json:"status"`
+	Progress    float64    `json:"progress"`
+	Title       string     `json:"title"`
+	Thumbnail   string     `json:"thumbnail"`
+	TotalSize   string     `json:"total_size"`
+	Speed       string     `json:"speed"`
+	Eta         string     `json:"eta"`
+	CurrentItem int        `json:"current_item"`
+	TotalItems  int        `json:"total_items"`
+	LogPath     string     `json:"log_path"`
+	FileExists  bool       `json:"file_exists"`
+	FilePath    string     `json:"file_path"`
+	TotalBytes  int64      `json:"total_bytes"`
+	TrimStart   string     `json:"trim_start"`
+	TrimEnd     string     `json:"trim_end"`
+	TrimMode    TrimMode   `json:"trim_mode"`
+	CreatedAt   int64      `json:"created_at"`
 }
 
 type QualityOption struct {
@@ -83,23 +90,34 @@ type VideoInfo struct {
 	Thumbnail     string          `json:"thumbnail"`
 	Duration      float64         `json:"duration"`
 	Qualities     []QualityOption `json:"qualities"`
-	IsPlaylist    bool            `json:"is_playlist"`
+	SourceType    SourceType      `json:"source_type"`
 	PlaylistItems []PlaylistItem  `json:"playlist_items"`
 	TotalItems    int             `json:"total_items"`
 }
 
 type AddTaskInput struct {
-	URL        string   `json:"url"`
-	Quality    string   `json:"quality"`
-	Format     string   `json:"format"`
-	FormatID   string   `json:"format_id"`
-	Dir        string   `json:"dir"`
-	Title      string   `json:"title"`
-	Thumbnail  string   `json:"thumbnail"`
-	TotalBytes int64    `json:"total_bytes"`
-	TrimStart  string   `json:"trim_start"`
-	TrimEnd    string   `json:"trim_end"`
-	TrimMode   TrimMode `json:"trim_mode"`
+	URL        string     `json:"url"`
+	Quality    string     `json:"quality"`
+	Format     string     `json:"format"`
+	FormatID   string     `json:"format_id"`
+	Dir        string     `json:"dir"`
+	Title      string     `json:"title"`
+	Thumbnail  string     `json:"thumbnail"`
+	TotalBytes int64      `json:"total_bytes"`
+	TrimStart  string     `json:"trim_start"`
+	TrimEnd    string     `json:"trim_end"`
+	TrimMode   TrimMode   `json:"trim_mode"`
+	SourceType SourceType `json:"source_type"`
+}
+
+type AddRSSTaskInput struct {
+	FeedURL       string `json:"feed_url"`
+	FeedTitle     string `json:"feed_title"`
+	FeedThumbnail string `json:"feed_thumbnail"`
+	ItemURL       string `json:"item_url"`
+	ItemTitle     string `json:"item_title"`
+	ItemThumbnail string `json:"item_thumbnail"`
+	Dir           string `json:"dir"`
 }
 
 type RSSFeed struct {

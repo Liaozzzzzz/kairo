@@ -69,22 +69,21 @@ func (m *Manager) AddPlaylistTask(input models.AddPlaylistTaskInput) (string, er
 	// 1. Create parent task
 	parentID := fmt.Sprintf("%d", time.Now().UnixNano())
 	parentTask := &models.DownloadTask{
-		ID:            parentID,
-		URL:           input.URL,
-		Dir:           input.Dir,
-		Status:        models.TaskStatusCompleted,
-		Progress:      100,
-		Title:         input.Title,
-		Thumbnail:     input.Thumbnail,
-		TotalBytes:    0,
-		TotalSize:     utils.FormatBytes(0),
-		IsPlaylist:    true,
-		PlaylistItems: make([]int, len(input.PlaylistItems)),
-		TotalItems:    len(input.PlaylistItems),
-		CurrentItem:   len(input.PlaylistItems),
-		LogPath:       config.GetLogPath(parentID),
-		TrimMode:      models.TrimModeNone,
-		CreatedAt:     time.Now().Unix(),
+		ID:          parentID,
+		URL:         input.URL,
+		Dir:         input.Dir,
+		Status:      models.TaskStatusCompleted,
+		Progress:    100,
+		Title:       input.Title,
+		Thumbnail:   input.Thumbnail,
+		TotalBytes:  0,
+		TotalSize:   utils.FormatBytes(0),
+		SourceType:  models.SourceTypePlaylist,
+		TotalItems:  len(input.PlaylistItems),
+		CurrentItem: len(input.PlaylistItems),
+		LogPath:     config.GetLogPath(parentID),
+		TrimMode:    models.TrimModeNone,
+		CreatedAt:   time.Now().Unix(),
 	}
 	if parentTask.Title == "" {
 		parentTask.Title = input.URL
@@ -105,7 +104,7 @@ func (m *Manager) AddPlaylistTask(input models.AddPlaylistTaskInput) (string, er
 			Title:       item.Title,
 			Thumbnail:   item.Thumbnail,
 			ParentID:    parentID,
-			IsPlaylist:  false,
+			SourceType:  models.SourceTypePlaylist,
 			Quality:     "best", // Mark as needing best quality
 			Format:      "original",
 			FormatID:    "", // Will be determined later
@@ -120,7 +119,6 @@ func (m *Manager) AddPlaylistTask(input models.AddPlaylistTaskInput) (string, er
 		}
 		m.tasks[childID] = childTask
 		m.cancelFuncs[childID] = func() {}
-		parentTask.PlaylistItems[i] = item.Index // Store index or just ignore
 	}
 
 	// 3. Save
@@ -161,6 +159,105 @@ func (m *Manager) AddPlaylistTask(input models.AddPlaylistTaskInput) (string, er
 	return parentID, nil
 }
 
+func (m *Manager) AddRSSTask(input models.AddRSSTaskInput) (string, error) {
+	if input.FeedURL == "" {
+		return "", fmt.Errorf("feed url is empty")
+	}
+	if input.ItemURL == "" {
+		return "", fmt.Errorf("item url is empty")
+	}
+	if input.Dir == "" {
+		d, err := config.GetDefaultDownloadDir()
+		if err != nil {
+			return "", fmt.Errorf("无法获取默认目录")
+		}
+		input.Dir = d
+	}
+
+	m.mu.Lock()
+
+	// 1. Check for existing parent task
+	var parentTask *models.DownloadTask
+	for _, t := range m.tasks {
+		if t.SourceType == models.SourceTypeRSS && t.URL == input.FeedURL {
+			parentTask = t
+			break
+		}
+	}
+
+	var tasksToEmit []models.DownloadTask
+
+	// 2. Create parent if not exists
+	if parentTask == nil {
+		parentID := fmt.Sprintf("%d", time.Now().UnixNano())
+		parentTask = &models.DownloadTask{
+			ID:          parentID,
+			URL:         input.FeedURL,
+			Dir:         input.Dir,
+			Status:      models.TaskStatusCompleted,
+			Progress:    100,
+			Title:       input.FeedTitle,
+			Thumbnail:   input.FeedThumbnail,
+			TotalBytes:  0,
+			TotalSize:   utils.FormatBytes(0),
+			SourceType:  models.SourceTypeRSS,
+			TotalItems:  0,
+			CurrentItem: 0,
+			LogPath:     config.GetLogPath(parentID),
+			TrimMode:    models.TrimModeNone,
+			CreatedAt:   time.Now().Unix(),
+		}
+		if parentTask.Title == "" {
+			parentTask.Title = input.FeedURL
+		}
+		m.tasks[parentID] = parentTask
+		m.cancelFuncs[parentID] = func() {}
+		tasksToEmit = append(tasksToEmit, *parentTask)
+		m.saveTask(parentTask)
+	}
+
+	// 3. Create child task
+	childID := fmt.Sprintf("%d_%d", time.Now().UnixNano(), 0)
+	childTask := &models.DownloadTask{
+		ID:          childID,
+		URL:         input.ItemURL,
+		Dir:         input.Dir,
+		Status:      models.TaskStatusPending,
+		Progress:    0,
+		Title:       input.ItemTitle,
+		Thumbnail:   input.ItemThumbnail,
+		ParentID:    parentTask.ID,
+		SourceType:  models.SourceTypeRSS,
+		Quality:     "best",
+		Format:      "original",
+		FormatID:    "",
+		CurrentItem: 1,
+		TotalItems:  1,
+		LogPath:     config.GetLogPath(childID),
+		TrimMode:    models.TrimModeNone,
+		CreatedAt:   time.Now().Unix(),
+	}
+	if childTask.Title == "" {
+		childTask.Title = input.ItemURL
+	}
+
+	m.tasks[childID] = childTask
+	m.cancelFuncs[childID] = func() {}
+	tasksToEmit = append(tasksToEmit, *childTask)
+	m.saveTask(childTask)
+
+	m.mu.Unlock()
+
+	go func() {
+		for _, t := range tasksToEmit {
+			runtime.EventsEmit(m.ctx, "task:update", t)
+		}
+		m.scheduleTasks()
+	}()
+
+	return childID, nil
+}
+
 func (m *Manager) AddTask(input models.AddTaskInput) (string, error) {
 	if input.URL == "" {
 		return "", fmt.Errorf("地址为空")
@@ -182,7 +279,7 @@ func (m *Manager) AddTask(input models.AddTaskInput) (string, error) {
 		Format:      input.Format,
 		FormatID:    input.FormatID,
 		ParentID:    "",
-		IsPlaylist:  false,
+		SourceType:  input.SourceType,
 		Status:      models.TaskStatusPending,
 		Progress:    0,
 		Title:       input.Title,
@@ -235,7 +332,7 @@ func (m *Manager) scheduleTasks() {
 		if downloadingCount >= maxConcurrent {
 			break
 		}
-		if task.Status == models.TaskStatusPending && !task.IsPlaylist {
+		if task.Status == models.TaskStatusPending {
 			downloadingCount++
 			ctx, cancel := context.WithCancel(m.ctx)
 			m.cancelFuncs[task.ID] = cancel
@@ -254,8 +351,8 @@ func (m *Manager) DeleteTask(id string, deleteFile bool) []string {
 
 	// Check if the task exists in memory
 	if task, ok := m.tasks[id]; ok {
-		// 1. If it's a playlist, delete all children
-		if task.IsPlaylist {
+		// 1. If it's a playlist or RSS, delete all children
+		if task.SourceType == models.SourceTypePlaylist || task.SourceType == models.SourceTypeRSS {
 			for tid, t := range m.tasks {
 				if t.ParentID == id {
 					idsToDelete[tid] = struct{}{}

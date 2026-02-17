@@ -114,6 +114,7 @@
     },
     "playlist": {
       "statusPrefix": "合集：",
+      "rssPrefix": "订阅：",
       "progress": "已完成 {{completed}} / {{total}}",
       "failed": "{{count}} 失败",
       "allCompleted": "全部下载完成",

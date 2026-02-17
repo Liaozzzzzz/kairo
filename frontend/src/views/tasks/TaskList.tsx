@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from 'antd';
 import { useTaskStore } from '@/store/useTaskStore';
 import { PlusOutlined } from '@ant-design/icons';
-import { MenuItemKey, TaskStatus } from '@/data/variables';
+import { MenuItemKey, TaskStatus, SourceType } from '@/data/variables';
 import { TaskItem } from './TaskItem';
 import { PlaylistTaskItem } from './PlaylistTaskItem';
 import { useAppStore } from '@/store/useAppStore';
@@ -54,7 +54,7 @@ export function TaskList({ onViewLog, filter }: TaskListProps) {
       let isCompleted = false;
       let isFailed = false;
 
-      if (task.is_playlist) {
+      if (task.source_type === SourceType.Playlist || task.source_type === SourceType.RSS) {
         const hasDownloading = childs.some(
           (c) =>
             c.status === TaskStatus.Pending ||
@@ -125,7 +125,7 @@ export function TaskList({ onViewLog, filter }: TaskListProps) {
   return (
     <div className="space-y-4">
       {taskList.map((task) => {
-        if (task.is_playlist) {
+        if (task.source_type === SourceType.Playlist || task.source_type === SourceType.RSS) {
           return (
             <PlaylistTaskItem
               key={task.id}

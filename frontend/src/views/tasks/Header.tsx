@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Segmented } from 'antd';
 import { useTranslation } from 'react-i18next';
 import PageHeader from '@/components/PageHeader';
-import { TaskStatus } from '@/data/variables';
+import { SourceType, TaskStatus } from '@/data/variables';
 import { useTaskStore } from '@/store/useTaskStore';
 
 interface HeaderProps {
@@ -38,7 +38,7 @@ export function Header({ filter, onFilterChange }: HeaderProps) {
       let isCompleted = false;
       let isFailed = false;
 
-      if (task.is_playlist) {
+      if (task.source_type === SourceType.Playlist || task.source_type === SourceType.RSS) {
         const hasDownloading = childs.some(
           (c) =>
             c.status === TaskStatus.Pending ||

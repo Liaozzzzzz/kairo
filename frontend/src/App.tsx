@@ -22,7 +22,7 @@ import Downloads from '@/views/downloads';
 import Settings from '@/views/settings';
 import RSSView from '@/views/rss';
 import appIcon from '@/assets/images/icon-full.png';
-import { MenuItemKey, TaskStatus } from './data/variables';
+import { MenuItemKey, TaskStatus, SourceType } from './data/variables';
 
 import { getThemeColor } from '@/data/themeColors';
 
@@ -121,7 +121,11 @@ function App() {
       updateTask(task.id, task);
 
       // Skip notification for playlist parent tasks
-      if (task.is_playlist || (prevTask && prevTask.status === task.status)) {
+      if (
+        task.source_type === SourceType.Playlist ||
+        task.source_type === SourceType.RSS ||
+        (prevTask && prevTask.status === task.status)
+      ) {
         return;
       }
 

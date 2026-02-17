@@ -14,9 +14,8 @@ export interface Task {
   quality: string;
   format: string;
   format_id?: string;
-  playlist_items?: number[];
   parent_id?: string;
-  is_playlist?: boolean;
+  source_type?: number;
   status: TaskStatus;
   progress: number;
   title: string;

@@ -12,6 +12,7 @@ import {
 } from '@root/wailsjs/runtime/runtime';
 import { useSettingStore } from '@/store/useSettingStore';
 import { useTaskStore } from '@/store/useTaskStore';
+import { useRSSStore } from '@/store/useRSSStore';
 import { useAppStore } from '@/store/useAppStore';
 import { useTheme } from '@/hooks/useTheme';
 import { generateDarkPalette, generateLightPalette } from '@/lib/theme';
@@ -119,6 +120,10 @@ function App() {
 
       // The backend sends the full task object on update
       updateTask(task.id, task);
+
+      if (task.status === TaskStatus.Completed && task.source_type === SourceType.RSS) {
+        useRSSStore.getState().setRSSItemDownloaded(task.url);
+      }
 
       // Skip notification for playlist parent tasks
       if (

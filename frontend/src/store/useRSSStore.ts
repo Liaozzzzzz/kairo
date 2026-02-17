@@ -46,6 +46,7 @@ interface RSSState {
   refreshFeed: (id: string) => Promise<void>;
   markItemRead: (itemId: string) => Promise<void>;
   setRSSItemQueued: (itemId: string, queued: boolean) => Promise<void>;
+  setRSSItemDownloaded: (url: string) => void;
   toggleFeedEnabled: (feedId: string, enabled: boolean) => Promise<void>;
 }
 
@@ -196,6 +197,14 @@ export const useRSSStore = create<RSSState>((set, get) => ({
       const items = await GetRSSFeedItems(get().selectedFeedId!);
       set({ feedItems: items || [] });
     }
+  },
+
+  setRSSItemDownloaded: (url: string) => {
+    set((state) => ({
+      feedItems: state.feedItems.map((item) =>
+        item.link === url ? { ...item, status: RSSItemStatus.Downloaded } : item
+      ),
+    }));
   },
 
   toggleFeedEnabled: async (feedId: string, enabled: boolean) => {

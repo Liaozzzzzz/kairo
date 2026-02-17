@@ -9,6 +9,7 @@ import (
 	"Kairo/internal/config"
 	"Kairo/internal/downloader"
 	"Kairo/internal/models"
+	"Kairo/internal/rss"
 	"Kairo/internal/task"
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
@@ -22,11 +23,13 @@ type App struct {
 	ctx         context.Context
 	downloader  *downloader.Downloader
 	taskManager *task.Manager
+	rssManager  *rss.Manager
 }
 
 // NewApp creates a new App application struct
 func NewApp() *App {
-	return &App{}
+	a := &App{}
+	return a
 }
 
 // GetAppVersion returns the current application version
@@ -53,9 +56,23 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	// Load settings from disk
 	_ = config.LoadSettings()
-	a.downloader = downloader.NewDownloader(ctx)
-	a.taskManager = task.NewManager(ctx, a.downloader, readEmbedded)
-	a.downloader.EnsureYtDlp(readEmbedded)
+
+	a.rssManager = rss.NewManager(ctx)
+	a.rssManager.Start()
+
+	d := downloader.NewDownloader(ctx)
+	d.EnsureYtDlp(readEmbedded)
+
+	a.taskManager = task.NewManager(ctx, d, readEmbedded)
+	a.downloader = d
+
+	// Wire up Task Manager callback to RSS Manager
+	a.taskManager.OnTaskComplete = func(task *models.DownloadTask) {
+		// Update RSS item status when task completes
+		// Note: We use task.URL to match RSS item link
+		// This assumes 1-to-1 mapping or at least that the URL is unique enough
+		_ = a.rssManager.SetItemDownloadedByLink(task.URL, true)
+	}
 }
 
 func (a *App) ChooseDirectory() (string, error) {
@@ -133,4 +150,41 @@ func (a *App) UpdateSettings(settings config.AppSettings) {
 // GetSettings returns the current application settings
 func (a *App) GetSettings() config.AppSettings {
 	return config.GetSettings()
+}
+
+// RSS Methods
+func (a *App) AddRSSFeed(input models.AddRSSFeedInput) (*models.RSSFeed, error) {
+	return a.rssManager.AddFeed(input)
+}
+
+func (a *App) GetRSSFeeds() ([]models.RSSFeed, error) {
+	return a.rssManager.GetFeeds()
+}
+
+func (a *App) DeleteRSSFeed(id string) error {
+	return a.rssManager.DeleteFeed(id)
+}
+
+func (a *App) GetRSSFeedItems(feedID string) ([]models.RSSItem, error) {
+	return a.rssManager.GetFeedItems(feedID)
+}
+
+func (a *App) RefreshRSSFeed(feedID string) error {
+	return a.rssManager.RefreshFeed(feedID)
+}
+
+func (a *App) MarkRSSItemRead(itemID string) error {
+	return a.rssManager.MarkItemRead(itemID)
+}
+
+func (a *App) SetRSSFeedEnabled(feedID string, enabled bool) error {
+	return a.rssManager.SetFeedEnabled(feedID, enabled)
+}
+
+func (a *App) UpdateRSSFeed(feed models.RSSFeed) error {
+	return a.rssManager.UpdateFeed(feed)
+}
+
+func (a *App) SetRSSItemQueued(itemID string, queued bool) error {
+	return a.rssManager.SetItemQueued(itemID, queued)
 }

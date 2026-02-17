@@ -25,6 +25,7 @@ type AppSettings struct {
 	Referer             string       `json:"referer"`
 	GeoBypass           bool         `json:"geoBypass"`
 	Cookie              CookieConfig `json:"cookie"`
+	RSSCheckInterval    int          `json:"rssCheckInterval"` // Minutes
 }
 
 var (
@@ -36,6 +37,7 @@ func init() {
 	currentConfig = AppSettings{
 		DownloadConcurrency: 3,
 		GeoBypass:           true,
+		RSSCheckInterval:    60,
 	}
 }
 

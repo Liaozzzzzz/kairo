@@ -32,3 +32,38 @@ export interface Task {
   total_items?: number;
   created_at?: number;
 }
+
+export interface RSSFeed {
+  id: string;
+  url: string;
+  title: string;
+  description: string;
+  thumbnail: string;
+  last_updated: number;
+  unread_count: number;
+  enabled: boolean;
+  custom_dir: string;
+  download_latest: boolean;
+  filters: string;
+  tags: string;
+  filename_template: string;
+}
+
+export enum RSSItemStatus {
+  New = 0,
+  Read = 1,
+  Queued = 2,
+  Failed = 3,
+  Downloaded = 4,
+}
+
+export interface RSSItem {
+  id: string;
+  feed_id: string;
+  title: string;
+  link: string;
+  description: string;
+  pub_date: number;
+  status: RSSItemStatus;
+  thumbnail: string;
+}

@@ -49,7 +49,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 	m.saveTask(task)
 
 	// 如果是子任务且未指定格式ID，则获取视频信息以选择最佳分辨率
-	if task.ParentID != "" && task.FormatID == "" {
+	if task.FormatID == "" {
 		m.emitTaskLog(task.ID, "正在获取视频信息以选择最佳分辨率...", false)
 		info, err := m.downloader.GetVideoInfo(task.URL, m.assetProvider)
 		if err != nil {
@@ -415,6 +415,9 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 			}
 		} else {
 			task.Status = models.TaskStatusCompleted
+			if m.OnTaskComplete != nil {
+				go m.OnTaskComplete(task)
+			}
 		}
 	}
 

@@ -64,6 +64,8 @@ const Settings = () => {
     setGeoBypass,
     cookie,
     setCookie,
+    rssCheckInterval,
+    setRSSCheckInterval,
   } = useSettingStore(
     useShallow((state) => ({
       defaultDir: state.defaultDir,
@@ -88,6 +90,8 @@ const Settings = () => {
       setGeoBypass: state.setGeoBypass,
       cookie: state.cookie,
       setCookie: state.setCookie,
+      rssCheckInterval: state.rssCheckInterval,
+      setRSSCheckInterval: state.setRSSCheckInterval,
     }))
   );
 
@@ -240,6 +244,29 @@ const Settings = () => {
               </div>
               <div className="md:col-span-8">
                 <DownloadDir defaultDir={defaultDir} setNewDir={setDefaultDir} />
+              </div>
+            </div>
+
+            {/* RSS Check Interval */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+              <div className="md:col-span-4">
+                <Text strong className="block text-[13px] text-gray-600 dark:text-gray-400 mb-0">
+                  {t('settings.downloads.rssInterval')}
+                </Text>
+              </div>
+              <div className="md:col-span-8">
+                <Input
+                  type="number"
+                  value={rssCheckInterval}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    if (!isNaN(val) && val >= 1) {
+                      setRSSCheckInterval(val);
+                    }
+                  }}
+                  addonAfter="min"
+                  min={1}
+                />
               </div>
             </div>
 

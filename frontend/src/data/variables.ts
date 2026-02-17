@@ -22,5 +22,6 @@ export const ImageFallback =
 export enum MenuItemKey {
   Downloads = 'downloads',
   Tasks = 'tasks',
+  RSS = 'rss',
   Settings = 'settings',
 }

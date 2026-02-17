@@ -102,6 +102,52 @@ type AddTaskInput struct {
 	TrimMode   TrimMode `json:"trim_mode"`
 }
 
+type RSSFeed struct {
+	ID               string `json:"id"`
+	URL              string `json:"url"`
+	Title            string `json:"title"`
+	Description      string `json:"description"`
+	Thumbnail        string `json:"thumbnail"`
+	LastUpdated      int64  `json:"last_updated"`
+	UnreadCount      int    `json:"unread_count"`
+	CustomDir        string `json:"custom_dir"`
+	DownloadLatest   bool   `json:"download_latest"`
+	Filters          string `json:"filters"` // Comma separated keywords
+	Tags             string `json:"tags"`
+	FilenameTemplate string `json:"filename_template"`
+	Enabled          bool   `json:"enabled"`
+}
+
+type AddRSSFeedInput struct {
+	URL              string `json:"url"`
+	CustomDir        string `json:"custom_dir"`
+	DownloadLatest   bool   `json:"download_latest"`
+	Filters          string `json:"filters"`
+	Tags             string `json:"tags"`
+	FilenameTemplate string `json:"filename_template"`
+}
+
+type RSSItemStatus int
+
+const (
+	RSSItemStatusNew        RSSItemStatus = 0
+	RSSItemStatusRead       RSSItemStatus = 1
+	RSSItemStatusQueued     RSSItemStatus = 2
+	RSSItemStatusFailed     RSSItemStatus = 3
+	RSSItemStatusDownloaded RSSItemStatus = 4
+)
+
+type RSSItem struct {
+	ID          string        `json:"id"` // GUID or URL
+	FeedID      string        `json:"feed_id"`
+	Title       string        `json:"title"`
+	Link        string        `json:"link"`
+	Description string        `json:"description"`
+	PubDate     int64         `json:"pub_date"`
+	Status      RSSItemStatus `json:"status"`
+	Thumbnail   string        `json:"thumbnail"`
+}
+
 type AddPlaylistTaskInput struct {
 	URL           string         `json:"url"`
 	Dir           string         `json:"dir"`

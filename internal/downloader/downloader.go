@@ -38,16 +38,6 @@ func NewDownloader(ctx context.Context) *Downloader {
 	}
 }
 
-func normalizeThumbnail(thumbnail string) string {
-	if strings.HasPrefix(thumbnail, "http://") {
-		return "https://" + strings.TrimPrefix(thumbnail, "http://")
-	}
-	if strings.HasPrefix(thumbnail, "//") {
-		return "https:" + thumbnail
-	}
-	return thumbnail
-}
-
 func pickThumbnail(thumbnail string, thumbnails []thumbnailEntry) string {
 	if thumbnail == "" && len(thumbnails) > 0 {
 		for i := len(thumbnails) - 1; i >= 0; i-- {
@@ -57,7 +47,7 @@ func pickThumbnail(thumbnail string, thumbnails []thumbnailEntry) string {
 			}
 		}
 	}
-	return normalizeThumbnail(strings.TrimSpace(thumbnail))
+	return utils.EnsureHTTPS(strings.TrimSpace(thumbnail))
 }
 
 // readEmbedded reads a file from the embedded assets

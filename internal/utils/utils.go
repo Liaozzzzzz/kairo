@@ -230,3 +230,14 @@ func CreateCommandContext(ctx context.Context, name string, arg ...string) *exec
 	HideWindow(cmd)
 	return cmd
 }
+
+// EnsureHTTPS replaces http:// with https:// in a URL
+func EnsureHTTPS(url string) string {
+	if strings.HasPrefix(url, "http://") {
+		return strings.Replace(url, "http://", "https://", 1)
+	}
+	if strings.HasPrefix(url, "//") {
+		return "https:" + url
+	}
+	return url
+}

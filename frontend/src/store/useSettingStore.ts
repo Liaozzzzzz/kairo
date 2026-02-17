@@ -25,6 +25,7 @@ export interface AppSettings {
   referer: string;
   geoBypass: boolean;
   cookie: CookieConfig;
+  rssCheckInterval: number;
 }
 
 const SETTINGS_STORAGE_KEY = 'Kairo.settings';
@@ -48,6 +49,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   referer: '',
   geoBypass: true,
   cookie: { ...DEFAULT_COOKIE_CONFIG },
+  rssCheckInterval: 60,
 };
 
 const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
@@ -73,6 +75,12 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
   const userAgent = typeof value.userAgent === 'string' ? value.userAgent : '';
   const referer = typeof value.referer === 'string' ? value.referer : '';
   const geoBypass = typeof value.geoBypass === 'boolean' ? value.geoBypass : true;
+  const rssCheckInterval =
+    typeof value.rssCheckInterval === 'number' &&
+    Number.isFinite(value.rssCheckInterval) &&
+    value.rssCheckInterval >= 1
+      ? value.rssCheckInterval
+      : 60;
 
   const normalizeCookie = (c: unknown): CookieConfig => {
     const value = typeof c === 'object' && c !== null ? (c as Partial<CookieConfig>) : {};
@@ -99,6 +107,7 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
     referer,
     geoBypass,
     cookie,
+    rssCheckInterval,
   };
 };
 
@@ -114,6 +123,7 @@ interface SettingState {
   referer: string;
   geoBypass: boolean;
   cookie: CookieConfig;
+  rssCheckInterval: number;
 
   // Actions
   setDefaultDir: (dir: string) => void;
@@ -127,6 +137,7 @@ interface SettingState {
   setReferer: (value: string) => void;
   setGeoBypass: (value: boolean) => void;
   setCookie: (value: CookieConfig) => void;
+  setRSSCheckInterval: (value: number) => void;
   loadSettings: () => void;
 }
 
@@ -142,6 +153,7 @@ export const useSettingStore = create<SettingState>((set, get) => ({
   referer: DEFAULT_SETTINGS.referer,
   geoBypass: DEFAULT_SETTINGS.geoBypass,
   cookie: DEFAULT_SETTINGS.cookie,
+  rssCheckInterval: DEFAULT_SETTINGS.rssCheckInterval,
 
   setDefaultDir: (dir) => {
     set({ defaultDir: dir });
@@ -187,6 +199,10 @@ export const useSettingStore = create<SettingState>((set, get) => ({
     set({ cookie: value });
     saveAppSettings(get());
   },
+  setRSSCheckInterval: (value) => {
+    set({ rssCheckInterval: value });
+    saveAppSettings(get());
+  },
   loadSettings: () => {
     GetSettings()
       .then((settings) => {
@@ -204,6 +220,7 @@ export const useSettingStore = create<SettingState>((set, get) => ({
           referer: normalized.referer,
           geoBypass: normalized.geoBypass,
           cookie: normalized.cookie,
+          rssCheckInterval: normalized.rssCheckInterval,
         });
       })
       .catch((e) => {
@@ -222,6 +239,7 @@ export const useSettingStore = create<SettingState>((set, get) => ({
           referer: settings.referer,
           geoBypass: settings.geoBypass,
           cookie: settings.cookie,
+          rssCheckInterval: settings.rssCheckInterval,
         });
       });
   },
@@ -252,6 +270,7 @@ function saveAppSettings(state: SettingState) {
     referer: state.referer,
     geoBypass: state.geoBypass,
     cookie: state.cookie,
+    rssCheckInterval: state.rssCheckInterval,
   };
   localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
   UpdateSettings(toWailsSettings(settings));

@@ -1,5 +1,10 @@
 import { create } from 'zustand';
-import { DownloadOutlined, SettingOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import {
+  BellOutlined,
+  DownloadOutlined,
+  SettingOutlined,
+  UnorderedListOutlined,
+} from '@ant-design/icons';
 import { MenuItemKey } from '@/data/variables';
 
 interface TaskState {
@@ -28,6 +33,11 @@ export const useAppStore = create<TaskState>((set) => ({
       id: MenuItemKey.Tasks,
       icon: UnorderedListOutlined,
       labelKey: 'app.sidebar.tasks',
+    },
+    {
+      id: MenuItemKey.RSS,
+      icon: BellOutlined,
+      labelKey: 'app.sidebar.rss',
     },
     { id: MenuItemKey.Settings, icon: SettingOutlined, labelKey: 'app.sidebar.settings' },
   ],

@@ -20,6 +20,7 @@ import { Task } from '@/types';
 import Tasks from '@/views/tasks';
 import Downloads from '@/views/downloads';
 import Settings from '@/views/settings';
+import RSSView from '@/views/rss';
 import appIcon from '@/assets/images/icon-full.png';
 import { MenuItemKey, TaskStatus } from './data/variables';
 
@@ -328,6 +329,7 @@ function App() {
           >
             {activeTab === 'downloads' && <Downloads />}
             {activeTab === 'tasks' && <Tasks />}
+            {activeTab === 'rss' && <RSSView />}
             {activeTab === 'settings' && <Settings />}
           </Content>
         </div>

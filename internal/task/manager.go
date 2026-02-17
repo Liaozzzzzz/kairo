@@ -20,14 +20,15 @@ import (
 )
 
 type Manager struct {
-	ctx           context.Context
-	downloader    *downloader.Downloader
-	assetProvider downloader.AssetProvider
-	tasks         map[string]*models.DownloadTask
-	cancelFuncs   map[string]context.CancelFunc
-	deletedTasks  map[string]struct{}
-	mu            sync.Mutex
-	db            *sql.DB
+	ctx            context.Context
+	downloader     *downloader.Downloader
+	assetProvider  downloader.AssetProvider
+	tasks          map[string]*models.DownloadTask
+	cancelFuncs    map[string]context.CancelFunc
+	deletedTasks   map[string]struct{}
+	mu             sync.Mutex
+	db             *sql.DB
+	OnTaskComplete func(task *models.DownloadTask)
 }
 
 func NewManager(ctx context.Context, d *downloader.Downloader, ap downloader.AssetProvider) *Manager {

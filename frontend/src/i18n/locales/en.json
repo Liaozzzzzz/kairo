@@ -4,6 +4,7 @@
     "sidebar": {
       "downloads": "Downloads",
       "tasks": "Tasks",
+      "rss": "RSS",
       "settings": "Settings"
     }
   },
@@ -54,6 +55,7 @@
       "dir": "Default Download Path",
       "dirDesc": "Where files will be saved",
       "chooseDir": "Choose Directory",
+      "rssInterval": "RSS Update Interval",
       "concurrent": "Concurrent Downloads",
       "concurrentDesc": "Max simultaneous downloads",
       "maxSpeed": "Max Download Speed",
@@ -149,6 +151,62 @@
     "notification": {
       "completed": "Download Completed",
       "failed": "Download Failed"
+    }
+  },
+  "rss": {
+    "welcome": {
+      "title": "Welcome to RSS",
+      "subtitle": "Select a feed from the sidebar to start reading, or add a new subscription."
+    },
+    "title": "RSS",
+    "subtitle": "Subscribe to your favorite channels",
+    "add": "Add RSS",
+    "noThumbnail": "No Thumbnail",
+    "status": {
+      "queued": "Queued",
+      "new": "New",
+      "read": "Read",
+      "failed": "Failed",
+      "downloaded": "Downloaded"
+    },
+    "noItems": "No recent Feed items found.",
+    "rsshub": {
+      "title": "Use RSSHub for automatic subscription",
+      "desc": "Combine Kairo with RSSHub to achieve automatic subscription and downloading from various platforms. After setup, Kairo will run in the background and automatically download the latest videos and content.",
+      "openDocs": "Open RSSHub Docs"
+    },
+    "delete": "Delete",
+    "items": "Items",
+    "refresh": "Refresh",
+    "edit": "Edit",
+    "enable": "Enable Feed",
+    "disable": "Disable Feed",
+    "download": "Download",
+    "taskAdded": "Task added",
+    "taskAddFailed": "Failed to add task",
+    "modal": {
+      "title": "Add RSS",
+      "editTitle": "Edit Subscription",
+      "add": "Add",
+      "save": "Save",
+      "cancel": "Cancel",
+      "updateSuccess": "Update successful",
+      "updateFailed": "Update failed",
+      "desc": "Paste RSS source link. Kairo will automatically detect the feed.",
+      "url": "Feed URL",
+      "urlRequired": "Please enter feed URL",
+      "urlInvalid": "Please enter a valid URL",
+      "rsshubTip": "No RSS Source URL? Use RSSHub to generate RSS sources for YouTube, Twitter and thousands of other platforms",
+      "customDir": "Custom Directory",
+      "downloadLatest": "Download only latest videos",
+      "filters": "Keyword Filter (comma separated)",
+      "filtersPlaceholder": "e.g. vlog, tutorial",
+      "advanced": "Advanced Options",
+      "tags": "Auto Tags",
+      "tagsPlaceholder": "e.g. tech, youtube",
+      "template": "Custom Filename Template (File only)",
+      "success": "Feed added successfully",
+      "failed": "Failed to add feed"
     }
   }
 }

@@ -4,6 +4,7 @@
     "sidebar": {
       "downloads": "下载",
       "tasks": "任务列表",
+      "rss": "订阅",
       "settings": "设置"
     }
   },
@@ -54,6 +55,7 @@
       "dir": "默认下载路径",
       "dirDesc": "文件保存位置",
       "chooseDir": "选择目录",
+      "rssInterval": "RSS 更新间隔",
       "concurrent": "同时下载任务数",
       "concurrentDesc": "最大同时下载任务数",
       "maxSpeed": "最大下载速度",
@@ -149,6 +151,62 @@
     "notification": {
       "completed": "下载完成",
       "failed": "下载失败"
+    }
+  },
+  "rss": {
+    "welcome": {
+      "title": "欢迎使用 RSS",
+      "subtitle": "从左侧选择订阅源开始阅读，或添加新的订阅。"
+    },
+    "title": "订阅",
+    "subtitle": "订阅你喜欢的频道",
+    "add": "添加订阅",
+    "noThumbnail": "无缩略图",
+    "status": {
+      "queued": "已加入队列",
+      "new": "新视频",
+      "read": "已读",
+      "failed": "失败",
+      "downloaded": "已下载"
+    },
+    "noItems": "暂无订阅内容",
+    "rsshub": {
+      "title": "使用 RSSHub 实现自动订阅",
+      "desc": "配合 RSSHub，Kairo 可以实现对各种平台的自动订阅下载。配置完成后，Kairo 将在后台运行并自动下载最新的视频和内容。",
+      "openDocs": "打开 RSSHub 文档"
+    },
+    "delete": "删除",
+    "items": "内容列表",
+    "refresh": "刷新",
+    "edit": "编辑",
+    "enable": "启用订阅",
+    "disable": "停用订阅",
+    "download": "下载",
+    "taskAdded": "任务已添加",
+    "taskAddFailed": "任务添加失败",
+    "modal": {
+      "title": "添加订阅",
+      "editTitle": "编辑订阅",
+      "add": "添加",
+      "save": "保存",
+      "cancel": "取消",
+      "updateSuccess": "更新成功",
+      "updateFailed": "更新失败",
+      "desc": "粘贴 RSS 源链接，Kairo 将自动检测订阅源。",
+      "url": "订阅 URL",
+      "urlRequired": "请输入订阅 URL",
+      "urlInvalid": "请输入有效的 URL",
+      "rsshubTip": "没有 RSS 源？使用 RSSHub 可以为 YouTube、Twitter 等数千个平台生成 RSS 源",
+      "customDir": "自定义目录",
+      "downloadLatest": "仅下载最新视频",
+      "filters": "关键字过滤 (逗号分隔)",
+      "filtersPlaceholder": "例如: vlog, 教程",
+      "advanced": "高级选项",
+      "tags": "自动标签",
+      "tagsPlaceholder": "例如: tech, youtube",
+      "template": "自定义文件名模板 (仅文件名)",
+      "success": "订阅添加成功",
+      "failed": "订阅添加失败"
     }
   }
 }

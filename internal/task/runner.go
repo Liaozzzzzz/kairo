@@ -328,6 +328,9 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 			task.Status = models.TaskStatusCompleted
 			task.Progress = 100
 			m.emitTaskLog(task.ID, "Download limit reached (expected)", false)
+			if m.OnTaskComplete != nil {
+				go m.OnTaskComplete(task)
+			}
 		} else {
 			// Check if paused or deleted
 			m.mu.Lock()
@@ -341,6 +344,9 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 
 			task.Status = models.TaskStatusError
 			m.emitTaskLog(task.ID, "Exit Error: "+err.Error(), false)
+			if m.OnTaskFailed != nil {
+				go m.OnTaskFailed(task)
+			}
 		}
 	} else {
 		task.Progress = 100

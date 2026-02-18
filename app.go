@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
+	"fmt"
 	"runtime"
 
 	"Kairo/internal/config"
@@ -72,6 +73,26 @@ func (a *App) startup(ctx context.Context) {
 		// Note: We use task.URL to match RSS item link
 		// This assumes 1-to-1 mapping or at least that the URL is unique enough
 		_ = a.rssManager.SetItemDownloadedByLink(task.URL, true)
+	}
+
+	a.taskManager.OnTaskFailed = func(task *models.DownloadTask) {
+		_ = a.rssManager.SetItemFailedByLink(task.URL)
+	}
+
+	// Wire up RSS Auto Download
+	a.rssManager.OnAutoDownload = func(item models.RSSItem, feed models.RSSFeed) {
+		input := models.AddRSSTaskInput{
+			FeedURL:       feed.URL,
+			FeedTitle:     feed.Title,
+			FeedThumbnail: feed.Thumbnail,
+			ItemURL:       item.Link,
+			ItemTitle:     item.Title,
+			Dir:           feed.CustomDir,
+		}
+		_, err := a.taskManager.AddRSSTask(input)
+		if err != nil {
+			fmt.Printf("Failed to auto-add RSS task: %v\n", err)
+		}
 	}
 }
 

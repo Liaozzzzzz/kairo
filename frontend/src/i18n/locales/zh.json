@@ -199,7 +199,7 @@
       "urlInvalid": "请输入有效的 URL",
       "rsshubTip": "没有 RSS 源？使用 RSSHub 可以为 YouTube、Twitter 等数千个平台生成 RSS 源",
       "customDir": "自定义目录",
-      "downloadLatest": "仅下载最新视频",
+      "downloadLatest": "自动下载新视频",
       "filters": "关键字过滤 (逗号分隔)",
       "filtersPlaceholder": "例如: vlog, 教程",
       "advanced": "高级选项",

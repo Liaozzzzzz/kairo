@@ -29,6 +29,7 @@ type Manager struct {
 	mu             sync.Mutex
 	db             *sql.DB
 	OnTaskComplete func(task *models.DownloadTask)
+	OnTaskFailed   func(task *models.DownloadTask)
 }
 
 func NewManager(ctx context.Context, d *downloader.Downloader, ap downloader.AssetProvider) *Manager {

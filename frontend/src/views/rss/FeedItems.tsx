@@ -8,7 +8,8 @@ import { BrowserOpenURL } from '@root/wailsjs/runtime/runtime';
 import { AddRSSTask } from '@root/wailsjs/go/main/App';
 import { models } from '@root/wailsjs/go/models';
 import dayjs from 'dayjs';
-import { RSSItem, RSSFeed, RSSItemStatus } from '@/types';
+import { RSSItem, RSSFeed } from '@/types';
+import { RSSItemStatus } from '@/data/variables';
 import { Grid, CellComponentProps, GridProps } from 'react-window';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 

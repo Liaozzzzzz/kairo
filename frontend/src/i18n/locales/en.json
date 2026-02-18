@@ -199,7 +199,7 @@
       "urlInvalid": "Please enter a valid URL",
       "rsshubTip": "No RSS Source URL? Use RSSHub to generate RSS sources for YouTube, Twitter and thousands of other platforms",
       "customDir": "Custom Directory",
-      "downloadLatest": "Download only latest videos",
+      "downloadLatest": "Auto download new videos",
       "filters": "Keyword Filter (comma separated)",
       "filtersPlaceholder": "e.g. vlog, tutorial",
       "advanced": "Advanced Options",

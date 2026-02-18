@@ -1,4 +1,4 @@
-import { TaskStatus } from '@/data/variables';
+import { TaskStatus, RSSItemStatus } from '@/data/variables';
 
 export interface TaskFile {
   path: string;
@@ -46,14 +46,6 @@ export interface RSSFeed {
   filters: string;
   tags: string;
   filename_template: string;
-}
-
-export enum RSSItemStatus {
-  New = 0,
-  Read = 1,
-  Queued = 2,
-  Failed = 3,
-  Downloaded = 4,
 }
 
 export interface RSSItem {

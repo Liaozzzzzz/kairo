@@ -20,9 +20,10 @@ import (
 )
 
 type Manager struct {
-	ctx context.Context
-	db  *sql.DB
-	mu  sync.Mutex
+	ctx            context.Context
+	db             *sql.DB
+	mu             sync.Mutex
+	OnAutoDownload func(item models.RSSItem, feed models.RSSFeed)
 }
 
 func NewManager(ctx context.Context) *Manager {
@@ -47,101 +48,78 @@ func (m *Manager) initDB() {
 		fmt.Printf("Failed to open RSS database: %v\n", err)
 		return
 	}
-
-	createFeedsTable := `CREATE TABLE IF NOT EXISTS feeds (
-		id TEXT PRIMARY KEY,
-		url TEXT UNIQUE,
-		title TEXT,
-		description TEXT,
-		thumbnail TEXT,
-		last_updated INTEGER,
-		unread_count INTEGER,
-		custom_dir TEXT,
-		download_latest INTEGER,
-		filters TEXT,
-		tags TEXT,
-		filename_template TEXT,
-		enabled INTEGER DEFAULT 1
-	);`
-
-	createItemsTable := `CREATE TABLE IF NOT EXISTS items (
-		id TEXT PRIMARY KEY,
-		feed_id TEXT,
-		title TEXT,
-		link TEXT,
-		description TEXT,
-		pub_date INTEGER,
-		status INTEGER DEFAULT 0,
-		thumbnail TEXT,
-		FOREIGN KEY(feed_id) REFERENCES feeds(id) ON DELETE CASCADE
-	);`
-
-	if _, err := db.Exec(createFeedsTable); err != nil {
-		fmt.Printf("Failed to create feeds table: %v\n", err)
-	}
-	if _, err := db.Exec(createItemsTable); err != nil {
-		fmt.Printf("Failed to create items table: %v\n", err)
-	}
-
 	m.db = db
+
+	// Create tables if not exists
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS feeds (
+			id TEXT PRIMARY KEY,
+			url TEXT NOT NULL,
+			title TEXT NOT NULL,
+			description TEXT,
+			thumbnail TEXT,
+			last_updated INTEGER,
+			unread_count INTEGER DEFAULT 0,
+			custom_dir TEXT DEFAULT '',
+			download_latest INTEGER DEFAULT 0,
+			filters TEXT DEFAULT '',
+			tags TEXT DEFAULT '',
+			filename_template TEXT DEFAULT '',
+			enabled INTEGER DEFAULT 1
+		);
+		CREATE TABLE IF NOT EXISTS items (
+			id TEXT PRIMARY KEY,
+			feed_id TEXT NOT NULL,
+			title TEXT NOT NULL,
+			link TEXT NOT NULL,
+			description TEXT,
+			pub_date INTEGER,
+			status INTEGER DEFAULT 0,
+			thumbnail TEXT,
+			FOREIGN KEY(feed_id) REFERENCES feeds(id) ON DELETE CASCADE
+		);
+		CREATE INDEX IF NOT EXISTS idx_items_feed_id ON items(feed_id);
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_items_link ON items(feed_id, link);
+	`)
+	if err != nil {
+		fmt.Printf("Failed to create tables: %v\n", err)
+	}
 }
 
 func (m *Manager) getParser() *gofeed.Parser {
 	fp := gofeed.NewParser()
-
-	// Set User-Agent
-	ua := config.GetUserAgent()
-	if ua == "" {
-		// Default to a common browser UA if not set, as empty or Go-http-client is often blocked
-		ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+	fp.UserAgent = "Kairo/1.0"
+	// Set client with proxy if needed
+	client := &http.Client{
+		Timeout: 30 * time.Second,
 	}
-	fp.UserAgent = ua
-
-	// Set Proxy if configured
-	proxyUrlStr := config.GetProxyUrl()
-	if proxyUrlStr != "" {
-		proxyUrl, err := url.Parse(proxyUrlStr)
-		if err == nil {
-			fp.Client = &http.Client{
-				Transport: &http.Transport{
-					Proxy: http.ProxyURL(proxyUrl),
-				},
-				Timeout: 30 * time.Second,
+	if proxy := config.GetProxyUrl(); proxy != "" {
+		if u, err := url.Parse(proxy); err == nil {
+			client.Transport = &http.Transport{
+				Proxy: http.ProxyURL(u),
 			}
 		}
 	}
-
-	// Ensure we have a client with timeout even if no proxy
-	if fp.Client == nil {
-		fp.Client = &http.Client{
-			Timeout: 30 * time.Second,
-		}
-	}
-
+	fp.Client = client
 	return fp
 }
 
 func (m *Manager) AddFeed(input models.AddRSSFeedInput) (*models.RSSFeed, error) {
-	url := input.URL
 	fp := m.getParser()
-	feed, err := fp.ParseURL(url)
+	feed, err := fp.ParseURL(input.URL)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if feed already exists
-	var existingID string
-	err = m.db.QueryRow("SELECT id FROM feeds WHERE url = ?", url).Scan(&existingID)
-	if err == nil {
-		return nil, fmt.Errorf("feed already exists")
-	} else if err != sql.ErrNoRows {
+	tx, err := m.db.Begin()
+	if err != nil {
 		return nil, err
 	}
+	defer tx.Rollback()
 
-	id := uuid.New().String()
 	rssFeed := &models.RSSFeed{
-		ID:               id,
-		URL:              url,
+		ID:               uuid.New().String(),
+		URL:              input.URL,
 		Title:            feed.Title,
 		Description:      feed.Description,
 		LastUpdated:      time.Now().Unix(),
@@ -157,12 +135,6 @@ func (m *Manager) AddFeed(input models.AddRSSFeedInput) (*models.RSSFeed, error)
 	if feed.Image != nil {
 		rssFeed.Thumbnail = utils.EnsureHTTPS(feed.Image.URL)
 	}
-
-	tx, err := m.db.Begin()
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
 
 	_, err = tx.Exec(`INSERT INTO feeds (id, url, title, description, thumbnail, last_updated, unread_count, custom_dir, download_latest, filters, tags, filename_template, enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		rssFeed.ID, rssFeed.URL, rssFeed.Title, rssFeed.Description, rssFeed.Thumbnail, rssFeed.LastUpdated, rssFeed.UnreadCount,
@@ -205,6 +177,8 @@ func (m *Manager) AddFeed(input models.AddRSSFeedInput) (*models.RSSFeed, error)
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
+
+	go m.processAutoDownload(rssFeed.ID)
 
 	return rssFeed, nil
 }
@@ -292,6 +266,15 @@ func (m *Manager) UpdateFeed(feed models.RSSFeed) error {
 	return err
 }
 
+func (m *Manager) updateUnreadCount(feedID string) error {
+	var unreadCount int
+	err := m.db.QueryRow(`SELECT COUNT(*) FROM items WHERE feed_id = ? AND status = ?`, feedID, models.RSSItemStatusNew).Scan(&unreadCount)
+	if err == nil {
+		_, err = m.db.Exec(`UPDATE feeds SET unread_count = ? WHERE id = ?`, unreadCount, feedID)
+	}
+	return err
+}
+
 func (m *Manager) SetItemQueued(itemID string, queued bool) error {
 	s := models.RSSItemStatusRead // Default to Read if un-queued
 	if queued {
@@ -300,7 +283,15 @@ func (m *Manager) SetItemQueued(itemID string, queued bool) error {
 	// Don't overwrite Downloaded (4) status unless explicitly re-queuing?
 	// For now, simple update.
 	_, err := m.db.Exec(`UPDATE items SET status = ? WHERE id = ?`, s, itemID)
-	return err
+	if err != nil {
+		return err
+	}
+
+	var feedID string
+	if err := m.db.QueryRow("SELECT feed_id FROM items WHERE id = ?", itemID).Scan(&feedID); err == nil {
+		_ = m.updateUnreadCount(feedID)
+	}
+	return nil
 }
 
 func (m *Manager) SetItemDownloadedByLink(link string, downloaded bool) error {
@@ -309,7 +300,28 @@ func (m *Manager) SetItemDownloadedByLink(link string, downloaded bool) error {
 		s = models.RSSItemStatusDownloaded
 	}
 	_, err := m.db.Exec(`UPDATE items SET status = ? WHERE link = ?`, s, link)
-	return err
+	if err != nil {
+		return err
+	}
+
+	var feedID string
+	if err := m.db.QueryRow("SELECT feed_id FROM items WHERE link = ?", link).Scan(&feedID); err == nil {
+		_ = m.updateUnreadCount(feedID)
+	}
+	return nil
+}
+
+func (m *Manager) SetItemFailedByLink(link string) error {
+	_, err := m.db.Exec(`UPDATE items SET status = ? WHERE link = ?`, models.RSSItemStatusFailed, link)
+	if err != nil {
+		return err
+	}
+
+	var feedID string
+	if err := m.db.QueryRow("SELECT feed_id FROM items WHERE link = ?", link).Scan(&feedID); err == nil {
+		_ = m.updateUnreadCount(feedID)
+	}
+	return nil
 }
 
 func (m *Manager) RefreshFeed(feedID string) error {
@@ -379,7 +391,13 @@ func (m *Manager) RefreshFeed(feedID string) error {
 		_, _ = tx.Exec(`UPDATE feeds SET unread_count = ? WHERE id = ?`, unreadCount, feedID)
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	go m.processAutoDownload(feedID)
+
+	return nil
 }
 
 func (m *Manager) Start() {
@@ -427,4 +445,43 @@ func (m *Manager) MarkItemRead(itemID string) error {
 		m.db.Exec(`UPDATE feeds SET unread_count = ? WHERE id = ?`, unreadCount, feedID)
 	}
 	return err
+}
+
+func (m *Manager) processAutoDownload(feedID string) {
+	if m.OnAutoDownload == nil {
+		return
+	}
+
+	var feed models.RSSFeed
+	var downloadLatest int
+	err := m.db.QueryRow("SELECT id, url, title, thumbnail, custom_dir, download_latest, filters, tags, filename_template FROM feeds WHERE id = ?", feedID).
+		Scan(&feed.ID, &feed.URL, &feed.Title, &feed.Thumbnail, &feed.CustomDir, &downloadLatest, &feed.Filters, &feed.Tags, &feed.FilenameTemplate)
+	if err != nil {
+		return
+	}
+	feed.DownloadLatest = downloadLatest == 1
+
+	if !feed.DownloadLatest {
+		return
+	}
+
+	rows, err := m.db.Query(`SELECT id, feed_id, title, link, description, pub_date, status, thumbnail FROM items WHERE feed_id = ? AND (status = ? OR status = ?)`,
+		feedID, models.RSSItemStatusNew, models.RSSItemStatusRead)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var item models.RSSItem
+		if err := rows.Scan(&item.ID, &item.FeedID, &item.Title, &item.Link, &item.Description, &item.PubDate, &item.Status, &item.Thumbnail); err != nil {
+			continue
+		}
+
+		m.OnAutoDownload(item, feed)
+
+		_, _ = m.db.Exec(`UPDATE items SET status = ? WHERE id = ?`, models.RSSItemStatusQueued, item.ID)
+	}
+
+	_ = m.updateUnreadCount(feedID)
 }

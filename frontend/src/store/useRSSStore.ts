@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { RSSFeed, RSSItem, RSSItemStatus } from '@/types';
+import { RSSFeed, RSSItem } from '@/types';
+import { RSSItemStatus } from '@/data/variables';
 
 import {
   AddRSSFeed,

@@ -117,16 +117,12 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		}
 	}
 
-	ffmpegPath, err := m.deps.GetFFmpegPath()
-	ffmpegLocation := ""
-	if err != nil {
-		ffmpegLocation = filepath.Dir(ffmpegPath)
-	}
+	ffmpegPath, _ := m.deps.GetFFmpegPath()
 
 	args := []string{
 		"--newline",
 		"--encoding", "utf-8",
-		"--ffmpeg-location", ffmpegLocation,
+		"--ffmpeg-location", filepath.Dir(ffmpegPath),
 		"-o", "%(title)s.%(ext)s",
 		"-P", outputDir,
 		"-f", format,

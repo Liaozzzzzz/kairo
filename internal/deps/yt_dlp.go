@@ -1,7 +1,6 @@
-package downloader
+package deps
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,44 +21,13 @@ import (
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-// Downloader manages yt-dlp binary and operations
-type Downloader struct {
-	BinPath string
-	Ctx     context.Context
-}
-
 type thumbnailEntry struct {
 	URL string `json:"url"`
 }
 
-func NewDownloader(ctx context.Context) *Downloader {
-	return &Downloader{
-		Ctx: ctx,
-	}
-}
-
-func pickThumbnail(thumbnail string, thumbnails []thumbnailEntry) string {
-	if thumbnail == "" && len(thumbnails) > 0 {
-		for i := len(thumbnails) - 1; i >= 0; i-- {
-			if thumbnails[i].URL != "" {
-				thumbnail = thumbnails[i].URL
-				break
-			}
-		}
-	}
-	return utils.EnsureHTTPS(strings.TrimSpace(thumbnail))
-}
-
-// readEmbedded reads a file from the embedded assets
-// Note: This requires access to the embedded FS which is in main package.
-// We might need to pass the FS or a reader function.
-// For now, let's assume we pass a reader or byte slice provider.
-// OR, we keep the embedded assets in main and pass them.
-type AssetProvider func(name string) ([]byte, error)
-
-func (d *Downloader) EnsureYtDlp(assetProvider AssetProvider) {
-	if d.BinPath != "" {
-		if _, err := os.Stat(d.BinPath); err == nil {
+func (m *Manager) EnsureYtDlp() {
+	if m.YtDlpPath != "" {
+		if _, err := os.Stat(m.YtDlpPath); err == nil {
 			return
 		}
 	}
@@ -68,9 +36,6 @@ func (d *Downloader) EnsureYtDlp(assetProvider AssetProvider) {
 	if err != nil {
 		return
 	}
-
-	// Ensure ffmpeg
-	d.EnsureFFmpeg(base, assetProvider)
 
 	var candidates []string
 	switch runtime.GOOS {
@@ -84,40 +49,42 @@ func (d *Downloader) EnsureYtDlp(assetProvider AssetProvider) {
 	for _, name := range candidates {
 		final := filepath.Join(base, name)
 		if _, err := os.Stat(final); err == nil {
-			d.BinPath = final
+			m.YtDlpPath = final
 			return
 		}
-		if data, err := assetProvider(name); err == nil && len(data) > 1_000_000 {
-			tmp := final + ".tmp"
-			if err := os.WriteFile(tmp, data, 0o755); err == nil {
-				_ = os.Chmod(tmp, 0o755)
-				if err := os.Rename(tmp, final); err == nil {
-					d.BinPath = final
-					wailsRuntime.LogInfo(d.Ctx, "已从内置资源安装 yt-dlp")
-					return
+		if m.AssetProvider != nil {
+			if data, err := m.AssetProvider(name); err == nil && len(data) > 1_000_000 {
+				tmp := final + ".tmp"
+				if err := os.WriteFile(tmp, data, 0o755); err == nil {
+					_ = os.Chmod(tmp, 0o755)
+					if err := os.Rename(tmp, final); err == nil {
+						m.YtDlpPath = final
+						wailsRuntime.LogInfo(m.Ctx, "已从内置资源安装 yt-dlp")
+						return
+					}
 				}
 			}
 		}
 	}
 	for _, name := range candidates {
 		url := "https://github.com/yt-dlp/yt-dlp/releases/latest/download/" + name
-		wailsRuntime.LogInfo(d.Ctx, "正在下载 yt-dlp: "+name)
+		wailsRuntime.LogInfo(m.Ctx, "正在下载 yt-dlp: "+name)
 		req, _ := http.NewRequest("GET", url, nil)
 		client := &http.Client{Timeout: 10 * time.Minute}
 		resp, err := client.Do(req)
 		if err != nil {
-			wailsRuntime.LogError(d.Ctx, err.Error())
+			wailsRuntime.LogError(m.Ctx, err.Error())
 			continue
 		}
 		if resp.StatusCode != http.StatusOK {
-			wailsRuntime.LogError(d.Ctx, fmt.Sprintf("下载失败: %s", resp.Status))
+			wailsRuntime.LogError(m.Ctx, fmt.Sprintf("下载失败: %s", resp.Status))
 			resp.Body.Close()
 			continue
 		}
 		tmp := filepath.Join(base, name+".tmp")
 		f, err := os.Create(tmp)
 		if err != nil {
-			wailsRuntime.LogError(d.Ctx, err.Error())
+			wailsRuntime.LogError(m.Ctx, err.Error())
 			resp.Body.Close()
 			continue
 		}
@@ -125,168 +92,58 @@ func (d *Downloader) EnsureYtDlp(assetProvider AssetProvider) {
 		resp.Body.Close()
 		_ = f.Close()
 		if err != nil {
-			wailsRuntime.LogError(d.Ctx, err.Error())
+			wailsRuntime.LogError(m.Ctx, err.Error())
 			_ = os.Remove(tmp)
 			continue
 		}
 		final := filepath.Join(base, name)
 		_ = os.Chmod(tmp, 0o755)
 		if err := os.Rename(tmp, final); err != nil {
-			wailsRuntime.LogError(d.Ctx, err.Error())
+			wailsRuntime.LogError(m.Ctx, err.Error())
 			_ = os.Remove(tmp)
 			continue
 		}
-		d.BinPath = final
-		wailsRuntime.LogInfo(d.Ctx, "yt-dlp 下载完成")
+		m.YtDlpPath = final
+		wailsRuntime.LogInfo(m.Ctx, "yt-dlp 下载完成")
 		return
 	}
 }
 
-func (d *Downloader) EnsureFFmpeg(base string, assetProvider AssetProvider) {
-	ffmpegPath := filepath.Join(base, "ffmpeg")
-	if runtime.GOOS == "windows" {
-		ffmpegPath += ".exe"
-	}
-
-	// Check if already exists
-	if _, err := os.Stat(ffmpegPath); err == nil {
-		return
-	}
-
-	// Try to extract from embedded assets first
-	embeddedName := "ffmpeg"
-	if runtime.GOOS == "windows" {
-		embeddedName = "ffmpeg.exe"
-	}
-
-	if data, err := assetProvider(embeddedName); err == nil && len(data) > 0 {
-		wailsRuntime.LogInfo(d.Ctx, "正在从内置资源安装 FFmpeg...")
-		tmp := ffmpegPath + ".tmp"
-		if err := os.WriteFile(tmp, data, 0o755); err == nil {
-			_ = os.Chmod(tmp, 0o755)
-			if err := os.Rename(tmp, ffmpegPath); err == nil {
-				wailsRuntime.LogInfo(d.Ctx, "FFmpeg 内置资源安装成功")
-				return
-			}
-		}
-	}
-
-	// Try to find in path first
-	if path, err := exec.LookPath("ffmpeg"); err == nil {
-		// Symlink or copy? Symlink is better
-		_ = os.Symlink(path, ffmpegPath)
-		return
-	}
-
-	wailsRuntime.LogInfo(d.Ctx, "正在下载 FFmpeg...")
-
-	// Download from yt-dlp/FFmpeg-Builds
-	url := ""
-	switch runtime.GOOS {
-	case "darwin":
-		url = "https://evermeet.cx/ffmpeg/getrelease/zip"
-	case "linux":
-		url = "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"
-	case "windows":
-		url = "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
-	}
-
-	if url == "" {
-		wailsRuntime.LogWarning(d.Ctx, "不支持的操作系统，无法自动下载 FFmpeg")
-		return
-	}
-
-	// Create temp file
-	tmpArchive := filepath.Join(base, "ffmpeg_archive.tmp")
-	defer os.Remove(tmpArchive)
-
-	// Download
-	req, _ := http.NewRequest("GET", url, nil)
-	client := &http.Client{Timeout: 10 * time.Minute}
-	resp, err := client.Do(req)
-	if err != nil {
-		wailsRuntime.LogError(d.Ctx, "FFmpeg 下载请求失败: "+err.Error())
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		wailsRuntime.LogError(d.Ctx, fmt.Sprintf("FFmpeg 下载失败: %s", resp.Status))
-		return
-	}
-
-	out, err := os.Create(tmpArchive)
-	if err != nil {
-		wailsRuntime.LogError(d.Ctx, "无法创建临时文件: "+err.Error())
-		return
-	}
-
-	_, err = io.Copy(out, resp.Body)
-	out.Close()
-	if err != nil {
-		wailsRuntime.LogError(d.Ctx, "写入文件失败: "+err.Error())
-		return
-	}
-
-	wailsRuntime.LogInfo(d.Ctx, "FFmpeg 下载完成，正在解压...")
-
-	// Extract
-	var extractErr error
-	if strings.HasSuffix(url, ".zip") {
-		extractErr = utils.ExtractZip(tmpArchive, base, "ffmpeg")
-	} else {
-		extractErr = utils.ExtractTarXz(tmpArchive, base, "ffmpeg")
-	}
-
-	if extractErr != nil {
-		wailsRuntime.LogError(d.Ctx, "FFmpeg 解压失败: "+extractErr.Error())
-	} else {
-		// Make executable
-		_ = os.Chmod(ffmpegPath, 0o755)
-		wailsRuntime.LogInfo(d.Ctx, "FFmpeg 安装成功")
-	}
-}
-
-func (d *Downloader) GetVideoInfo(url string, assetProvider AssetProvider) (*models.VideoInfo, error) {
+func (m *Manager) GetVideoInfo(url string) (*models.VideoInfo, error) {
 	if url == "" {
 		return nil, errors.New("url is empty")
 	}
 
-	d.EnsureYtDlp(assetProvider)
-	if d.BinPath == "" {
+	m.EnsureYtDlp()
+	if m.YtDlpPath == "" {
 		return nil, errors.New("yt-dlp not found")
 	}
 
-	// Optimization: Check pattern first
-	if d.isLikelyPlaylist(url) {
-		playlistInfo, err := d.getPlaylistInfo(url)
+	if m.isLikelyPlaylist(url) {
+		playlistInfo, err := m.getPlaylistInfo(url)
 		if err != nil {
 			return nil, err
 		}
 		if playlistInfo != nil && playlistInfo.SourceType == models.SourceTypePlaylist {
 			return playlistInfo, nil
 		}
-		// If not a playlist (but looked like one), fall through to single video
 	} else {
-		// Try single video first
-		info, err := d.getSingleVideoInfo(url)
+		info, err := m.getSingleVideoInfo(url)
 		if err == nil {
 			return info, nil
 		}
 
-		// If failed, and we haven't checked playlist, check if it might be a playlist
-		playlistInfo, pErr := d.getPlaylistInfo(url)
+		playlistInfo, pErr := m.getPlaylistInfo(url)
 		if pErr == nil && playlistInfo != nil && playlistInfo.SourceType == models.SourceTypePlaylist {
 			return playlistInfo, nil
 		}
-		// Return original error if both failed
 		return nil, err
 	}
 
-	return d.getSingleVideoInfo(url)
+	return m.getSingleVideoInfo(url)
 }
 
-func (d *Downloader) isLikelyPlaylist(url string) bool {
+func (m *Manager) isLikelyPlaylist(url string) bool {
 	lower := strings.ToLower(url)
 	return strings.Contains(lower, "list=") ||
 		strings.Contains(lower, "/playlist") ||
@@ -298,7 +155,7 @@ func (d *Downloader) isLikelyPlaylist(url string) bool {
 		strings.Contains(lower, "medialist")
 }
 
-func (d *Downloader) getSingleVideoInfo(url string) (*models.VideoInfo, error) {
+func (m *Manager) getSingleVideoInfo(url string) (*models.VideoInfo, error) {
 	args := []string{"--dump-json", "--no-playlist"}
 	if proxy := config.GetProxyUrl(); proxy != "" {
 		args = append(args, "--proxy", proxy)
@@ -322,7 +179,7 @@ func (d *Downloader) getSingleVideoInfo(url string) (*models.VideoInfo, error) {
 
 	args = append(args, url)
 
-	cmd := utils.CreateCommand(d.BinPath, args...)
+	cmd := utils.CreateCommand(m.YtDlpPath, args...)
 	output, err := cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -331,14 +188,12 @@ func (d *Downloader) getSingleVideoInfo(url string) (*models.VideoInfo, error) {
 		return nil, err
 	}
 
-	return d.ParseVideoInfo(output)
+	return m.ParseVideoInfo(output)
 }
 
-func (d *Downloader) getPlaylistInfo(url string) (*models.VideoInfo, error) {
+func (m *Manager) getPlaylistInfo(url string) (*models.VideoInfo, error) {
 	args := []string{"--dump-single-json"}
 
-	// Bilibili collections don't return titles/thumbnails with --flat-playlist
-	// So we must perform full extraction for Bilibili to get metadata
 	lowerURL := strings.ToLower(url)
 	isBilibili := strings.Contains(lowerURL, "bilibili.com") || strings.Contains(lowerURL, "b23.tv")
 	if !isBilibili {
@@ -365,7 +220,7 @@ func (d *Downloader) getPlaylistInfo(url string) (*models.VideoInfo, error) {
 	}
 	args = append(args, url)
 
-	cmd := utils.CreateCommand(d.BinPath, args...)
+	cmd := utils.CreateCommand(m.YtDlpPath, args...)
 	output, err := cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -392,7 +247,7 @@ func (d *Downloader) getPlaylistInfo(url string) (*models.VideoInfo, error) {
 	if err := json.NewDecoder(strings.NewReader(string(output))).Decode(&rawInfo); err != nil {
 		return nil, fmt.Errorf("failed to parse json: %w", err)
 	}
-	wailsRuntime.EventsEmit(d.Ctx, "debug:notify", map[string]interface{}{
+	wailsRuntime.EventsEmit(m.Ctx, "debug:notify", map[string]interface{}{
 		"type": "playlist",
 		"raw":  rawInfo,
 	})
@@ -440,7 +295,7 @@ func (d *Downloader) getPlaylistInfo(url string) (*models.VideoInfo, error) {
 	return &info, nil
 }
 
-func (d *Downloader) ParseVideoInfo(output []byte) (*models.VideoInfo, error) {
+func (m *Manager) ParseVideoInfo(output []byte) (*models.VideoInfo, error) {
 	var rawInfo struct {
 		Title      string                   `json:"title"`
 		Thumbnail  string                   `json:"thumbnail"`
@@ -452,7 +307,7 @@ func (d *Downloader) ParseVideoInfo(output []byte) (*models.VideoInfo, error) {
 	if err := json.NewDecoder(strings.NewReader(string(output))).Decode(&rawInfo); err != nil {
 		return nil, fmt.Errorf("failed to parse json: %w", err)
 	}
-	wailsRuntime.EventsEmit(d.Ctx, "debug:notify", map[string]interface{}{
+	wailsRuntime.EventsEmit(m.Ctx, "debug:notify", map[string]interface{}{
 		"type": "single",
 		"raw":  rawInfo,
 	})
@@ -464,7 +319,6 @@ func (d *Downloader) ParseVideoInfo(output []byte) (*models.VideoInfo, error) {
 		Duration:  rawInfo.Duration,
 	}
 
-	// Helper to get size
 	getSize := func(f map[string]interface{}) int64 {
 		if s, ok := f["filesize"].(float64); ok {
 			return int64(s)
@@ -475,11 +329,9 @@ func (d *Downloader) ParseVideoInfo(output []byte) (*models.VideoInfo, error) {
 		return 0
 	}
 
-	// Find best audio size (last is best assumption)
 	var bestAudioSize int64
 	var bestAudioID string
 	for _, f := range rawInfo.Formats {
-		// acodec != "none" and vcodec == "none"
 		vcodec, _ := f["vcodec"].(string)
 		acodec, _ := f["acodec"].(string)
 		if vcodec != "none" || acodec == "none" {
@@ -494,8 +346,6 @@ func (d *Downloader) ParseVideoInfo(output []byte) (*models.VideoInfo, error) {
 		}
 	}
 
-	// Parse formats to extract unique heights and their best sizes
-	// We trust yt-dlp's sorting (last is best) so we overwrite
 	type formatSelection struct {
 		Size int64
 		ID   string
@@ -511,7 +361,6 @@ func (d *Downloader) ParseVideoInfo(output []byte) (*models.VideoInfo, error) {
 		if vcodec != "" && vcodec != "none" {
 			isVideo = true
 		} else if _, ok := f["width"]; ok {
-			// fallback check
 			isVideo = true
 		}
 
@@ -536,7 +385,6 @@ func (d *Downloader) ParseVideoInfo(output []byte) (*models.VideoInfo, error) {
 		}
 	}
 
-	// Collect all available heights
 	heightMap := make(map[int]bool)
 	for h := range videoOnlyBestSize {
 		heightMap[h] = true
@@ -596,7 +444,6 @@ func (d *Downloader) ParseVideoInfo(output []byte) (*models.VideoInfo, error) {
 		})
 	}
 
-	// Add Audio Only option
 	qualities = append(qualities, models.QualityOption{
 		Label:      "Audio Only",
 		Value:      "audio",
@@ -612,4 +459,16 @@ func (d *Downloader) ParseVideoInfo(output []byte) (*models.VideoInfo, error) {
 	info.Qualities = qualities
 
 	return &info, nil
+}
+
+func pickThumbnail(thumbnail string, thumbnails []thumbnailEntry) string {
+	if thumbnail == "" && len(thumbnails) > 0 {
+		for i := len(thumbnails) - 1; i >= 0; i-- {
+			if thumbnails[i].URL != "" {
+				thumbnail = thumbnails[i].URL
+				break
+			}
+		}
+	}
+	return utils.EnsureHTTPS(strings.TrimSpace(thumbnail))
 }

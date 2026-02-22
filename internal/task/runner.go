@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	stdruntime "runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -30,8 +29,8 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		go m.scheduleTasks()
 	}()
 
-	m.downloader.EnsureYtDlp(m.assetProvider)
-	if m.downloader.BinPath == "" {
+	ytDlpPath, err := m.deps.GetYtDlpPath()
+	if err != nil {
 		task.Status = models.TaskStatusError
 		m.emitTaskLog(task.ID, "Error: yt-dlp not found", false)
 		m.emitTaskUpdate(task)
@@ -51,7 +50,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 	// 如果是子任务且未指定格式ID，则获取视频信息以选择最佳分辨率
 	if task.FormatID == "" {
 		m.emitTaskLog(task.ID, "正在获取视频信息以选择最佳分辨率...", false)
-		info, err := m.downloader.GetVideoInfo(task.URL, m.assetProvider)
+		info, err := m.deps.GetVideoInfo(task.URL)
 		if err != nil {
 			m.mu.Lock()
 			task.Status = models.TaskStatusError
@@ -118,11 +117,16 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		}
 	}
 
+	ffmpegPath, err := m.deps.GetFFmpegPath()
+	ffmpegLocation := ""
+	if err != nil {
+		ffmpegLocation = filepath.Dir(ffmpegPath)
+	}
+
 	args := []string{
-		"--newline",           // Important for parsing
-		"--encoding", "utf-8", // Force UTF-8 output for correct parsing
-		// "--js-runtimes", "node,deno", // Removed: auto-detection is preferred, or use specific path if needed
-		"--ffmpeg-location", filepath.Dir(m.downloader.BinPath), // Explicitly set ffmpeg location
+		"--newline",
+		"--encoding", "utf-8",
+		"--ffmpeg-location", ffmpegLocation,
 		"-o", "%(title)s.%(ext)s",
 		"-P", outputDir,
 		"-f", format,
@@ -158,7 +162,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 
 	args = append(args, task.URL)
 
-	cmd := utils.CreateCommandContext(ctx, m.downloader.BinPath, args...)
+	cmd := utils.CreateCommandContext(ctx, ytDlpPath, args...)
 
 	// Separate pipes for stdout and stderr
 	stdout, _ := cmd.StdoutPipe()
@@ -318,13 +322,13 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		}
 	}()
 
-	err := cmd.Wait()
+	waitErr := cmd.Wait()
 	wg.Wait()
 
-	if err != nil {
+	if waitErr != nil {
 		// Check for exit code 101 (Max downloads reached)
 		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) && exitErr.ExitCode() == 101 {
+		if errors.As(waitErr, &exitErr) && exitErr.ExitCode() == 101 {
 			task.Status = models.TaskStatusCompleted
 			task.Progress = 100
 			m.emitTaskLog(task.ID, "Download limit reached (expected)", false)
@@ -343,7 +347,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 			}
 
 			task.Status = models.TaskStatusError
-			m.emitTaskLog(task.ID, "Exit Error: "+err.Error(), false)
+			m.emitTaskLog(task.ID, "Exit Error: "+waitErr.Error(), false)
 			if m.OnTaskFailed != nil {
 				go m.OnTaskFailed(task)
 			}
@@ -372,9 +376,13 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 			base := strings.TrimSuffix(task.FilePath, ext)
 			trimmedPath := base + "_trimmed" + ext
 
-			ffmpegPath := filepath.Join(filepath.Dir(m.downloader.BinPath), "ffmpeg")
-			if stdruntime.GOOS == "windows" {
-				ffmpegPath += ".exe"
+			ffmpegPath, err := m.deps.GetFFmpegPath()
+			if err != nil {
+				m.emitTaskLog(task.ID, "FFmpeg not found", false)
+				task.Status = models.TaskStatusTrimFailed
+				m.emitTaskUpdate(task)
+				m.saveTask(task)
+				return
 			}
 
 			// args: -i input -ss start -to end -c copy output

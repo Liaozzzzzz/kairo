@@ -15,17 +15,39 @@ type CookieConfig struct {
 	File    string `json:"file"`
 }
 
+type AIConfig struct {
+	Enabled   bool   `json:"enabled"`
+	Provider  string `json:"provider"` // "openai", "anthropic", "gemini", "deepseek", "siliconflow", "local", "custom"
+	BaseURL   string `json:"baseUrl"`
+	APIKey    string `json:"apiKey"`
+	ModelName string `json:"modelName"`
+	Prompt    string `json:"prompt"`
+	Language  string `json:"language"`
+}
+
+type WhisperAIConfig struct {
+	Enabled   bool   `json:"enabled"`
+	Provider  string `json:"provider"` // "openai", "anthropic", "gemini", "deepseek", "siliconflow", "local", "custom"
+	BaseURL   string `json:"baseUrl"`
+	APIKey    string `json:"apiKey"`
+	ModelName string `json:"modelName"`
+	Prompt    string `json:"prompt"`
+	Language  string `json:"language"`
+}
+
 type AppSettings struct {
-	DownloadDir         string       `json:"downloadDir"`
-	DownloadConcurrency int          `json:"downloadConcurrency"`
-	MaxDownloadSpeed    *int         `json:"maxDownloadSpeed"` // MB/s
-	Language            string       `json:"language"`
-	ProxyUrl            string       `json:"proxyUrl"`
-	UserAgent           string       `json:"userAgent"`
-	Referer             string       `json:"referer"`
-	GeoBypass           bool         `json:"geoBypass"`
-	Cookie              CookieConfig `json:"cookie"`
-	RSSCheckInterval    int          `json:"rssCheckInterval"` // Minutes
+	DownloadDir         string          `json:"downloadDir"`
+	DownloadConcurrency int             `json:"downloadConcurrency"`
+	MaxDownloadSpeed    *int            `json:"maxDownloadSpeed"` // MB/s
+	Language            string          `json:"language"`
+	ProxyUrl            string          `json:"proxyUrl"`
+	UserAgent           string          `json:"userAgent"`
+	Referer             string          `json:"referer"`
+	GeoBypass           bool            `json:"geoBypass"`
+	Cookie              CookieConfig    `json:"cookie"`
+	AI                  AIConfig        `json:"ai"`
+	WhisperAI           WhisperAIConfig `json:"whisperAi"`
+	RSSCheckInterval    int             `json:"rssCheckInterval"` // Minutes
 }
 
 var (
@@ -38,6 +60,18 @@ func init() {
 		DownloadConcurrency: 3,
 		GeoBypass:           true,
 		RSSCheckInterval:    60,
+		AI: AIConfig{
+			Provider:  "openai",
+			BaseURL:   "https://api.openai.com/v1",
+			ModelName: "gpt-3.5-turbo",
+			Language:  "zh",
+		},
+		WhisperAI: WhisperAIConfig{
+			Provider:  "openai",
+			BaseURL:   "https://api.openai.com/v1",
+			ModelName: "whisper-1",
+			Language:  "zh",
+		},
 	}
 }
 
@@ -105,6 +139,25 @@ func LoadSettings() error {
 		if defaultDir, err := GetDefaultDownloadDir(); err == nil {
 			currentConfig.DownloadDir = defaultDir
 		}
+	}
+
+	if currentConfig.AI.BaseURL == "" {
+		currentConfig.AI.BaseURL = "https://api.openai.com/v1"
+	}
+	if currentConfig.AI.ModelName == "" {
+		currentConfig.AI.ModelName = "gpt-3.5-turbo"
+	}
+	if currentConfig.AI.Language == "" {
+		currentConfig.AI.Language = "zh"
+	}
+	if currentConfig.WhisperAI.BaseURL == "" {
+		currentConfig.WhisperAI.BaseURL = "https://api.openai.com/v1"
+	}
+	if currentConfig.WhisperAI.ModelName == "" {
+		currentConfig.WhisperAI.ModelName = "whisper-1"
+	}
+	if currentConfig.WhisperAI.Language == "" {
+		currentConfig.WhisperAI.Language = "zh"
 	}
 
 	return nil

@@ -21,6 +21,7 @@ import PageHeader from '@/components/PageHeader';
 import { AppLanguage, AppTheme, useSettingStore, CookieConfig } from '@/store/useSettingStore';
 import DownloadDir from '@/components/DownloadDir';
 import { THEME_COLORS } from '@/data/themeColors';
+import AISettingsCard from './AISettingsCard';
 
 const { Text } = Typography;
 
@@ -474,6 +475,8 @@ const Settings = () => {
             {renderCookieSettings(cookie, setCookie)}
           </div>
         </Card>
+
+        <AISettingsCard />
 
         {/* Language Settings */}
         <Card

@@ -14,6 +14,7 @@ import { useSettingStore } from '@/store/useSettingStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useRSSStore } from '@/store/useRSSStore';
 import { useAppStore } from '@/store/useAppStore';
+import { useVideoStore } from '@/store/useVideoStore';
 import { useTheme } from '@/hooks/useTheme';
 import { generateDarkPalette, generateLightPalette } from '@/lib/theme';
 import ThemeSync from '@/components/ThemeSync';
@@ -22,6 +23,7 @@ import Tasks from '@/views/tasks';
 import Downloads from '@/views/downloads';
 import Settings from '@/views/settings';
 import RSSView from '@/views/rss';
+import Videos from '@/views/videos';
 import appIcon from '@/assets/images/icon-full.png';
 import { MenuItemKey, TaskStatus, SourceType } from './data/variables';
 
@@ -90,6 +92,8 @@ function App() {
       addTaskLog: state.addTaskLog,
     }))
   );
+
+  const updateVideoStatus = useVideoStore(useShallow((state) => state.updateVideoStatus));
 
   useEffect(() => {
     // Update window title when translation changes
@@ -169,6 +173,19 @@ function App() {
       }
     );
 
+    const cleanupVideoStatus = EventsOn(
+      'video:ai_status',
+      (data: {
+        id: string;
+        status: string;
+        summary: string;
+        evaluation: string;
+        tags: string[];
+      }) => {
+        updateVideoStatus(data.id, data.status, data.summary, data.evaluation, data.tags);
+      }
+    );
+
     const cleanupDebugNotify = EventsOn('debug:notify', (message: string) => {
       console.log('[debug:notify]', message);
     });
@@ -177,6 +194,7 @@ function App() {
       cleanupUpdate();
       cleanupProgress();
       cleanupLog();
+      cleanupVideoStatus();
       cleanupDebugNotify();
     };
   }, [
@@ -187,6 +205,7 @@ function App() {
     addTaskLog,
     setDownloadConcurrency,
     setMaxDownloadSpeed,
+    updateVideoStatus,
     t,
   ]);
 
@@ -284,7 +303,7 @@ function App() {
                 left: 0,
                 right: 0,
                 height: 40,
-                zIndex: 9999,
+                zIndex: 999,
                 '--wails-draggable': 'drag',
               } as React.CSSProperties
             }
@@ -338,6 +357,7 @@ function App() {
           >
             {activeTab === 'downloads' && <Downloads />}
             {activeTab === 'tasks' && <Tasks />}
+            {activeTab === 'videos' && <Videos />}
             {activeTab === 'rss' && <RSSView />}
             {activeTab === 'settings' && <Settings />}
           </Content>

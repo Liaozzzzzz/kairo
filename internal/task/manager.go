@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"Kairo/internal/config"
-	"Kairo/internal/downloader"
+	"Kairo/internal/deps"
 	"Kairo/internal/models"
 	"Kairo/internal/utils"
 
@@ -21,8 +21,7 @@ import (
 
 type Manager struct {
 	ctx            context.Context
-	downloader     *downloader.Downloader
-	assetProvider  downloader.AssetProvider
+	deps           *deps.Manager
 	tasks          map[string]*models.DownloadTask
 	cancelFuncs    map[string]context.CancelFunc
 	deletedTasks   map[string]struct{}
@@ -32,18 +31,21 @@ type Manager struct {
 	OnTaskFailed   func(task *models.DownloadTask)
 }
 
-func NewManager(ctx context.Context, d *downloader.Downloader, ap downloader.AssetProvider) *Manager {
+func NewManager(ctx context.Context, d *deps.Manager) *Manager {
 	m := &Manager{
-		ctx:           ctx,
-		downloader:    d,
-		assetProvider: ap,
-		tasks:         make(map[string]*models.DownloadTask),
-		cancelFuncs:   make(map[string]context.CancelFunc),
-		deletedTasks:  make(map[string]struct{}),
+		ctx:          ctx,
+		deps:         d,
+		tasks:        make(map[string]*models.DownloadTask),
+		cancelFuncs:  make(map[string]context.CancelFunc),
+		deletedTasks: make(map[string]struct{}),
 	}
 	m.initDB()
 	m.loadTasks()
 	return m
+}
+
+func (m *Manager) GetDB() *sql.DB {
+	return m.db
 }
 
 func (m *Manager) GetTasks() map[string]*models.DownloadTask {

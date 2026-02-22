@@ -1,10 +1,26 @@
 {
+  "common": {
+    "close": "Close",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "analyze": "Analyze",
+    "duration": "Duration",
+    "size": "Size",
+    "resolution": "Resolution",
+    "format": "Format",
+    "date": "Date",
+    "description": "Description",
+    "view_details": "View Details"
+  },
   "app": {
     "title": "Kairo",
     "sidebar": {
       "downloads": "Downloads",
       "tasks": "Tasks",
       "rss": "RSS",
+      "videos": "Videos",
       "settings": "Settings"
     }
   },
@@ -17,7 +33,20 @@
       "downloads": "Download Settings",
       "network": "Network Settings",
       "language": "Language Settings",
-      "appearance": "Appearance"
+      "appearance": "Appearance",
+      "ai": "AI Settings"
+    },
+    "ai": {
+      "analysisTitle": "Content Analysis",
+      "whisperTitle": "Whisper Transcription",
+      "enabled": "Enable AI Analysis",
+      "provider": "AI Provider",
+      "baseUrl": "Base URL",
+      "apiKey": "API Key",
+      "modelName": "Model Name",
+      "prompt": "Custom Prompt",
+      "promptPlaceholder": "Leave empty to use default prompt",
+      "whisperEnabled": "Enable Whisper Transcription"
     },
     "appearance": {
       "title": "Appearance",
@@ -125,6 +154,7 @@
       "details": "Task Details",
       "openLocation": "Open Location",
       "copyLink": "Copy Link",
+      "addToLibrary": "Add to Library",
       "retry": "Retry",
       "delete": "Delete",
       "purge": "Purge"
@@ -152,7 +182,10 @@
     "notification": {
       "completed": "Download Completed",
       "failed": "Download Failed"
-    }
+    },
+    "libraryAdded": "Added to video library",
+    "libraryExists": "Already in video library",
+    "libraryAddFailed": "Failed to add to video library"
   },
   "rss": {
     "welcome": {
@@ -209,5 +242,42 @@
       "success": "Feed added successfully",
       "failed": "Failed to add feed"
     }
-  }
+  },
+  "videos": {
+      "description": "Manage your downloaded videos",
+      "search_placeholder": "Search videos...",
+      "filter_all": "All",
+      "filter_analyzed": "Analyzed",
+      "filter_unanalyzed": "Unanalyzed",
+      "empty": "No videos found",
+      "subtitles": "Subtitles",
+      "ai_analysis": "AI Analysis",
+      "analyzed": "Analyzed",
+      "analyze": "Analyze with AI",
+      "reanalyze": "Re-Analyze",
+      "analyzing": "Analyzing video content...",
+      "no_analysis": "No analysis available yet.",
+      "click_analyze": "Click the \"Analyze\" button to generate a summary.",
+      "ai_completed": "AI Analysis Completed",
+      "evaluation": "Evaluation",
+      "summary": "Summary",
+      "highlights": "Highlights",
+      "clip": "Clip",
+      "clip_success": "Video clipped successfully",
+      "clip_failed": "Failed to clip video",
+      "play_clip": "Play Clip",
+      "show_in_folder": "Show in Folder",
+      "open_failed": "Failed to open file",
+      "open_folder_failed": "Failed to open folder",
+      "wait_moment": "This may take a while...",
+      "analysis_failed": "Analysis Failed",
+      "click_retry": "Click \"Analyze\" to retry.",
+      "confirmDelete": {
+        "title": "Confirm Delete",
+        "content": "Remove this video from the list?",
+        "ok": "Delete",
+        "cancel": "Cancel",
+        "delete_failed": "Failed to delete video"
+      }
+    }
 }

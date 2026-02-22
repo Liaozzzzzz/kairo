@@ -68,3 +68,8 @@ body {
 .scrollbar-none::-webkit-scrollbar {
     display: none;
 }
+
+/* ant-btn-icon */
+.ant-btn-icon {
+    display: inline-flex;
+}

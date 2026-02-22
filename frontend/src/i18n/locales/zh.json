@@ -1,10 +1,26 @@
 {
+  "common": {
+    "close": "关闭",
+    "delete": "删除",
+    "cancel": "取消",
+    "confirm": "确认",
+    "save": "保存",
+    "analyze": "分析",
+    "duration": "时长",
+    "size": "大小",
+    "resolution": "分辨率",
+    "format": "格式",
+    "date": "日期",
+    "description": "简介",
+    "view_details": "查看详情"
+  },
   "app": {
     "title": "Kairo",
     "sidebar": {
       "downloads": "下载",
       "tasks": "任务列表",
       "rss": "订阅",
+      "videos": "视频库",
       "settings": "设置"
     }
   },
@@ -17,7 +33,21 @@
       "downloads": "下载设置",
       "network": "网络设置",
       "language": "语言设置",
-      "appearance": "外观设置"
+      "appearance": "外观设置",
+      "ai": "AI 设置"
+    },
+    "ai": {
+      "analysisTitle": "内容分析",
+      "whisperTitle": "Whisper 转写",
+      "enabled": "启用 AI 分析",
+      "provider": "AI 提供商",
+      "baseUrl": "API 地址",
+      "apiKey": "API 密钥",
+      "modelName": "模型名称",
+      "prompt": "自定义提示词",
+      "promptPlaceholder": "留空使用默认提示词",
+      "whisperEnabled": "启用 Whisper 转写",
+      "language": "语言"
     },
     "appearance": {
       "title": "外观",
@@ -125,6 +155,7 @@
       "details": "任务详情",
       "openLocation": "打开位置",
       "copyLink": "复制链接",
+      "addToLibrary": "加入视频库",
       "retry": "重试",
       "delete": "删除",
       "purge": "彻底删除"
@@ -152,7 +183,10 @@
     "notification": {
       "completed": "下载完成",
       "failed": "下载失败"
-    }
+    },
+    "libraryAdded": "已加入视频库",
+    "libraryExists": "已在视频库中",
+    "libraryAddFailed": "加入视频库失败"
   },
   "rss": {
     "welcome": {
@@ -209,5 +243,42 @@
       "success": "订阅添加成功",
       "failed": "订阅添加失败"
     }
-  }
+  },
+  "videos": {
+      "description": "管理已下载的视频",
+      "search_placeholder": "搜索视频...",
+      "filter_all": "全部",
+      "filter_analyzed": "已分析",
+      "filter_unanalyzed": "未分析",
+      "empty": "暂无视频",
+      "subtitles": "字幕",
+      "ai_analysis": "AI 分析",
+      "analyzed": "已分析",
+      "analyze": "AI 分析",
+      "reanalyze": "重新分析",
+      "analyzing": "正在分析视频内容...",
+      "no_analysis": "暂无分析结果",
+      "click_analyze": "点击“分析”按钮生成总结",
+      "ai_completed": "AI 分析已完成",
+      "evaluation": "评估",
+      "summary": "总结",
+      "highlights": "高能片段",
+      "clip": "裁剪",
+      "clip_success": "视频裁剪成功",
+      "clip_failed": "视频裁剪失败",
+      "play_clip": "播放片段",
+      "show_in_folder": "在文件夹中显示",
+      "open_failed": "无法打开文件",
+      "open_folder_failed": "无法打开文件夹",
+      "wait_moment": "这可能需要一点时间...",
+      "analysis_failed": "分析失败",
+      "click_retry": "点击“分析”重试",
+      "confirmDelete": {
+        "title": "确认删除",
+        "content": "删除后将从列表移除，是否继续？",
+        "ok": "删除",
+        "cancel": "取消",
+        "delete_failed": "删除失败"
+      }
+    }
 }

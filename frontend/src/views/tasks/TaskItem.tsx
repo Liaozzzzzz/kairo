@@ -1,5 +1,5 @@
 import { ReactNode, useMemo } from 'react';
-import { Card, Progress, Dropdown, MenuProps, Image, Badge, Modal } from 'antd';
+import { Card, Progress, Dropdown, MenuProps, Image, Badge, Modal, message } from 'antd';
 import {
   PlayCircleOutlined,
   PauseCircleOutlined,
@@ -16,7 +16,13 @@ import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { Task } from '@/types';
 import { TaskStatus } from '@/data/variables';
-import { PauseTask, ResumeTask, OpenTaskDir, RetryTask } from '@root/wailsjs/go/main/App';
+import {
+  PauseTask,
+  ResumeTask,
+  OpenTaskDir,
+  RetryTask,
+  AddVideoToLibrary,
+} from '@root/wailsjs/go/main/App';
 import { useTaskStore } from '@/store/useTaskStore';
 import { ImageFallback } from '@/data/variables';
 import { useTheme } from '@/hooks/useTheme';
@@ -104,6 +110,20 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
     });
   };
 
+  const handleAddToLibrary = async () => {
+    try {
+      const added = await AddVideoToLibrary(task.id);
+      if (added) {
+        message.success(t('tasks.libraryAdded'));
+      } else {
+        message.warning(t('tasks.libraryExists'));
+      }
+    } catch (error) {
+      console.error('Failed to add video to library:', error);
+      message.error(t('tasks.libraryAddFailed'));
+    }
+  };
+
   const menuItems: MenuProps['items'] = [
     {
       key: 'details',
@@ -123,6 +143,16 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
       icon: <LinkOutlined className="w-4 h-4 mt-[-2px]" />,
       onClick: () => navigator.clipboard.writeText(task.url),
     },
+    ...(task.status === TaskStatus.Completed && task.file_exists
+      ? [
+          {
+            key: 'addToLibrary',
+            label: t('tasks.contextMenu.addToLibrary'),
+            icon: <CheckCircleOutlined className="w-4 h-4 mt-[-2px]" />,
+            onClick: handleAddToLibrary,
+          },
+        ]
+      : []),
     ...(task.status === 'error' || (task.status === 'completed' && !task.file_exists)
       ? [
           {

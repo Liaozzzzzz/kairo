@@ -58,3 +58,31 @@ export interface RSSItem {
   status: RSSItemStatus;
   thumbnail: string;
 }
+
+export interface Video {
+  id: string;
+  task_id: string;
+  title: string;
+  file_path: string;
+  thumbnail: string;
+  duration: number;
+  size: number;
+  format: string;
+  resolution: string;
+  created_at: number;
+  description: string;
+  uploader: string;
+  subtitles: string[];
+  summary: string;
+  tags: string[];
+  evaluation: string;
+  highlights?: {
+    id: string;
+    video_id: string;
+    start: string;
+    end: string;
+    description: string;
+    file_path?: string;
+  }[];
+  status: string;
+}

@@ -96,18 +96,18 @@ func main() {
 	var ffmpegName, ytDlpName string
 	var binDir string
 
-	// Determine OS and set variables matching internal/downloader/downloader.go logic
+	// Determine OS and set variables matching internal/deps/yt_dlp.go logic
 	switch runtime.GOOS {
 	case "darwin":
-		// downloader.go uses "yt-dlp_macos" as first candidate for Darwin
-		// URL construction in downloader.go: "https://.../download/" + name
+		// yt_dlp.go uses "yt-dlp_macos" as first candidate for Darwin
+		// URL construction in yt_dlp.go: "https://.../download/" + name
 		ffmpegURL = "https://evermeet.cx/ffmpeg/getrelease/zip"
 		ytDlpName = "yt-dlp_macos"
 		ytDlpURL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/" + ytDlpName
 		ffmpegName = "ffmpeg"
 		binDir = filepath.Join(projectRoot, "assets", "bin", "darwin")
 	case "windows":
-		// downloader.go uses "yt-dlp.exe" for Windows
+		// yt_dlp.go uses "yt-dlp.exe" for Windows
 		ffmpegURL = "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
 		ytDlpName = "yt-dlp.exe"
 		ytDlpURL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/" + ytDlpName
@@ -171,7 +171,7 @@ func fileExists(path string) bool {
 }
 
 // downloadFile downloads to a temp file first, then renames to target.
-// Matches robustness of downloader.go
+// Matches robustness of deps/yt_dlp.go
 func downloadFile(url, targetPath string) error {
 	client := &http.Client{
 		Timeout: 10 * time.Minute,

@@ -13,6 +13,26 @@ export interface CookieConfig {
   file: string;
 }
 
+export interface AIConfig {
+  enabled: boolean;
+  provider: string;
+  baseUrl: string;
+  apiKey: string;
+  modelName: string;
+  prompt: string;
+  language: string;
+}
+
+export interface WhisperAIConfig {
+  enabled: boolean;
+  provider: string;
+  baseUrl: string;
+  apiKey: string;
+  modelName: string;
+  prompt: string;
+  language: string;
+}
+
 export interface AppSettings {
   downloadDir: string;
   downloadConcurrency: number;
@@ -25,6 +45,8 @@ export interface AppSettings {
   referer: string;
   geoBypass: boolean;
   cookie: CookieConfig;
+  ai: AIConfig;
+  whisperAi: WhisperAIConfig;
   rssCheckInterval: number;
 }
 
@@ -35,6 +57,26 @@ const DEFAULT_COOKIE_CONFIG: CookieConfig = {
   source: 'browser',
   browser: '',
   file: '',
+};
+
+const DEFAULT_AI_CONFIG: AIConfig = {
+  enabled: false,
+  provider: 'openai',
+  baseUrl: 'https://api.openai.com/v1',
+  apiKey: '',
+  modelName: 'gpt-3.5-turbo',
+  prompt: '',
+  language: 'zh',
+};
+
+const DEFAULT_WHISPER_AI_CONFIG: WhisperAIConfig = {
+  enabled: false,
+  provider: 'openai',
+  baseUrl: 'https://api.openai.com/v1',
+  apiKey: '',
+  modelName: 'whisper-1',
+  prompt: '',
+  language: 'zh',
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -49,6 +91,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   referer: '',
   geoBypass: true,
   cookie: { ...DEFAULT_COOKIE_CONFIG },
+  ai: { ...DEFAULT_AI_CONFIG },
+  whisperAi: { ...DEFAULT_WHISPER_AI_CONFIG },
   rssCheckInterval: 60,
 };
 
@@ -92,7 +136,35 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
     };
   };
 
+  const normalizeAI = (a: unknown): AIConfig => {
+    const value = typeof a === 'object' && a !== null ? (a as Partial<AIConfig>) : {};
+    return {
+      enabled: !!value.enabled,
+      provider: typeof value.provider === 'string' ? value.provider : 'openai',
+      baseUrl: typeof value.baseUrl === 'string' ? value.baseUrl : 'https://api.openai.com/v1',
+      apiKey: typeof value.apiKey === 'string' ? value.apiKey : '',
+      modelName: typeof value.modelName === 'string' ? value.modelName : 'gpt-3.5-turbo',
+      prompt: typeof value.prompt === 'string' ? value.prompt : '',
+      language: typeof value.language === 'string' ? value.language : 'zh',
+    };
+  };
+
+  const normalizeWhisperAI = (a: unknown): WhisperAIConfig => {
+    const value = typeof a === 'object' && a !== null ? (a as Partial<WhisperAIConfig>) : {};
+    return {
+      enabled: !!value.enabled,
+      provider: typeof value.provider === 'string' ? value.provider : 'openai',
+      baseUrl: typeof value.baseUrl === 'string' ? value.baseUrl : 'https://api.openai.com/v1',
+      apiKey: typeof value.apiKey === 'string' ? value.apiKey : '',
+      modelName: typeof value.modelName === 'string' ? value.modelName : 'whisper-1',
+      prompt: typeof value.prompt === 'string' ? value.prompt : '',
+      language: typeof value.language === 'string' ? value.language : 'zh',
+    };
+  };
+
   const cookie = normalizeCookie(value.cookie);
+  const ai = normalizeAI(value.ai);
+  const whisperAi = normalizeWhisperAI(value.whisperAi);
 
   return {
     ...DEFAULT_SETTINGS,
@@ -107,6 +179,8 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
     referer,
     geoBypass,
     cookie,
+    ai,
+    whisperAi,
     rssCheckInterval,
   };
 };
@@ -123,6 +197,8 @@ interface SettingState {
   referer: string;
   geoBypass: boolean;
   cookie: CookieConfig;
+  ai: AIConfig;
+  whisperAi: WhisperAIConfig;
   rssCheckInterval: number;
 
   // Actions
@@ -137,6 +213,8 @@ interface SettingState {
   setReferer: (value: string) => void;
   setGeoBypass: (value: boolean) => void;
   setCookie: (value: CookieConfig) => void;
+  setAI: (value: AIConfig) => void;
+  setWhisperAI: (value: WhisperAIConfig) => void;
   setRSSCheckInterval: (value: number) => void;
   loadSettings: () => void;
 }
@@ -153,6 +231,8 @@ export const useSettingStore = create<SettingState>((set, get) => ({
   referer: DEFAULT_SETTINGS.referer,
   geoBypass: DEFAULT_SETTINGS.geoBypass,
   cookie: DEFAULT_SETTINGS.cookie,
+  ai: DEFAULT_SETTINGS.ai,
+  whisperAi: DEFAULT_SETTINGS.whisperAi,
   rssCheckInterval: DEFAULT_SETTINGS.rssCheckInterval,
 
   setDefaultDir: (dir) => {
@@ -199,6 +279,14 @@ export const useSettingStore = create<SettingState>((set, get) => ({
     set({ cookie: value });
     saveAppSettings(get());
   },
+  setAI: (value) => {
+    set({ ai: value });
+    saveAppSettings(get());
+  },
+  setWhisperAI: (value) => {
+    set({ whisperAi: value });
+    saveAppSettings(get());
+  },
   setRSSCheckInterval: (value) => {
     set({ rssCheckInterval: value });
     saveAppSettings(get());
@@ -221,6 +309,8 @@ export const useSettingStore = create<SettingState>((set, get) => ({
           geoBypass: normalized.geoBypass,
           cookie: normalized.cookie,
           rssCheckInterval: normalized.rssCheckInterval,
+          ai: normalized.ai,
+          whisperAi: normalized.whisperAi,
         });
       })
       .catch((e) => {
@@ -240,6 +330,7 @@ export const useSettingStore = create<SettingState>((set, get) => ({
           geoBypass: settings.geoBypass,
           cookie: settings.cookie,
           rssCheckInterval: settings.rssCheckInterval,
+          whisperAi: settings.whisperAi,
         });
       });
   },
@@ -271,6 +362,8 @@ function saveAppSettings(state: SettingState) {
     geoBypass: state.geoBypass,
     cookie: state.cookie,
     rssCheckInterval: state.rssCheckInterval,
+    ai: state.ai,
+    whisperAi: state.whisperAi,
   };
   localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
   UpdateSettings(toWailsSettings(settings));

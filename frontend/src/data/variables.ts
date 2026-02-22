@@ -37,5 +37,6 @@ export enum MenuItemKey {
   Downloads = 'downloads',
   Tasks = 'tasks',
   RSS = 'rss',
+  Videos = 'videos',
   Settings = 'settings',
 }

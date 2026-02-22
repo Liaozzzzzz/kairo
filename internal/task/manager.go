@@ -31,7 +31,7 @@ type Manager struct {
 	OnTaskFailed   func(task *models.DownloadTask)
 }
 
-func NewManager(ctx context.Context, d *deps.Manager) *Manager {
+func NewManager(ctx context.Context, db *sql.DB, d *deps.Manager) *Manager {
 	m := &Manager{
 		ctx:          ctx,
 		deps:         d,
@@ -39,7 +39,7 @@ func NewManager(ctx context.Context, d *deps.Manager) *Manager {
 		cancelFuncs:  make(map[string]context.CancelFunc),
 		deletedTasks: make(map[string]struct{}),
 	}
-	m.initDB()
+	m.db = db
 	m.loadTasks()
 	return m
 }

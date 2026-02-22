@@ -7,7 +7,7 @@ require (
 	github.com/mmcdole/gofeed v1.3.0
 	github.com/wailsapp/wails/v2 v2.11.0
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
-	modernc.org/sqlite v1.45.0
+	modernc.org/sqlite v1.46.1
 )
 
 require (

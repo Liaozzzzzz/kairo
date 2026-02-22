@@ -2,68 +2,14 @@ package task
 
 import (
 	"bufio"
-	"database/sql"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"Kairo/internal/config"
 	"Kairo/internal/models"
 	"Kairo/internal/utils"
-
-	_ "modernc.org/sqlite"
 )
-
-func (m *Manager) initDB() {
-	appDir, err := config.GetAppConfigDir()
-	if err != nil {
-		fmt.Printf("Failed to get app config dir: %v\n", err)
-		return
-	}
-	dbPath := filepath.Join(appDir, "tasks.db")
-	db, err := sql.Open("sqlite", dbPath)
-	if err != nil {
-		fmt.Printf("Failed to open database: %v\n", err)
-		return
-	}
-
-	createTableSQL := `CREATE TABLE IF NOT EXISTS tasks (
-		id TEXT PRIMARY KEY,
-		url TEXT,
-		dir TEXT,
-		quality TEXT,
-		format TEXT,
-		format_id TEXT,
-		parent_id TEXT,
-		source_type INTEGER,
-		status TEXT,
-		progress REAL,
-		title TEXT,
-		thumbnail TEXT,
-		total_size TEXT,
-		speed TEXT,
-		eta TEXT,
-		current_item INTEGER,
-		total_items INTEGER,
-		log_path TEXT,
-		file_exists INTEGER,
-		file_path TEXT,
-		total_bytes INTEGER,
-		trim_start TEXT,
-		trim_end TEXT,
-		trim_mode TEXT,
-		created_at INTEGER
-	);`
-
-	_, err = db.Exec(createTableSQL)
-	if err != nil {
-		fmt.Printf("Failed to create table: %v\n", err)
-		return
-	}
-
-	m.db = db
-}
 
 func (m *Manager) saveTask(task *models.DownloadTask) {
 	if m.db == nil {

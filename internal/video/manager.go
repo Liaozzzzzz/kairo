@@ -37,54 +37,7 @@ func NewManager(ctx context.Context, db *sql.DB, d *deps.Manager) *Manager {
 		aiService: ai.NewManager(ctx),
 		deps:      d,
 	}
-	m.initTable()
 	return m
-}
-
-func (m *Manager) initTable() {
-	if m.db == nil {
-		return
-	}
-
-	createVideosTableSQL := `CREATE TABLE IF NOT EXISTS videos (
-		id TEXT PRIMARY KEY,
-		task_id TEXT,
-		title TEXT,
-		url TEXT,
-		file_path TEXT,
-		thumbnail TEXT,
-		duration REAL,
-		size INTEGER,
-		format TEXT,
-		resolution TEXT,
-		created_at INTEGER,
-		description TEXT,
-		uploader TEXT,
-		subtitles TEXT,
-		summary TEXT,
-		tags TEXT,
-		evaluation TEXT,
-		status TEXT
-	);`
-
-	_, err := m.db.Exec(createVideosTableSQL)
-	if err != nil {
-		fmt.Printf("Failed to create videos table: %v\n", err)
-	}
-
-	createHighlightsTableSQL := `CREATE TABLE IF NOT EXISTS video_highlights (
-		id TEXT PRIMARY KEY,
-		video_id TEXT,
-		start_time TEXT,
-		end_time TEXT,
-		description TEXT,
-		file_path TEXT
-	);`
-
-	_, err = m.db.Exec(createHighlightsTableSQL)
-	if err != nil {
-		fmt.Printf("Failed to create highlights table: %v\n", err)
-	}
 }
 
 func (m *Manager) SaveVideo(v *models.Video) error {

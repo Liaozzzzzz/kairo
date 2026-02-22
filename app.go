@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -31,6 +32,7 @@ type App struct {
 	taskManager  *task.Manager
 	rssManager   *rss.Manager
 	videoManager *video.Manager
+	db           *sql.DB
 }
 
 // NewApp creates a new App application struct
@@ -64,19 +66,19 @@ func (a *App) startup(ctx context.Context) {
 	// Load settings from disk
 	_ = config.LoadSettings()
 
-	a.rssManager = rss.NewManager(ctx)
-	a.rssManager.Start()
+	a.db = config.InitDatabase()
 
 	dep := deps.NewManager(ctx, readEmbedded)
 	dep.EnsureYtDlp()
 	dep.EnsureFFmpeg()
 
-	a.taskManager = task.NewManager(ctx, dep)
+	a.taskManager = task.NewManager(ctx, a.db, dep)
 	a.depsManager = dep
 
-	// Initialize Video Manager with DB from Task Manager
-	// Ideally DB should be managed by App or a separate module
-	a.videoManager = video.NewManager(ctx, a.taskManager.GetDB(), dep)
+	a.videoManager = video.NewManager(ctx, a.db, dep)
+
+	a.rssManager = rss.NewManager(ctx, a.db)
+	a.rssManager.Start()
 
 	// Wire up Task Manager callback to RSS Manager and Video Manager
 	a.taskManager.OnTaskComplete = func(task *models.DownloadTask) {

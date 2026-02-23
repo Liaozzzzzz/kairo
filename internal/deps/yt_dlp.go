@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -111,15 +112,18 @@ func (m *Manager) EnsureYtDlp() {
 
 func (m *Manager) GetVideoInfo(url string) (*models.VideoInfo, error) {
 	if url == "" {
+		log.Printf("[getVideoInfo] url is empty")
 		return nil, errors.New("url is empty")
 	}
 
 	m.EnsureYtDlp()
 	if m.YtDlpPath == "" {
+		log.Printf("[getVideoInfo] yt-dlp not found")
 		return nil, errors.New("yt-dlp not found")
 	}
 
 	if m.isLikelyPlaylist(url) {
+		log.Printf("[getVideoInfo] url is likely a playlist: %s", url)
 		playlistInfo, err := m.getPlaylistInfo(url)
 		if err != nil {
 			return nil, err
@@ -127,20 +131,20 @@ func (m *Manager) GetVideoInfo(url string) (*models.VideoInfo, error) {
 		if playlistInfo != nil && playlistInfo.SourceType == models.SourceTypePlaylist {
 			return playlistInfo, nil
 		}
-	} else {
-		info, err := m.getSingleVideoInfo(url)
-		if err == nil {
-			return info, nil
-		}
-
-		playlistInfo, pErr := m.getPlaylistInfo(url)
-		if pErr == nil && playlistInfo != nil && playlistInfo.SourceType == models.SourceTypePlaylist {
-			return playlistInfo, nil
-		}
-		return nil, err
 	}
 
-	return m.getSingleVideoInfo(url)
+	log.Printf("[getVideoInfo] url is likely a single video: %s", url)
+	info, err := m.getSingleVideoInfo(url)
+	if err == nil {
+		return info, nil
+	}
+
+	log.Printf("[getVideoInfo] failed to get single video info: %s, try to get playlist info", err.Error())
+	playlistInfo, pErr := m.getPlaylistInfo(url)
+	if pErr == nil && playlistInfo != nil && playlistInfo.SourceType == models.SourceTypePlaylist {
+		return playlistInfo, nil
+	}
+	return nil, err
 }
 
 func (m *Manager) isLikelyPlaylist(url string) bool {
@@ -182,6 +186,7 @@ func (m *Manager) getSingleVideoInfo(url string) (*models.VideoInfo, error) {
 	cmd := utils.CreateCommand(m.YtDlpPath, args...)
 	output, err := cmd.Output()
 	if err != nil {
+		log.Printf("[getSingleVideoInfo] yt-dlp error: %s", err.Error())
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			return nil, fmt.Errorf("yt-dlp error: %s", string(exitErr.Stderr))
 		}
@@ -223,6 +228,7 @@ func (m *Manager) getPlaylistInfo(url string) (*models.VideoInfo, error) {
 	cmd := utils.CreateCommand(m.YtDlpPath, args...)
 	output, err := cmd.Output()
 	if err != nil {
+		log.Printf("[getPlaylistInfo] yt-dlp error: %s", err.Error())
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			return nil, fmt.Errorf("yt-dlp error: %s", string(exitErr.Stderr))
 		}
@@ -245,14 +251,12 @@ func (m *Manager) getPlaylistInfo(url string) (*models.VideoInfo, error) {
 	}
 
 	if err := json.NewDecoder(strings.NewReader(string(output))).Decode(&rawInfo); err != nil {
+		log.Printf("[getPlaylistInfo] failed to parse json: %s", err.Error())
 		return nil, fmt.Errorf("failed to parse json: %w", err)
 	}
-	wailsRuntime.EventsEmit(m.Ctx, "debug:notify", map[string]interface{}{
-		"type": "playlist",
-		"raw":  rawInfo,
-	})
 
 	if rawInfo.Type != "playlist" && len(rawInfo.Entries) == 0 {
+		log.Printf("[getPlaylistInfo] playlist type is not playlist or no entries found")
 		return nil, nil
 	}
 
@@ -305,12 +309,9 @@ func (m *Manager) ParseVideoInfo(output []byte) (*models.VideoInfo, error) {
 	}
 
 	if err := json.NewDecoder(strings.NewReader(string(output))).Decode(&rawInfo); err != nil {
+		log.Printf("[ParseVideoInfo] failed to parse json: %s", err.Error())
 		return nil, fmt.Errorf("failed to parse json: %w", err)
 	}
-	wailsRuntime.EventsEmit(m.Ctx, "debug:notify", map[string]interface{}{
-		"type": "single",
-		"raw":  rawInfo,
-	})
 
 	thumbnail := pickThumbnail(rawInfo.Thumbnail, rawInfo.Thumbnails)
 	info := models.VideoInfo{

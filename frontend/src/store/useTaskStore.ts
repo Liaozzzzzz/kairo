@@ -13,7 +13,7 @@ interface TaskState {
   updateTaskProgress: (data: {
     id: string;
     progress: number;
-    total_size?: string;
+    total_bytes?: number;
     speed?: string;
     eta?: string;
   }) => void;
@@ -59,7 +59,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           [data.id]: {
             ...task,
             progress: data.progress,
-            total_size: data.total_size,
+            total_bytes: data.total_bytes,
             speed: data.speed,
             eta: data.eta,
           },

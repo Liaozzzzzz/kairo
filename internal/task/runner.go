@@ -12,112 +12,72 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"Kairo/internal/config"
 	"Kairo/internal/models"
 	"Kairo/internal/utils"
 )
 
-func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
-	defer func() {
-		m.mu.Lock()
-		delete(m.cancelFuncs, task.ID)
-		if _, deleted := m.deletedTasks[task.ID]; deleted {
-			delete(m.deletedTasks, task.ID)
-		}
-		m.mu.Unlock()
-		go m.scheduleTasks()
-	}()
-
-	ytDlpPath, err := m.deps.GetYtDlpPath()
-	if err != nil {
-		task.Status = models.TaskStatusError
-		m.emitTaskLog(task.ID, "Error: yt-dlp not found", false)
-		m.emitTaskUpdate(task)
-		return
-	}
-
-	m.mu.Lock()
-	task.Status = models.TaskStatusStarting
-	task.Speed = "启动中..."
-	task.Eta = ""
-	m.mu.Unlock()
-
-	m.emitTaskLog(task.ID, "正在启动下载引擎...", false)
-	m.emitTaskUpdate(task)
-	m.saveTask(task)
-
-	// 如果是子任务且未指定格式ID，则获取视频信息以选择最佳分辨率
-	if task.FormatID == "" {
-		m.emitTaskLog(task.ID, "正在获取视频信息以选择最佳分辨率...", false)
-		info, err := m.deps.GetVideoInfo(task.URL)
-		if err != nil {
-			m.mu.Lock()
-			task.Status = models.TaskStatusError
-			m.mu.Unlock()
-			m.emitTaskLog(task.ID, "Error resolving video info: "+err.Error(), false)
-			m.emitTaskUpdate(task)
-			m.saveTask(task)
-			return
-		}
-
-		if len(info.Qualities) > 0 {
-			// Qualities are sorted by height desc, so first is best
-			best := info.Qualities[0]
-
-			task.FormatID = best.FormatID
-			task.TotalBytes = best.TotalBytes
-			task.TotalSize = utils.FormatBytes(best.TotalBytes)
-			if task.Title == "" || task.Title == task.URL {
-				task.Title = info.Title
-			}
-			if task.Thumbnail == "" {
-				task.Thumbnail = info.Thumbnail
-			}
-			m.emitTaskLog(task.ID, fmt.Sprintf("已选择最佳分辨率: %s (%s)", best.Label, best.TotalSize), false)
-			m.saveTask(task)
-			m.emitTaskUpdate(task)
-		} else {
-			m.emitTaskLog(task.ID, "无法获取分辨率列表，将尝试使用默认最佳格式", false)
-		}
-	}
-
-	// Create output directory based on title
-	sanitizedTitle := utils.SanitizeFileName(task.Title)
-	outputDir := filepath.Join(task.Dir, sanitizedTitle)
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		m.emitTaskLog(task.ID, "Failed to create directory: "+err.Error(), false)
-	}
-
-	// Build args based on quality
-	format := ""
+func (m *Manager) resolveVideoInfo(task *models.DownloadTask) error {
 	if task.FormatID != "" {
-		format = task.FormatID
-	} else {
-		format = "bestvideo+bestaudio/best"
-		switch task.Quality {
-		case "4k":
-			format = "bestvideo[height<=2160]+bestaudio/best[height<=2160]"
-		case "2k":
-			format = "bestvideo[height<=1440]+bestaudio/best[height<=1440]"
-		case "1080p":
-			format = "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
-		case "720p":
-			format = "bestvideo[height<=720]+bestaudio/best[height<=720]"
-		case "480p":
-			format = "bestvideo[height<=480]+bestaudio/best[height<=480]"
-		case "360p":
-			format = "bestvideo[height<=360]+bestaudio/best[height<=360]"
-		case "240p":
-			format = "bestvideo[height<=240]+bestaudio/best[height<=240]"
-		case "144p":
-			format = "bestvideo[height<=144]+bestaudio/best[height<=144]"
-		case "audio":
-			format = "bestaudio/best"
-		}
+		return nil
 	}
 
-	ffmpegPath, _ := m.deps.GetFFmpegPath()
+	m.emitTaskLog(task.ID, "正在获取视频信息以选择最佳分辨率...", false)
+	info, err := m.deps.GetVideoInfo(task.URL)
+	if err != nil {
+		return fmt.Errorf("Error resolving video info: %w", err)
+	}
+
+	if len(info.Qualities) > 0 {
+		best := info.Qualities[0]
+		task.FormatID = best.FormatID
+		task.TotalBytes = best.TotalBytes
+		if task.Title == "" || task.Title == task.URL {
+			task.Title = info.Title
+		}
+		if task.Thumbnail == "" {
+			task.Thumbnail = info.Thumbnail
+		}
+		m.emitTaskLog(task.ID, fmt.Sprintf("已选择最佳分辨率: %s (%s)", best.Label, best.TotalSize), false)
+	} else {
+		m.emitTaskLog(task.ID, "无法获取分辨率列表，将尝试使用默认最佳格式", false)
+	}
+	return nil
+}
+
+func (m *Manager) getFormatString(task *models.DownloadTask) string {
+	if task.FormatID != "" {
+		return task.FormatID
+	}
+
+	format := "bestvideo+bestaudio/best"
+	switch task.Quality {
+	case "4k":
+		return "bestvideo[height<=2160]+bestaudio/best[height<=2160]"
+	case "2k":
+		return "bestvideo[height<=1440]+bestaudio/best[height<=1440]"
+	case "1080p":
+		return "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
+	case "720p":
+		return "bestvideo[height<=720]+bestaudio/best[height<=720]"
+	case "480p":
+		return "bestvideo[height<=480]+bestaudio/best[height<=480]"
+	case "360p":
+		return "bestvideo[height<=360]+bestaudio/best[height<=360]"
+	case "240p":
+		return "bestvideo[height<=240]+bestaudio/best[height<=240]"
+	case "144p":
+		return "bestvideo[height<=144]+bestaudio/best[height<=144]"
+	case "audio":
+		return "bestaudio/best"
+	}
+	return format
+}
+
+func (m *Manager) buildYtDlpArgs(task *models.DownloadTask, outputDir, ffmpegPath string) []string {
+	format := m.getFormatString(task)
 
 	args := []string{
 		"--newline",
@@ -157,6 +117,155 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 	}
 
 	args = append(args, task.URL)
+	return args
+}
+
+func (m *Manager) handleTrimming(ctx context.Context, task *models.DownloadTask) {
+	if task.TrimMode == models.TrimModeNone || !task.FileExists || task.FilePath == "" {
+		task.Status = models.TaskStatusCompleted
+		m.emitTaskUpdate(task)
+		m.saveTask(task)
+		if m.OnTaskComplete != nil {
+			go m.OnTaskComplete(task)
+		}
+		return
+	}
+
+	task.Status = models.TaskStatusTrimming
+	m.emitTaskUpdate(task)
+	m.saveTask(task)
+
+	modeStr := "保留原文件"
+	if task.TrimMode == models.TrimModeOverwrite {
+		modeStr = "覆盖原文件"
+	}
+	m.emitTaskLog(task.ID, fmt.Sprintf("正在进行裁剪 (开始: %s, 结束: %s, 模式: %s)...", task.TrimStart, task.TrimEnd, modeStr), false)
+
+	ext := filepath.Ext(task.FilePath)
+	base := strings.TrimSuffix(task.FilePath, ext)
+	trimmedPath := base + "_trimmed" + ext
+
+	ffmpegPath, err := m.deps.GetFFmpegPath()
+	if err != nil {
+		m.emitTaskLog(task.ID, "FFmpeg not found", false)
+		task.Status = models.TaskStatusTrimFailed
+		m.emitTaskUpdate(task)
+		m.saveTask(task)
+		return
+	}
+
+	args := []string{"-i", task.FilePath}
+	if task.TrimStart != "" {
+		args = append(args, "-ss", task.TrimStart)
+	}
+	if task.TrimEnd != "" {
+		args = append(args, "-to", task.TrimEnd)
+	}
+	args = append(args, "-c", "copy", "-y", trimmedPath)
+
+	cmd := utils.CreateCommandContext(ctx, ffmpegPath, args...)
+
+	if output, err := cmd.CombinedOutput(); err != nil {
+		m.emitTaskLog(task.ID, fmt.Sprintf("裁剪失败: %v, %s", err, string(output)), false)
+		task.Status = models.TaskStatusTrimFailed
+		m.emitTaskUpdate(task)
+		m.saveTask(task)
+		return
+	}
+
+	// Success
+	if task.TrimMode == models.TrimModeOverwrite {
+		if err := os.Remove(task.FilePath); err != nil {
+			m.emitTaskLog(task.ID, "Failed to overwrite original file: "+err.Error(), false)
+		} else {
+			if err := os.Rename(trimmedPath, task.FilePath); err != nil {
+				m.emitTaskLog(task.ID, "Failed to rename trimmed file: "+err.Error(), false)
+			} else {
+				m.emitTaskLog(task.ID, "裁剪完成 (已覆盖)", false)
+				if info, err := os.Stat(task.FilePath); err == nil {
+					task.TotalBytes = info.Size()
+				}
+			}
+		}
+	} else {
+		m.emitTaskLog(task.ID, "裁剪完成 (另存为: "+filepath.Base(trimmedPath)+")", false)
+	}
+
+	task.Status = models.TaskStatusCompleted
+	m.emitTaskUpdate(task)
+	m.saveTask(task)
+
+	if m.OnTaskComplete != nil {
+		go m.OnTaskComplete(task)
+	}
+}
+
+func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
+	defer func() {
+		m.mu.Lock()
+		delete(m.cancelFuncs, task.ID)
+		if _, deleted := m.deletedTasks[task.ID]; deleted {
+			delete(m.deletedTasks, task.ID)
+		}
+		m.mu.Unlock()
+		go m.scheduleTasks()
+	}()
+
+	checkPaused := func() bool {
+		t, err := m.getTask(task.ID)
+		if err != nil || t == nil {
+			return false
+		}
+		return t.Status == models.TaskStatusPaused
+	}
+
+	lastSave := time.Now()
+	throttledSave := func() {
+		if time.Since(lastSave) > 1*time.Second {
+			m.saveTask(task)
+			lastSave = time.Now()
+		}
+	}
+
+	ytDlpPath, err := m.deps.GetYtDlpPath()
+	if err != nil {
+		task.Status = models.TaskStatusError
+		m.emitTaskLog(task.ID, "Error: yt-dlp not found", false)
+		m.emitTaskUpdate(task)
+		m.saveTask(task)
+		return
+	}
+
+	// Update status (local copy) and save to DB
+	// Note: We don't need to lock for local task updates as we own this struct instance
+	task.Status = models.TaskStatusStarting
+	task.Speed = "启动中..."
+	task.Eta = ""
+
+	m.emitTaskLog(task.ID, "正在启动下载引擎...", false)
+	m.emitTaskUpdate(task)
+	m.saveTask(task)
+
+	if err := m.resolveVideoInfo(task); err != nil {
+		task.Status = models.TaskStatusError
+		m.emitTaskLog(task.ID, err.Error(), false)
+		m.emitTaskUpdate(task)
+		m.saveTask(task)
+		return
+	}
+	// Save updated task (with potential new title/format info)
+	m.saveTask(task)
+	m.emitTaskUpdate(task)
+
+	// Create output directory based on title
+	sanitizedTitle := utils.SanitizeFileName(task.Title)
+	outputDir := filepath.Join(task.Dir, sanitizedTitle)
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		m.emitTaskLog(task.ID, "Failed to create directory: "+err.Error(), false)
+	}
+
+	ffmpegPath, _ := m.deps.GetFFmpegPath()
+	args := m.buildYtDlpArgs(task, outputDir, ffmpegPath)
 
 	cmd := utils.CreateCommandContext(ctx, ytDlpPath, args...)
 
@@ -165,9 +274,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 	stderr, _ := cmd.StderrPipe()
 
 	if err := cmd.Start(); err != nil {
-		m.mu.Lock()
-		isPaused := task.Status == models.TaskStatusPaused
-		m.mu.Unlock()
+		isPaused := checkPaused()
 		if isPaused {
 			return
 		}
@@ -179,13 +286,12 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		return
 	}
 
-	m.mu.Lock()
 	task.Status = models.TaskStatusDownloading
-	m.mu.Unlock()
 	m.emitTaskLog(task.ID, "下载引擎已启动，正在解析...", false)
+	m.emitTaskUpdate(task)
+	m.saveTask(task)
 
 	// Regex for progress
-	// [download]  25.0% of 10.00MiB at  1.00MiB/s ETA 00:05
 	progressRegex := regexp.MustCompile(`\[download\]\s+(\d+\.?\d*)%\s+of\s+([~\d\.\w]+)(?:\s+at\s+([~\d\.\w/]+)\s+ETA\s+([\d:]+))?`)
 	destinationRegex := regexp.MustCompile(`\[download\] Destination: (.+)`)
 	alreadyDownloadedRegex := regexp.MustCompile(`\[download\] (.+) has already been downloaded`)
@@ -214,9 +320,6 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 			if matches := alreadyDownloadedRegex.FindStringSubmatch(line); len(matches) > 1 {
 				// File exists, try to get size
 				filename := matches[1]
-				// If path is relative, join with task.Dir?
-				// yt-dlp usually outputs full path or relative to cwd.
-				// We set -P task.Dir.
 				path := utils.NormalizePath(outputDir, filename)
 				if info, err := os.Stat(path); err == nil {
 					completedBytes += info.Size()
@@ -231,13 +334,11 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 					task.Progress = p
 				}
 				m.emitTaskUpdate(task)
+				throttledSave()
 			}
 
 			// Parse Destination (new part starting)
 			if matches := destinationRegex.FindStringSubmatch(line); len(matches) > 1 {
-				// If we were downloading a part, assume it finished?
-				// No, destination is printed at START of download.
-				// So if we had a previous part, add its size to completed.
 				if currentPartBytes > 0 {
 					completedBytes += currentPartBytes
 				}
@@ -260,6 +361,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 			if strings.HasPrefix(line, "[Merger]") && task.Status != models.TaskStatusMerging {
 				task.Status = models.TaskStatusMerging
 				m.emitTaskUpdate(task)
+				m.saveTask(task)
 			}
 
 			// Parse progress
@@ -288,10 +390,6 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 					}
 					task.Progress = p
 				} else {
-					// Fallback if total bytes unknown: just show current part percent?
-					// Or 0?
-					// Let's show current part percent / number of parts? No.
-					// Just use the parsed percent as fallback?
 					task.Progress = percent
 				}
 
@@ -301,6 +399,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 				}
 
 				m.emitTaskUpdate(task)
+				throttledSave()
 			}
 		}
 	}()
@@ -328,15 +427,16 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 			task.Status = models.TaskStatusCompleted
 			task.Progress = 100
 			m.emitTaskLog(task.ID, "Download limit reached (expected)", false)
+			m.saveTask(task)
 			if m.OnTaskComplete != nil {
 				go m.OnTaskComplete(task)
 			}
 		} else {
 			// Check if paused or deleted
 			m.mu.Lock()
-			isPaused := task.Status == models.TaskStatusPaused
 			_, isDeleted := m.deletedTasks[task.ID]
 			m.mu.Unlock()
+			isPaused := checkPaused()
 
 			if isPaused || isDeleted {
 				return
@@ -344,7 +444,9 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 
 			task.Status = models.TaskStatusError
 			m.emitTaskLog(task.ID, "Exit Error: "+waitErr.Error(), false)
+			m.saveTask(task)
 			if m.OnTaskFailed != nil {
+				m.emitTaskUpdate(task)
 				go m.OnTaskFailed(task)
 			}
 		}
@@ -358,79 +460,6 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 			}
 		}
 
-		if task.TrimMode != models.TrimModeNone && task.FileExists && task.FilePath != "" {
-			task.Status = models.TaskStatusTrimming
-			m.emitTaskUpdate(task)
-
-			modeStr := "保留原文件"
-			if task.TrimMode == models.TrimModeOverwrite {
-				modeStr = "覆盖原文件"
-			}
-			m.emitTaskLog(task.ID, fmt.Sprintf("正在进行裁剪 (开始: %s, 结束: %s, 模式: %s)...", task.TrimStart, task.TrimEnd, modeStr), false)
-
-			ext := filepath.Ext(task.FilePath)
-			base := strings.TrimSuffix(task.FilePath, ext)
-			trimmedPath := base + "_trimmed" + ext
-
-			ffmpegPath, err := m.deps.GetFFmpegPath()
-			if err != nil {
-				m.emitTaskLog(task.ID, "FFmpeg not found", false)
-				task.Status = models.TaskStatusTrimFailed
-				m.emitTaskUpdate(task)
-				m.saveTask(task)
-				return
-			}
-
-			// args: -i input -ss start -to end -c copy output
-			// Use -y to overwrite output if exists
-			// Using output seeking (-ss after -i) to preserve time semantics (end time is absolute)
-			args := []string{"-i", task.FilePath}
-			if task.TrimStart != "" {
-				args = append(args, "-ss", task.TrimStart)
-			}
-			if task.TrimEnd != "" {
-				args = append(args, "-to", task.TrimEnd)
-			}
-			args = append(args, "-c", "copy", "-y", trimmedPath)
-
-			cmd := utils.CreateCommandContext(ctx, ffmpegPath, args...)
-
-			if output, err := cmd.CombinedOutput(); err != nil {
-				m.emitTaskLog(task.ID, fmt.Sprintf("裁剪失败: %v, %s", err, string(output)), false)
-				task.Status = models.TaskStatusTrimFailed
-			} else {
-				m.emitTaskLog(task.ID, "裁剪完成", false)
-
-				if task.TrimMode == models.TrimModeOverwrite {
-					if err := os.Remove(task.FilePath); err != nil {
-						m.emitTaskLog(task.ID, "删除原文件失败: "+err.Error(), false)
-						task.Status = models.TaskStatusTrimFailed
-					} else {
-						if err := os.Rename(trimmedPath, task.FilePath); err != nil {
-							m.emitTaskLog(task.ID, "重命名裁剪文件失败: "+err.Error(), false)
-							task.Status = models.TaskStatusTrimFailed
-						} else {
-							// Update file size in task
-							if info, err := os.Stat(task.FilePath); err == nil {
-								task.TotalSize = utils.FormatBytes(info.Size())
-								task.TotalBytes = info.Size()
-							}
-							task.Status = models.TaskStatusCompleted
-						}
-					}
-				} else {
-					// Keep both
-					task.Status = models.TaskStatusCompleted
-				}
-			}
-		} else {
-			task.Status = models.TaskStatusCompleted
-			if m.OnTaskComplete != nil {
-				go m.OnTaskComplete(task)
-			}
-		}
+		m.handleTrimming(ctx, task)
 	}
-
-	m.emitTaskUpdate(task)
-	m.saveTask(task)
 }

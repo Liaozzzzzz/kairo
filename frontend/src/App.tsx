@@ -158,7 +158,7 @@ function App() {
       (data: {
         id: string;
         progress: number;
-        total_size?: string;
+        total_bytes?: number;
         speed?: string;
         eta?: string;
       }) => {
@@ -194,16 +194,11 @@ function App() {
       }
     );
 
-    const cleanupDebugNotify = EventsOn('debug:notify', (message: string) => {
-      console.log('[debug:notify]', message);
-    });
-
     return () => {
       cleanupUpdate();
       cleanupProgress();
       cleanupLog();
       cleanupVideoStatus();
-      cleanupDebugNotify();
     };
   }, [
     setDefaultDir,

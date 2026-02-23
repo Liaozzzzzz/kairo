@@ -366,7 +366,6 @@ func (m *Manager) FetchSubtitles(id string) error {
 	}
 
 	args = append(args, v.URL)
-	wailsRuntime.LogInfo(m.ctx, fmt.Sprintf("running command: %s %s", ytDlpPath, strings.Join(args, " ")))
 	cmd := utils.CreateCommandContext(m.ctx, ytDlpPath, args...)
 
 	if output, err := cmd.CombinedOutput(); err != nil {

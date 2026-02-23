@@ -25,6 +25,7 @@ import {
 } from '@root/wailsjs/go/main/App';
 import { useTaskStore } from '@/store/useTaskStore';
 import { ImageFallback } from '@/data/variables';
+import { formatBytes } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
 
 interface TaskItemProps {
@@ -92,7 +93,7 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
   };
 
   const displayProgress = task.progress;
-  const displaySize = task.total_size;
+  const displaySize = task.total_bytes ? formatBytes(task.total_bytes) : undefined;
 
   const confirmDelete = (purge: boolean) => {
     if (task.status === TaskStatus.Merging || task.status === TaskStatus.Trimming) {

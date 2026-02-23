@@ -303,7 +303,7 @@ func (a *App) GetTasks() map[string]*models.DownloadTask {
 	return a.taskManager.GetTasks()
 }
 
-func (a *App) DeleteTask(id string, deleteFile bool) []string {
+func (a *App) DeleteTask(id string, deleteFile bool) ([]string, error) {
 	return a.taskManager.DeleteTask(id, deleteFile)
 }
 

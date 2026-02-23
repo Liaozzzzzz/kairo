@@ -46,31 +46,28 @@ type PlaylistItem struct {
 }
 
 type DownloadTask struct {
-	ID          string     `json:"id"`
-	URL         string     `json:"url"`
-	Dir         string     `json:"dir"`
-	Quality     string     `json:"quality"` // "best", "1080p", "720p", "audio"
-	Format      string     `json:"format"`  // "original", "webm", "mp4", "mkv", "avi", "flv", "mov"
-	FormatID    string     `json:"format_id"`
-	ParentID    string     `json:"parent_id"`
-	SourceType  SourceType `json:"source_type"`
-	Status      TaskStatus `json:"status"`
-	Progress    float64    `json:"progress"`
-	Title       string     `json:"title"`
-	Thumbnail   string     `json:"thumbnail"`
-	TotalSize   string     `json:"total_size"`
-	Speed       string     `json:"speed"`
-	Eta         string     `json:"eta"`
-	CurrentItem int        `json:"current_item"`
-	TotalItems  int        `json:"total_items"`
-	LogPath     string     `json:"log_path"`
-	FileExists  bool       `json:"file_exists"`
-	FilePath    string     `json:"file_path"`
-	TotalBytes  int64      `json:"total_bytes"`
-	TrimStart   string     `json:"trim_start"`
-	TrimEnd     string     `json:"trim_end"`
-	TrimMode    TrimMode   `json:"trim_mode"`
-	CreatedAt   int64      `json:"created_at"`
+	ID         string     `json:"id"`
+	URL        string     `json:"url"`
+	Dir        string     `json:"dir"`
+	Quality    string     `json:"quality"` // "best", "1080p", "720p", "audio"
+	Format     string     `json:"format"`  // "original", "webm", "mp4", "mkv", "avi", "flv", "mov"
+	FormatID   string     `json:"format_id"`
+	ParentID   string     `json:"parent_id"`
+	SourceType SourceType `json:"source_type"`
+	Status     TaskStatus `json:"status"`
+	Progress   float64    `json:"progress"`
+	Title      string     `json:"title"`
+	Thumbnail  string     `json:"thumbnail"`
+	Speed      string     `json:"speed"`
+	Eta        string     `json:"eta"`
+	LogPath    string     `json:"log_path"`
+	FileExists bool       `json:"file_exists"`
+	FilePath   string     `json:"file_path"`
+	TotalBytes int64      `json:"total_bytes"`
+	TrimStart  string     `json:"trim_start"`
+	TrimEnd    string     `json:"trim_end"`
+	TrimMode   TrimMode   `json:"trim_mode"`
+	CreatedAt  int64      `json:"created_at"`
 }
 
 type QualityOption struct {

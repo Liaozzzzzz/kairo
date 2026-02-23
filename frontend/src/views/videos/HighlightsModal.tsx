@@ -245,7 +245,7 @@ export default function VideoHighlightsModal({
             </div>
           </div>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3 pt-20">
+          <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3 pt-40">
             {analyzing || status === 'processing' ? (
               <>
                 <Spin size="large" />

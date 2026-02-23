@@ -6,11 +6,12 @@ import {
   RobotOutlined,
   FileTextOutlined,
   ScissorOutlined,
+  FolderOpenOutlined,
 } from '@ant-design/icons';
 import { Video } from '@/types';
 import { formatDuration } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
-import { DeleteVideo, OpenFile } from '@root/wailsjs/go/main/App';
+import { DeleteVideo, OpenFile, ShowInFolder } from '@root/wailsjs/go/main/App';
 import { Grid, GridProps } from 'react-window';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 
@@ -76,6 +77,18 @@ const Cell = (props: any) => {
       await OpenFile(video.file_path);
     } catch (error) {
       console.error('Failed to open file:', error);
+      notification.error({
+        title: t('videos.open_failed'),
+        description: (error as Error).message || (error as string),
+      });
+    }
+  };
+
+  const handleShowInFolder = async (path: string) => {
+    try {
+      await ShowInFolder(path);
+    } catch (error) {
+      console.error('Failed to open folder:', error);
       notification.error({
         title: t('videos.open_failed'),
         description: (error as Error).message || (error as string),
@@ -155,6 +168,18 @@ const Cell = (props: any) => {
                 }}
               >
                 <FileTextOutlined />
+              </div>
+            </Tooltip>
+            <Divider orientation="vertical" />
+            <Tooltip title={t('videos.show_in_folder')}>
+              <div
+                className="w-7 h-7 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-green-500 dark:hover:text-green-400 flex items-center justify-center transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleShowInFolder(video.file_path);
+                }}
+              >
+                <FolderOpenOutlined />
               </div>
             </Tooltip>
             <Divider orientation="vertical" />

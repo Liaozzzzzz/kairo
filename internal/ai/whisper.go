@@ -154,11 +154,6 @@ func (m *Manager) transcribeWhisperRaw(filePath string, responseFormat string) (
 			return nil, err
 		}
 	}
-	if cfg.Language != "" {
-		if err := writer.WriteField("language", cfg.Language); err != nil {
-			return nil, err
-		}
-	}
 	if err := writer.Close(); err != nil {
 		return nil, err
 	}

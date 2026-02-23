@@ -26,8 +26,8 @@ import RSSView from '@/views/rss';
 import Videos from '@/views/videos';
 import appIcon from '@/assets/images/icon-full.png';
 import { MenuItemKey, TaskStatus, SourceType } from './data/variables';
-
 import { getThemeColor } from '@/data/themeColors';
+import { models } from '@root/wailsjs/go/models';
 
 const { Sider, Content } = Layout;
 
@@ -181,8 +181,16 @@ function App() {
         summary: string;
         evaluation: string;
         tags: string[];
+        highlights: models.AIHighlight[];
       }) => {
-        updateVideoStatus(data.id, data.status, data.summary, data.evaluation, data.tags);
+        updateVideoStatus(
+          data.id,
+          data.status,
+          data.summary,
+          data.evaluation,
+          data.tags,
+          data.highlights
+        );
       }
     );
 

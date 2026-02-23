@@ -1,21 +1,27 @@
 package ai
 
 import (
+	_ "embed"
 	"strings"
 
 	"Kairo/internal/config"
 )
 
+//go:embed prompts/analysis.txt
+var defaultAIPrompt string
+
 type VideoMetadata struct {
-	Title       string
-	Description string
-	Subtitles   string
-	Uploader    string
-	Duration    string
-	Resolution  string
-	Format      string
-	Size        string
-	Date        string
+	Title            string
+	Description      string
+	Subtitles        string
+	SubtitleStats    string
+	EnergyCandidates string
+	Uploader         string
+	Duration         string
+	Resolution       string
+	Format           string
+	Size             string
+	Date             string
 }
 
 type AnalysisResult struct {
@@ -30,38 +36,12 @@ type AnalysisResult struct {
 }
 
 func (m *Manager) Analyze(meta VideoMetadata) (*AnalysisResult, error) {
-	cfg := config.GetSettings().AI
-	if !cfg.Enabled {
+	settings := config.GetSettings()
+	if !settings.AI.Enabled {
 		return nil, ErrAIDisabled
 	}
 
-	prompt := cfg.Prompt
-	if prompt == "" {
-		prompt = `Analyze the following video content.
-Provide a JSON response with the following fields:
-- "summary": A concise summary of the video content (max 200 words).
-- "tags": A list of 5-10 relevant tags/keywords.
-- "evaluation": A brief evaluation of the video quality/value.
-- "highlights": A list of 3-5 key moments/highlights. Each item must have:
-  - "start": Start time in HH:MM:SS format (e.g. "00:01:30").
-  - "end": End time in HH:MM:SS format.
-  - "description": Brief description of the highlight.
-
-Video Information:
-- Title: {{title}}
-- Uploader: {{uploader}}
-- Date: {{date}}
-- Duration: {{duration}}
-- Resolution: {{resolution}}
-- Format: {{format}}
-- Size: {{size}}
-
-Video Description:
-{{description}}
-
-Video Subtitles (excerpt):
-{{subtitles}}`
-	}
+	prompt := loadPrompt(settings.AI)
 
 	prompt = strings.ReplaceAll(prompt, "{{title}}", meta.Title)
 	prompt = strings.ReplaceAll(prompt, "{{uploader}}", meta.Uploader)
@@ -72,13 +52,28 @@ Video Subtitles (excerpt):
 	prompt = strings.ReplaceAll(prompt, "{{size}}", meta.Size)
 	prompt = strings.ReplaceAll(prompt, "{{description}}", meta.Description)
 	prompt = strings.ReplaceAll(prompt, "{{subtitles}}", meta.Subtitles)
+	prompt = strings.ReplaceAll(prompt, "{{subtitle_stats}}", meta.SubtitleStats)
+	prompt = strings.ReplaceAll(prompt, "{{energy_candidates}}", meta.EnergyCandidates)
+	prompt = strings.ReplaceAll(prompt, "{{language}}", settings.Language)
 
-	switch cfg.Provider {
+	switch settings.AI.Provider {
 	case "openai", "local", "custom", "deepseek", "siliconflow":
-		return m.callOpenAI(cfg, prompt)
+		return m.callOpenAI(settings.AI, prompt)
 	case "anthropic":
-		return m.callAnthropic(cfg, prompt)
+		return m.callAnthropic(settings.AI, prompt)
 	default:
-		return m.callOpenAI(cfg, prompt)
+		return m.callOpenAI(settings.AI, prompt)
 	}
+}
+
+func loadPrompt(cfg config.AIConfig) string {
+	basePrompt := strings.TrimSpace(defaultAIPrompt)
+	extraPrompt := strings.TrimSpace(cfg.Prompt)
+	if basePrompt == "" {
+		return extraPrompt
+	}
+	if extraPrompt == "" {
+		return basePrompt
+	}
+	return basePrompt + "\n\n" + extraPrompt
 }

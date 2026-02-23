@@ -20,7 +20,6 @@ export interface AIConfig {
   apiKey: string;
   modelName: string;
   prompt: string;
-  language: string;
 }
 
 export interface WhisperAIConfig {
@@ -30,7 +29,6 @@ export interface WhisperAIConfig {
   apiKey: string;
   modelName: string;
   prompt: string;
-  language: string;
 }
 
 export interface AppSettings {
@@ -66,7 +64,6 @@ const DEFAULT_AI_CONFIG: AIConfig = {
   apiKey: '',
   modelName: 'gpt-3.5-turbo',
   prompt: '',
-  language: 'zh',
 };
 
 const DEFAULT_WHISPER_AI_CONFIG: WhisperAIConfig = {
@@ -76,7 +73,6 @@ const DEFAULT_WHISPER_AI_CONFIG: WhisperAIConfig = {
   apiKey: '',
   modelName: 'whisper-1',
   prompt: '',
-  language: 'zh',
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -145,7 +141,6 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
       apiKey: typeof value.apiKey === 'string' ? value.apiKey : '',
       modelName: typeof value.modelName === 'string' ? value.modelName : 'gpt-3.5-turbo',
       prompt: typeof value.prompt === 'string' ? value.prompt : '',
-      language: typeof value.language === 'string' ? value.language : 'zh',
     };
   };
 
@@ -158,7 +153,6 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
       apiKey: typeof value.apiKey === 'string' ? value.apiKey : '',
       modelName: typeof value.modelName === 'string' ? value.modelName : 'whisper-1',
       prompt: typeof value.prompt === 'string' ? value.prompt : '',
-      language: typeof value.language === 'string' ? value.language : 'zh',
     };
   };
 

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"Kairo/internal/config"
 )
@@ -43,7 +44,10 @@ func (m *Manager) callOpenAI(cfg config.AIConfig, prompt string) (*AnalysisResul
 		req.Header.Set("Authorization", "Bearer "+cfg.APIKey)
 	}
 
-	resp, err := m.client.Do(req)
+	client := *m.client
+	client.Timeout = 5 * time.Minute
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -74,6 +78,8 @@ func (m *Manager) callOpenAI(cfg config.AIConfig, prompt string) (*AnalysisResul
 
 	fmt.Printf("[AI Response] Content: %s\n", content)
 
+	content = sanitizeJSONContent(content)
+
 	var analysis AnalysisResult
 	if err := json.Unmarshal([]byte(content), &analysis); err != nil {
 		fmt.Printf("[AI Response Error] Failed to parse JSON: %v\n", err)
@@ -88,6 +94,26 @@ func (m *Manager) callOpenAI(cfg config.AIConfig, prompt string) (*AnalysisResul
 	}
 
 	return &analysis, nil
+}
+
+func sanitizeJSONContent(content string) string {
+	trimmed := strings.TrimSpace(content)
+	if strings.HasPrefix(trimmed, "```") {
+		trimmed = strings.TrimPrefix(trimmed, "```json")
+		trimmed = strings.TrimPrefix(trimmed, "```")
+		trimmed = strings.TrimSpace(trimmed)
+		if strings.HasSuffix(trimmed, "```") {
+			trimmed = strings.TrimSuffix(trimmed, "```")
+			trimmed = strings.TrimSpace(trimmed)
+		}
+	}
+
+	start := strings.Index(trimmed, "{")
+	end := strings.LastIndex(trimmed, "}")
+	if start >= 0 && end > start {
+		return strings.TrimSpace(trimmed[start : end+1])
+	}
+	return trimmed
 }
 
 func (m *Manager) callAnthropic(cfg config.AIConfig, prompt string) (*AnalysisResult, error) {

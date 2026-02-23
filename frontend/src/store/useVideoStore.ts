@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Video } from '@/types';
 import { GetVideos } from '@root/wailsjs/go/main/App';
+import { models } from '@root/wailsjs/go/models';
 
 interface VideoState {
   videos: Video[];
@@ -12,7 +13,8 @@ interface VideoState {
     status: string,
     summary?: string,
     evaluation?: string,
-    tags?: string[]
+    tags?: string[],
+    highlights?: models.AIHighlight[]
   ) => void;
   removeVideo: (id: string) => void;
 }
@@ -35,7 +37,7 @@ export const useVideoStore = create<VideoState>((set) => ({
     }
   },
 
-  updateVideoStatus: (id, status, summary, evaluation, tags) =>
+  updateVideoStatus: (id, status, summary, evaluation, tags, highlights) =>
     set((state) => ({
       videos: state.videos.map((v) =>
         v.id === id
@@ -45,6 +47,7 @@ export const useVideoStore = create<VideoState>((set) => ({
               summary: summary || v.summary,
               evaluation: evaluation || v.evaluation,
               tags: tags || v.tags,
+              highlights: highlights || v.highlights,
             }
           : v
       ),

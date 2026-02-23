@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -456,8 +458,7 @@ func (m *Manager) UpdateVideoStatus(id, status, summary, evaluation string, tags
 	if err == nil {
 		// If completed, save highlights
 		if status == "completed" && len(highlights) > 0 {
-			// Delete old highlights
-			_, _ = m.db.Exec("DELETE FROM video_highlights WHERE video_id = ?", id)
+			_ = m.clearHighlightFiles(id)
 
 			highlightQuery := `INSERT INTO video_highlights (id, video_id, start_time, end_time, description, file_path) VALUES (?, ?, ?, ?, ?, ?)`
 			for _, h := range highlights {
@@ -495,24 +496,38 @@ func (m *Manager) AnalyzeVideo(id string) error {
 
 	go func() {
 		var subtitlesContent string
+		var subtitleStats string
+		var energyCandidatesText string
+		var energyCandidates []energyCandidate
+		var subtitleSegments []subtitleSegment
 		if len(v.Subtitles) > 0 {
 			if segments, err := parseSubtitleFile(v.Subtitles[0]); err == nil && len(segments) > 0 {
+				subtitleSegments = segments
 				subtitlesContent = buildSubtitleText(segments)
+				subtitleStats, energyCandidates = buildSubtitleAnalysis(segments, v.Duration)
+				energyCandidatesText = formatEnergyCandidates(energyCandidates)
 			} else if content, readErr := os.ReadFile(v.Subtitles[0]); readErr == nil {
 				subtitlesContent = string(content)
 			}
 		}
+		if len(subtitlesContent) > 12000 {
+			head := subtitlesContent[:8000]
+			tail := subtitlesContent[len(subtitlesContent)-4000:]
+			subtitlesContent = head + "\n...\n" + tail
+		}
 
 		meta := ai.VideoMetadata{
-			Title:       v.Title,
-			Description: v.Description,
-			Subtitles:   subtitlesContent,
-			Uploader:    v.Uploader,
-			Duration:    utils.FormatDuration(v.Duration),
-			Resolution:  v.Resolution,
-			Format:      v.Format,
-			Size:        utils.FormatBytes(v.Size),
-			Date:        time.Unix(v.CreatedAt, 0).Format("2006-01-02"),
+			Title:            v.Title,
+			Description:      v.Description,
+			Subtitles:        subtitlesContent,
+			SubtitleStats:    subtitleStats,
+			EnergyCandidates: energyCandidatesText,
+			Uploader:         v.Uploader,
+			Duration:         utils.FormatDuration(v.Duration),
+			Resolution:       v.Resolution,
+			Format:           v.Format,
+			Size:             utils.FormatBytes(v.Size),
+			Date:             time.Unix(v.CreatedAt, 0).Format("2006-01-02"),
 		}
 
 		result, err := m.aiService.Analyze(meta)
@@ -526,6 +541,11 @@ func (m *Manager) AnalyzeVideo(id string) error {
 			m.UpdateVideoStatus(id, "failed", fmt.Sprintf("Error: %v", err), "", nil, nil)
 			return
 		}
+
+		if len(result.Highlights) == 0 && len(energyCandidates) > 0 {
+			result.Highlights = buildFallbackHighlights(energyCandidates)
+		}
+		result.Highlights = normalizeHighlights(result.Highlights, v.Duration, subtitleSegments, energyCandidates)
 
 		// Convert result highlights to model highlights
 		var highlights []models.AIHighlight
@@ -548,6 +568,187 @@ func (m *Manager) AnalyzeVideo(id string) error {
 	}()
 
 	return nil
+}
+
+func (m *Manager) clearHighlightFiles(videoID string) error {
+	if m.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	rows, err := m.db.Query("SELECT file_path FROM video_highlights WHERE video_id = ?", videoID)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var filePath sql.NullString
+		if err := rows.Scan(&filePath); err != nil {
+			continue
+		}
+		if !filePath.Valid || strings.TrimSpace(filePath.String) == "" {
+			continue
+		}
+		if err := utils.DeleteFile(filePath.String); err != nil {
+			fmt.Printf("Failed to remove highlight file %s: %v\n", filePath.String, err)
+		}
+	}
+
+	_, err = m.db.Exec("DELETE FROM video_highlights WHERE video_id = ?", videoID)
+	return err
+}
+
+func buildFallbackHighlights(candidates []energyCandidate) []struct {
+	Start       string `json:"start"`
+	End         string `json:"end"`
+	Description string `json:"description"`
+} {
+	highlights := make([]struct {
+		Start       string `json:"start"`
+		End         string `json:"end"`
+		Description string `json:"description"`
+	}, 0, len(candidates))
+	for _, candidate := range candidates {
+		highlights = append(highlights, struct {
+			Start       string `json:"start"`
+			End         string `json:"end"`
+			Description string `json:"description"`
+		}{
+			Start:       formatTimestampHMS(candidate.Start),
+			End:         formatTimestampHMS(candidate.End),
+			Description: "高能片段：" + candidate.Reason,
+		})
+	}
+	return highlights
+}
+
+type highlightRange struct {
+	Start       float64
+	End         float64
+	Description string
+}
+
+func normalizeHighlights(highlights []struct {
+	Start       string `json:"start"`
+	End         string `json:"end"`
+	Description string `json:"description"`
+}, videoDuration float64, segments []subtitleSegment, candidates []energyCandidate) []struct {
+	Start       string `json:"start"`
+	End         string `json:"end"`
+	Description string `json:"description"`
+} {
+	if len(highlights) == 0 {
+		return highlights
+	}
+	maxTime := videoDuration
+	if maxTime <= 0 {
+		maxTime = maxSegmentEnd(segments)
+	}
+	if maxTime <= 0 && len(candidates) > 0 {
+		maxTime = candidates[len(candidates)-1].End
+	}
+	minDuration := 60.0
+	targetDuration := 90.0
+	maxDuration := 180.0
+	var normalized []highlightRange
+	for _, h := range highlights {
+		startSec, okStart := parseHmsTimestamp(h.Start)
+		endSec, okEnd := parseHmsTimestamp(h.End)
+		if !okStart || !okEnd || endSec <= startSec {
+			continue
+		}
+		start := startSec
+		end := endSec
+		duration := end - start
+		if duration < minDuration {
+			mid := (start + end) / 2
+			start = mid - targetDuration/2
+			end = mid + targetDuration/2
+		} else if duration > maxDuration {
+			mid := (start + end) / 2
+			start = mid - maxDuration/2
+			end = mid + maxDuration/2
+		}
+		start, end = clampRange(start, end, maxTime)
+		start, end = snapRangeToSegments(segments, start, end)
+		start, end = alignToEnergyCandidate(start, end, candidates, minDuration, maxTime)
+		normalized = append(normalized, highlightRange{
+			Start:       start,
+			End:         end,
+			Description: h.Description,
+		})
+	}
+	if len(normalized) == 0 {
+		return highlights
+	}
+	sort.Slice(normalized, func(i, j int) bool {
+		return normalized[i].Start < normalized[j].Start
+	})
+	merged := mergeHighlightRanges(normalized, 5.0)
+	final := make([]struct {
+		Start       string `json:"start"`
+		End         string `json:"end"`
+		Description string `json:"description"`
+	}, 0, len(merged))
+	for _, h := range merged {
+		final = append(final, struct {
+			Start       string `json:"start"`
+			End         string `json:"end"`
+			Description string `json:"description"`
+		}{
+			Start:       formatTimestampHMS(h.Start),
+			End:         formatTimestampHMS(h.End),
+			Description: h.Description,
+		})
+	}
+	return final
+}
+
+func alignToEnergyCandidate(start float64, end float64, candidates []energyCandidate, minDuration float64, maxTime float64) (float64, float64) {
+	if len(candidates) == 0 {
+		return start, end
+	}
+	bestOverlap := 0.0
+	bestCandidate := energyCandidate{}
+	for _, c := range candidates {
+		overlap := math.Min(end, c.End) - math.Max(start, c.Start)
+		if overlap > bestOverlap {
+			bestOverlap = overlap
+			bestCandidate = c
+		}
+	}
+	if bestOverlap <= 0 {
+		return start, end
+	}
+	newStart := math.Min(start, bestCandidate.Start)
+	newEnd := math.Max(end, bestCandidate.End)
+	if newEnd-newStart < minDuration {
+		mid := (newStart + newEnd) / 2
+		newStart = mid - minDuration/2
+		newEnd = mid + minDuration/2
+	}
+	return clampRange(newStart, newEnd, maxTime)
+}
+
+func mergeHighlightRanges(items []highlightRange, gap float64) []highlightRange {
+	if len(items) == 0 {
+		return items
+	}
+	merged := []highlightRange{items[0]}
+	for i := 1; i < len(items); i++ {
+		last := &merged[len(merged)-1]
+		if items[i].Start <= last.End+gap {
+			if items[i].End > last.End {
+				last.End = items[i].End
+			}
+			if items[i].Description != "" && items[i].Description != last.Description {
+				last.Description = last.Description + "；" + items[i].Description
+			}
+			continue
+		}
+		merged = append(merged, items[i])
+	}
+	return merged
 }
 
 func (m *Manager) ClipHighlights(videoID string, highlights []models.AIHighlight) {

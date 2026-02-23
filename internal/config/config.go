@@ -22,7 +22,6 @@ type AIConfig struct {
 	APIKey    string `json:"apiKey"`
 	ModelName string `json:"modelName"`
 	Prompt    string `json:"prompt"`
-	Language  string `json:"language"`
 }
 
 type WhisperAIConfig struct {
@@ -32,7 +31,6 @@ type WhisperAIConfig struct {
 	APIKey    string `json:"apiKey"`
 	ModelName string `json:"modelName"`
 	Prompt    string `json:"prompt"`
-	Language  string `json:"language"`
 }
 
 type AppSettings struct {
@@ -64,13 +62,11 @@ func init() {
 			Provider:  "openai",
 			BaseURL:   "https://api.openai.com/v1",
 			ModelName: "gpt-3.5-turbo",
-			Language:  "zh",
 		},
 		WhisperAI: WhisperAIConfig{
 			Provider:  "openai",
 			BaseURL:   "https://api.openai.com/v1",
 			ModelName: "whisper-1",
-			Language:  "zh",
 		},
 	}
 }
@@ -147,17 +143,11 @@ func LoadSettings() error {
 	if currentConfig.AI.ModelName == "" {
 		currentConfig.AI.ModelName = "gpt-3.5-turbo"
 	}
-	if currentConfig.AI.Language == "" {
-		currentConfig.AI.Language = "zh"
-	}
 	if currentConfig.WhisperAI.BaseURL == "" {
 		currentConfig.WhisperAI.BaseURL = "https://api.openai.com/v1"
 	}
 	if currentConfig.WhisperAI.ModelName == "" {
 		currentConfig.WhisperAI.ModelName = "whisper-1"
-	}
-	if currentConfig.WhisperAI.Language == "" {
-		currentConfig.WhisperAI.Language = "zh"
 	}
 
 	return nil

@@ -115,14 +115,14 @@ func GetSiteName(url string) string {
 func CreateCommand(name string, arg ...string) *exec.Cmd {
 	cmd := exec.Command(name, arg...)
 	HideWindow(cmd)
-	log.Printf("[running command]: %s %s", name, strings.Join(arg, " "))
+	log.Printf("[CreateCommand] running command: %s %s", name, strings.Join(arg, " "))
 	return cmd
 }
 
 func CreateCommandContext(ctx context.Context, name string, arg ...string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, name, arg...)
 	HideWindow(cmd)
-	log.Printf("[running command with context]: %s %s", name, strings.Join(arg, " "))
+	log.Printf("[CreateCommandContext] running command: %s %s", name, strings.Join(arg, " "))
 	return cmd
 }
 

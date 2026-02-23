@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"os"
 	"path/filepath"
@@ -352,6 +353,7 @@ func (m *Manager) FetchSubtitles(id string) error {
 		"--skip-download",
 		"--write-subs",
 		"--write-auto-subs",
+		"--sub-langs", "all,-danmaku",
 		"-o", outputTemplate,
 	}
 
@@ -369,7 +371,7 @@ func (m *Manager) FetchSubtitles(id string) error {
 	cmd := utils.CreateCommandContext(m.ctx, ytDlpPath, args...)
 
 	if output, err := cmd.CombinedOutput(); err != nil {
-		wailsRuntime.LogError(m.ctx, fmt.Sprintf("failed to fetch subtitles: %v, output: %s", err, string(output)))
+		log.Printf("[FetchSubtitles] error fetch subtitles: %v, output: %s", err, string(output))
 		return fmt.Errorf("failed to fetch subtitles: %v, output: %s", err, string(output))
 	}
 
@@ -377,7 +379,7 @@ func (m *Manager) FetchSubtitles(id string) error {
 	if len(matches) == 0 {
 		asrMatches, err := m.GenerateSubtitlesByASR(v, dir)
 		if err != nil {
-			wailsRuntime.LogError(m.ctx, fmt.Sprintf("failed to generate subtitles by ASR: %v", err))
+			log.Printf("[FetchSubtitles] error generate subtitles by ASR: %v", err)
 		}
 		if len(asrMatches) > 0 {
 			matches = asrMatches
@@ -388,6 +390,7 @@ func (m *Manager) FetchSubtitles(id string) error {
 
 	// Update DB
 	if err := m.SaveVideo(v); err != nil {
+		log.Printf("[FetchSubtitles] error save video: %v", err)
 		return err
 	}
 
@@ -397,26 +400,35 @@ func (m *Manager) FetchSubtitles(id string) error {
 }
 
 func (m *Manager) GenerateSubtitlesByASR(v *models.Video, dir string) ([]string, error) {
-	wailsRuntime.LogInfo(m.ctx, "generating subtitles by ASR API")
+	if !config.GetSettings().WhisperAI.Enabled {
+		log.Printf("[GenerateSubtitlesByASR] Whisper disabled, skip generating subtitles")
+		return nil, nil
+	}
+
+	log.Printf("[GenerateSubtitlesByASR] start generate subtitles by ASR for video %s,", v.ID)
 	inputPath := v.FilePath
 	tempPath := ""
 	if strings.ToLower(filepath.Ext(v.FilePath)) != ".mp3" {
 		ffmpegPath, err := m.deps.GetFFmpegPath()
 		if err != nil {
+			log.Printf("[GenerateSubtitlesByASR] error get ffmpeg path: %v", err)
 			return nil, fmt.Errorf("asr failed: %v", err)
 		}
 		tempDir := filepath.Dir(v.FilePath)
 		tempFile, err := os.CreateTemp(tempDir, "whisper-*.mp3")
 		if err != nil {
+			log.Printf("[GenerateSubtitlesByASR] error create temp file: %v", err)
 			return nil, err
 		}
 		tempPath = tempFile.Name()
 		if err := tempFile.Close(); err != nil {
+			log.Printf("[GenerateSubtitlesByASR] error close temp file: %v", err)
 			return nil, err
 		}
 		args := []string{"-i", v.FilePath, "-vn", "-ac", "1", "-ar", "16000", "-c:a", "libmp3lame", "-y", tempPath}
 		cmd := utils.CreateCommand(ffmpegPath, args...)
 		if output, err := cmd.CombinedOutput(); err != nil {
+			log.Printf("[GenerateSubtitlesByASR] error convert to mp3: %v, output: %s", err, string(output))
 			_ = os.Remove(tempPath)
 			return nil, fmt.Errorf("ffmpeg error: %v, output: %s", err, string(output))
 		}
@@ -427,8 +439,9 @@ func (m *Manager) GenerateSubtitlesByASR(v *models.Video, dir string) ([]string,
 	}
 	content, err := m.aiService.TranscribeWhisper(inputPath, "vtt")
 	if err != nil {
+		log.Printf("[GenerateSubtitlesByASR] error transcribe whisper: %v", err)
 		if errors.Is(err, ai.ErrWhisperDisabled) {
-			wailsRuntime.LogInfo(m.ctx, "Whisper disabled, skip generating subtitles")
+			log.Printf("[GenerateSubtitlesByASR] Whisper disabled, skip generating subtitles")
 			return nil, nil
 		}
 		return nil, fmt.Errorf("asr failed: %v", err)
@@ -438,8 +451,10 @@ func (m *Manager) GenerateSubtitlesByASR(v *models.Video, dir string) ([]string,
 	baseName := strings.TrimSuffix(filepath.Base(v.FilePath), ext)
 	outputPath := filepath.Join(dir, baseName+".asr.vtt")
 	if err := os.WriteFile(outputPath, []byte(content), 0o644); err != nil {
+		log.Printf("[GenerateSubtitlesByASR] error write vtt file: %v", err)
 		return nil, err
 	}
+	log.Printf("[GenerateSubtitlesByASR] generate subtitles by ASR success, file: %s", outputPath)
 	return scanSubtitles(dir, baseName), nil
 }
 

@@ -244,7 +244,6 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
                 <ThumbnailImage
                   src={task.thumbnail}
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover"
                   alt=""
                   width="100%"
                   height="100%"

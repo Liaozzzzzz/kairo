@@ -106,9 +106,8 @@ const Cell = (props: any) => {
           <ThumbnailImage
             src={video.thumbnail}
             alt={video.title}
-            classNames={{
-              root: 'w-full h-full',
-            }}
+            width="100%"
+            height="100%"
             preview={false}
             fallback={icon}
           />

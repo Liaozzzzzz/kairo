@@ -2,7 +2,7 @@
 
 输出要求：
 1. 仅输出合法的JSON对象
-2. summary、evaluation、highlights.description 使用 {{language}} 语言
+2. summary、evaluation、highlights、description 使用 {{language}} 语言
 3. highlights 按时间先后排序
 4. 每个高能片段时长 60-180 秒，避免过短
 

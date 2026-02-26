@@ -3,7 +3,7 @@ import { UpdateSettings, GetSettings } from '@root/wailsjs/go/main/App';
 import { config as WailsConfig } from '@root/wailsjs/go/models';
 import { DEFAULT_THEME_COLOR } from '@/data/themeColors';
 
-export type AppLanguage = 'zh' | 'en';
+export type AppLanguage = 'zh-Hans' | 'en';
 export type AppTheme = 'light' | 'dark' | 'system';
 
 export interface CookieConfig {
@@ -14,15 +14,6 @@ export interface CookieConfig {
 }
 
 export interface AIConfig {
-  enabled: boolean;
-  provider: string;
-  baseUrl: string;
-  apiKey: string;
-  modelName: string;
-  prompt: string;
-}
-
-export interface WhisperAIConfig {
   enabled: boolean;
   provider: string;
   baseUrl: string;
@@ -44,7 +35,8 @@ export interface AppSettings {
   geoBypass: boolean;
   cookie: CookieConfig;
   ai: AIConfig;
-  whisperAi: WhisperAIConfig;
+  whisperAi: AIConfig;
+  translateAi: AIConfig;
   rssCheckInterval: number;
 }
 
@@ -66,7 +58,7 @@ const DEFAULT_AI_CONFIG: AIConfig = {
   prompt: '',
 };
 
-const DEFAULT_WHISPER_AI_CONFIG: WhisperAIConfig = {
+const DEFAULT_WHISPER_AI_CONFIG: AIConfig = {
   enabled: false,
   provider: 'openai',
   baseUrl: 'https://api.openai.com/v1',
@@ -75,11 +67,20 @@ const DEFAULT_WHISPER_AI_CONFIG: WhisperAIConfig = {
   prompt: '',
 };
 
+const DEFAULT_TRANSLATE_AI_CONFIG: AIConfig = {
+  enabled: false,
+  provider: 'openai',
+  baseUrl: 'https://api.openai.com/v1',
+  apiKey: '',
+  modelName: 'gpt-3.5-turbo',
+  prompt: '',
+};
+
 const DEFAULT_SETTINGS: AppSettings = {
   downloadDir: '',
   downloadConcurrency: 3,
   maxDownloadSpeed: null,
-  language: 'zh',
+  language: 'zh-Hans',
   theme: 'system',
   themeColor: DEFAULT_THEME_COLOR,
   proxyUrl: '',
@@ -89,6 +90,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   cookie: { ...DEFAULT_COOKIE_CONFIG },
   ai: { ...DEFAULT_AI_CONFIG },
   whisperAi: { ...DEFAULT_WHISPER_AI_CONFIG },
+  translateAi: { ...DEFAULT_TRANSLATE_AI_CONFIG },
   rssCheckInterval: 60,
 };
 
@@ -107,7 +109,7 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
     value.maxDownloadSpeed <= 150
       ? value.maxDownloadSpeed
       : null;
-  const language = value.language === 'en' ? 'en' : 'zh';
+  const language = value.language === 'en' ? 'en' : 'zh-Hans';
   const theme = value.theme === 'light' || value.theme === 'dark' ? value.theme : 'system';
   const themeColor = typeof value.themeColor === 'string' ? value.themeColor : DEFAULT_THEME_COLOR;
   const downloadDir = typeof value.downloadDir === 'string' ? value.downloadDir : '';
@@ -144,8 +146,8 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
     };
   };
 
-  const normalizeWhisperAI = (a: unknown): WhisperAIConfig => {
-    const value = typeof a === 'object' && a !== null ? (a as Partial<WhisperAIConfig>) : {};
+  const normalizeWhisperAI = (a: unknown): AIConfig => {
+    const value = typeof a === 'object' && a !== null ? (a as Partial<AIConfig>) : {};
     return {
       enabled: !!value.enabled,
       provider: typeof value.provider === 'string' ? value.provider : 'openai',
@@ -156,9 +158,22 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
     };
   };
 
+  const normalizeTranslateAI = (a: unknown): AIConfig => {
+    const value = typeof a === 'object' && a !== null ? (a as Partial<AIConfig>) : {};
+    return {
+      enabled: !!value.enabled,
+      provider: typeof value.provider === 'string' ? value.provider : 'openai',
+      baseUrl: typeof value.baseUrl === 'string' ? value.baseUrl : 'https://api.openai.com/v1',
+      apiKey: typeof value.apiKey === 'string' ? value.apiKey : '',
+      modelName: typeof value.modelName === 'string' ? value.modelName : 'gpt-3.5-turbo',
+      prompt: typeof value.prompt === 'string' ? value.prompt : '',
+    };
+  };
+
   const cookie = normalizeCookie(value.cookie);
   const ai = normalizeAI(value.ai);
   const whisperAi = normalizeWhisperAI(value.whisperAi);
+  const translateAi = normalizeTranslateAI(value.translateAi);
 
   return {
     ...DEFAULT_SETTINGS,
@@ -175,6 +190,7 @@ const normalizeSettings = (value: Partial<AppSettings>): AppSettings => {
     cookie,
     ai,
     whisperAi,
+    translateAi,
     rssCheckInterval,
   };
 };
@@ -192,7 +208,8 @@ interface SettingState {
   geoBypass: boolean;
   cookie: CookieConfig;
   ai: AIConfig;
-  whisperAi: WhisperAIConfig;
+  whisperAi: AIConfig;
+  translateAi: AIConfig;
   rssCheckInterval: number;
 
   // Actions
@@ -208,7 +225,8 @@ interface SettingState {
   setGeoBypass: (value: boolean) => void;
   setCookie: (value: CookieConfig) => void;
   setAI: (value: AIConfig) => void;
-  setWhisperAI: (value: WhisperAIConfig) => void;
+  setWhisperAI: (value: AIConfig) => void;
+  setTranslateAI: (value: AIConfig) => void;
   setRSSCheckInterval: (value: number) => void;
   loadSettings: () => void;
 }
@@ -227,6 +245,7 @@ export const useSettingStore = create<SettingState>((set, get) => ({
   cookie: DEFAULT_SETTINGS.cookie,
   ai: DEFAULT_SETTINGS.ai,
   whisperAi: DEFAULT_SETTINGS.whisperAi,
+  translateAi: DEFAULT_SETTINGS.translateAi,
   rssCheckInterval: DEFAULT_SETTINGS.rssCheckInterval,
 
   setDefaultDir: (dir) => {
@@ -281,6 +300,10 @@ export const useSettingStore = create<SettingState>((set, get) => ({
     set({ whisperAi: value });
     saveAppSettings(get());
   },
+  setTranslateAI: (value) => {
+    set({ translateAi: value });
+    saveAppSettings(get());
+  },
   setRSSCheckInterval: (value) => {
     set({ rssCheckInterval: value });
     saveAppSettings(get());
@@ -305,6 +328,7 @@ export const useSettingStore = create<SettingState>((set, get) => ({
           rssCheckInterval: normalized.rssCheckInterval,
           ai: normalized.ai,
           whisperAi: normalized.whisperAi,
+          translateAi: normalized.translateAi,
         });
       })
       .catch((e) => {
@@ -325,6 +349,7 @@ export const useSettingStore = create<SettingState>((set, get) => ({
           cookie: settings.cookie,
           rssCheckInterval: settings.rssCheckInterval,
           whisperAi: settings.whisperAi,
+          translateAi: settings.translateAi,
         });
       });
   },
@@ -358,6 +383,7 @@ function saveAppSettings(state: SettingState) {
     rssCheckInterval: state.rssCheckInterval,
     ai: state.ai,
     whisperAi: state.whisperAi,
+    translateAi: state.translateAi,
   };
   localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
   UpdateSettings(toWailsSettings(settings));

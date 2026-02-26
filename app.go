@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -132,6 +133,45 @@ func (a *App) GetVideo(id string) (*models.Video, error) {
 	return a.videoManager.GetVideo(id)
 }
 
+func (a *App) FetchSubtitles(id string) error {
+	return a.videoManager.FetchSubtitles(id)
+}
+
+// GetVideoSubtitles returns subtitles for a video
+func (a *App) GetVideoSubtitles(videoID string) ([]models.VideoSubtitle, error) {
+	return a.videoManager.GetVideoSubtitles(videoID)
+}
+
+// ImportSubtitle imports a subtitle file for a video
+func (a *App) ImportSubtitle(videoID string, filePath string, language string) (*models.VideoSubtitle, error) {
+	return a.videoManager.ImportSubtitle(videoID, filePath, language)
+}
+
+// TranslateSubtitle translates a subtitle into a target language
+func (a *App) TranslateSubtitle(input models.TranslateSubtitleInput) (*models.VideoSubtitle, error) {
+	return a.videoManager.TranslateSubtitle(input)
+}
+
+// SaveSubtitleContent saves subtitle content to a new file and registers it
+func (a *App) SaveSubtitleContent(videoID string, language string, content string) (*models.VideoSubtitle, error) {
+	return a.videoManager.SaveSubtitleContent(videoID, language, content)
+}
+
+// UpdateSubtitle updates the content of an existing subtitle
+func (a *App) UpdateSubtitle(subtitleID string, content string, language string) (*models.VideoSubtitle, error) {
+	return a.videoManager.UpdateSubtitle(subtitleID, content, language)
+}
+
+// DeleteSubtitle deletes a subtitle
+func (a *App) DeleteSubtitle(id string) error {
+	return a.videoManager.DeleteSubtitle(id)
+}
+
+// RegenerateSubtitle regenerates a failed subtitle
+func (a *App) RegenerateSubtitle(id string) (*models.VideoSubtitle, error) {
+	return a.videoManager.RegenerateSubtitle(id)
+}
+
 func (a *App) AddVideoToLibrary(taskID string) (bool, error) {
 	tasks := a.taskManager.GetTasks()
 	task, ok := tasks[taskID]
@@ -227,11 +267,6 @@ func (a *App) ClipVideo(videoID string, highlightID string, start, end string) e
 	return nil
 }
 
-// FetchSubtitles triggers subtitle download for a video
-func (a *App) FetchSubtitles(id string) error {
-	return a.videoManager.FetchSubtitles(id)
-}
-
 // OpenFile opens a file in the default system application
 func (a *App) OpenFile(path string) error {
 	var cmd *exec.Cmd
@@ -266,14 +301,40 @@ func (a *App) ShowInFolder(path string) error {
 	return cmd.Start()
 }
 
-func (a *App) ChooseFile() (string, error) {
+// FileFilter defines a file filter for dialogs
+type FileFilter struct {
+	DisplayName string `json:"displayName"`
+	Pattern     string `json:"pattern"`
+}
+
+func (a *App) ChooseFile(filters []FileFilter) (string, error) {
+	var wailsFilters []wailsRuntime.FileFilter
+	for _, f := range filters {
+		wailsFilters = append(wailsFilters, wailsRuntime.FileFilter{
+			DisplayName: f.DisplayName,
+			Pattern:     f.Pattern,
+		})
+	}
+
 	file, err := wailsRuntime.OpenFileDialog(a.ctx, wailsRuntime.OpenDialogOptions{
-		Title: "选择文件",
+		Title:   "选择文件",
+		Filters: wailsFilters,
 	})
 	if err != nil {
 		return "", err
 	}
 	return file, nil
+}
+
+func (a *App) ReadFileContent(filePath string) (string, error) {
+	if strings.TrimSpace(filePath) == "" {
+		return "", fmt.Errorf("file path is empty")
+	}
+	contentBytes, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", err
+	}
+	return string(contentBytes), nil
 }
 
 // GetDefaultDownloadDir returns the system download directory

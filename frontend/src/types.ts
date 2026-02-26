@@ -69,7 +69,6 @@ export interface Video {
   created_at: number;
   description: string;
   uploader: string;
-  subtitles: string[];
   summary: string;
   tags: string[];
   evaluation: string;
@@ -82,4 +81,29 @@ export interface Video {
     file_path?: string;
   }[];
   status: string;
+}
+
+export enum SubtitleStatus {
+  Generating = 0,
+  Success = 1,
+  Failed = 2,
+  Pending = 3,
+}
+
+export enum SubtitleSource {
+  Builtin = 0,
+  ASR = 1,
+  Manual = 2,
+  Translation = 3,
+}
+
+export interface VideoSubtitle {
+  id: string;
+  video_id: string;
+  file_path: string;
+  language: string;
+  status: SubtitleStatus;
+  source: SubtitleSource;
+  created_at: number;
+  updated_at: number;
 }

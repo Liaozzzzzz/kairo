@@ -24,28 +24,20 @@ type AIConfig struct {
 	Prompt    string `json:"prompt"`
 }
 
-type WhisperAIConfig struct {
-	Enabled   bool   `json:"enabled"`
-	Provider  string `json:"provider"` // "openai", "anthropic", "gemini", "deepseek", "siliconflow", "local", "custom"
-	BaseURL   string `json:"baseUrl"`
-	APIKey    string `json:"apiKey"`
-	ModelName string `json:"modelName"`
-	Prompt    string `json:"prompt"`
-}
-
 type AppSettings struct {
-	DownloadDir         string          `json:"downloadDir"`
-	DownloadConcurrency int             `json:"downloadConcurrency"`
-	MaxDownloadSpeed    *int            `json:"maxDownloadSpeed"` // MB/s
-	Language            string          `json:"language"`
-	ProxyUrl            string          `json:"proxyUrl"`
-	UserAgent           string          `json:"userAgent"`
-	Referer             string          `json:"referer"`
-	GeoBypass           bool            `json:"geoBypass"`
-	Cookie              CookieConfig    `json:"cookie"`
-	AI                  AIConfig        `json:"ai"`
-	WhisperAI           WhisperAIConfig `json:"whisperAi"`
-	RSSCheckInterval    int             `json:"rssCheckInterval"` // Minutes
+	DownloadDir         string       `json:"downloadDir"`
+	DownloadConcurrency int          `json:"downloadConcurrency"`
+	MaxDownloadSpeed    *int         `json:"maxDownloadSpeed"` // MB/s
+	Language            string       `json:"language"`
+	ProxyUrl            string       `json:"proxyUrl"`
+	UserAgent           string       `json:"userAgent"`
+	Referer             string       `json:"referer"`
+	GeoBypass           bool         `json:"geoBypass"`
+	Cookie              CookieConfig `json:"cookie"`
+	AI                  AIConfig     `json:"ai"`
+	WhisperAI           AIConfig     `json:"whisperAi"`
+	TranslateAI         AIConfig     `json:"translateAi"`
+	RSSCheckInterval    int          `json:"rssCheckInterval"` // Minutes
 }
 
 var (
@@ -63,11 +55,17 @@ func init() {
 			BaseURL:   "https://api.openai.com/v1",
 			ModelName: "gpt-3.5-turbo",
 		},
-		WhisperAI: WhisperAIConfig{
+		WhisperAI: AIConfig{
 			Provider:  "openai",
 			BaseURL:   "https://api.openai.com/v1",
 			ModelName: "whisper-1",
 		},
+		TranslateAI: AIConfig{
+			Provider:  "openai",
+			BaseURL:   "https://api.openai.com/v1",
+			ModelName: "gpt-3.5-turbo",
+		},
+		Language: "cn",
 	}
 }
 
@@ -148,6 +146,12 @@ func LoadSettings() error {
 	}
 	if currentConfig.WhisperAI.ModelName == "" {
 		currentConfig.WhisperAI.ModelName = "whisper-1"
+	}
+	if currentConfig.TranslateAI.BaseURL == "" {
+		currentConfig.TranslateAI.BaseURL = "https://api.openai.com/v1"
+	}
+	if currentConfig.TranslateAI.ModelName == "" {
+		currentConfig.TranslateAI.ModelName = "gpt-3.5-turbo"
 	}
 
 	return nil

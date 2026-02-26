@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"Kairo/internal/ai"
-	"Kairo/internal/config"
 	"Kairo/internal/deps"
 	"Kairo/internal/models"
 	"Kairo/internal/utils"
@@ -27,10 +26,11 @@ import (
 )
 
 type Manager struct {
-	ctx       context.Context
-	db        *sql.DB
-	aiService *ai.Manager
-	deps      *deps.Manager
+	ctx           context.Context
+	db            *sql.DB
+	aiService     *ai.Manager
+	deps          *deps.Manager
+	subtitleQueue chan SubtitleTask
 }
 
 func NewManager(ctx context.Context, db *sql.DB, d *deps.Manager) *Manager {
@@ -40,6 +40,7 @@ func NewManager(ctx context.Context, db *sql.DB, d *deps.Manager) *Manager {
 		aiService: ai.NewManager(ctx),
 		deps:      d,
 	}
+	m.InitSubtitleQueue()
 	return m
 }
 
@@ -50,15 +51,14 @@ func (m *Manager) SaveVideo(v *models.Video) error {
 
 	query := `INSERT OR REPLACE INTO videos (
 		id, task_id, title, url, file_path, thumbnail, duration, size, format, resolution, created_at,
-		description, uploader, subtitles, summary, tags, evaluation, status
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		description, uploader, summary, tags, evaluation, status
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-	subtitlesJSON, _ := json.Marshal(v.Subtitles)
 	tagsJSON, _ := json.Marshal(v.Tags)
 
 	_, err := m.db.Exec(query,
 		v.ID, v.TaskID, v.Title, v.URL, v.FilePath, v.Thumbnail, v.Duration, v.Size, v.Format, v.Resolution, v.CreatedAt,
-		v.Description, v.Uploader, string(subtitlesJSON), v.Summary, string(tagsJSON), v.Evaluation, v.Status,
+		v.Description, v.Uploader, v.Summary, string(tagsJSON), v.Evaluation, v.Status,
 	)
 
 	return err
@@ -90,35 +90,19 @@ func (m *Manager) CreateFromTask(t *models.DownloadTask) error {
 		Status:     "none",
 	}
 
-	// Scan for subtitles
-	dir := filepath.Dir(t.FilePath)
-	ext := filepath.Ext(t.FilePath)
-	base := strings.TrimSuffix(filepath.Base(t.FilePath), ext)
-
-	matches := scanSubtitles(dir, base)
-
-	for _, match := range matches {
-		v.Subtitles = append(v.Subtitles, match)
-	}
-
 	if v.Duration <= 0 && v.FilePath != "" {
+		log.Printf("[CreateFromTask] get duration from file: %s", v.FilePath)
 		if duration, err := m.getDurationFromFile(v.FilePath); err == nil {
 			v.Duration = duration
 		}
+		log.Printf("[CreateFromTask] duration: %f", v.Duration)
 	}
 
 	err = m.SaveVideo(v)
-	if err == nil && len(v.Subtitles) == 0 && v.URL != "" {
+	if err == nil {
 		go m.FetchSubtitles(v.ID)
 	}
 	return err
-}
-
-func scanSubtitles(dir, base string) []string {
-	matches, _ := filepath.Glob(filepath.Join(dir, base+".*.vtt"))
-	srtMatches, _ := filepath.Glob(filepath.Join(dir, base+".*.srt"))
-	matches = append(matches, srtMatches...)
-	return matches
 }
 
 func (m *Manager) getDurationFromFile(filePath string) (float64, error) {
@@ -217,11 +201,11 @@ func (m *Manager) GetVideos(filter models.VideoFilter) ([]*models.Video, error) 
 	var videos []*models.Video
 	for rows.Next() {
 		var v models.Video
-		var subtitlesJSON, tagsJSON string
+		var tagsJSON string
 		var url sql.NullString
 		err := rows.Scan(
 			&v.ID, &v.TaskID, &v.Title, &url, &v.FilePath, &v.Thumbnail, &v.Duration, &v.Size, &v.Format, &v.Resolution, &v.CreatedAt,
-			&v.Description, &v.Uploader, &subtitlesJSON, &v.Summary, &tagsJSON, &v.Evaluation, &v.Status,
+			&v.Description, &v.Uploader, &v.Summary, &tagsJSON, &v.Evaluation, &v.Status,
 		)
 		if err != nil {
 			continue
@@ -229,7 +213,6 @@ func (m *Manager) GetVideos(filter models.VideoFilter) ([]*models.Video, error) 
 		if url.Valid {
 			v.URL = url.String
 		}
-		json.Unmarshal([]byte(subtitlesJSON), &v.Subtitles)
 		json.Unmarshal([]byte(tagsJSON), &v.Tags)
 
 		videos = append(videos, &v)
@@ -244,16 +227,16 @@ func (m *Manager) GetVideo(id string) (*models.Video, error) {
 	}
 
 	var v models.Video
-	var subtitlesJSON, tagsJSON string
+	var tagsJSON string
 	var url sql.NullString
 	// Explicitly select columns to avoid issues with old schema having extra columns
 	query := `SELECT id, task_id, title, url, file_path, thumbnail, duration, size, format, resolution, created_at,
-		description, uploader, subtitles, summary, tags, evaluation, status
+		description, uploader, summary, tags, evaluation, status
 		FROM videos WHERE id = ?`
 
 	err := m.db.QueryRow(query, id).Scan(
 		&v.ID, &v.TaskID, &v.Title, &url, &v.FilePath, &v.Thumbnail, &v.Duration, &v.Size, &v.Format, &v.Resolution, &v.CreatedAt,
-		&v.Description, &v.Uploader, &subtitlesJSON, &v.Summary, &tagsJSON, &v.Evaluation, &v.Status,
+		&v.Description, &v.Uploader, &v.Summary, &tagsJSON, &v.Evaluation, &v.Status,
 	)
 	if err != nil {
 		return nil, err
@@ -261,7 +244,6 @@ func (m *Manager) GetVideo(id string) (*models.Video, error) {
 	if url.Valid {
 		v.URL = url.String
 	}
-	json.Unmarshal([]byte(subtitlesJSON), &v.Subtitles)
 	json.Unmarshal([]byte(tagsJSON), &v.Tags)
 
 	return &v, nil
@@ -309,6 +291,14 @@ func (m *Manager) DeleteVideo(id string) error {
 		return fmt.Errorf("database not initialized")
 	}
 
+	subs, _ := m.GetVideoSubtitles(id)
+	for _, sub := range subs {
+		if strings.TrimSpace(sub.FilePath) == "" {
+			continue
+		}
+		_ = utils.DeleteFile(sub.FilePath)
+	}
+
 	tx, err := m.db.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %v", err)
@@ -322,140 +312,17 @@ func (m *Manager) DeleteVideo(id string) error {
 		return fmt.Errorf("failed to delete highlights: %v", err)
 	}
 
+	_, err = tx.Exec("DELETE FROM video_subtitles WHERE video_id = ?", id)
+	if err != nil {
+		return fmt.Errorf("failed to delete subtitles: %v", err)
+	}
+
 	_, err = tx.Exec("DELETE FROM videos WHERE id = ?", id)
 	if err != nil {
 		return fmt.Errorf("failed to delete video: %v", err)
 	}
 
 	return tx.Commit()
-}
-
-func (m *Manager) FetchSubtitles(id string) error {
-	v, err := m.GetVideo(id)
-	if err != nil {
-		return err
-	}
-	if v.URL == "" {
-		return fmt.Errorf("no URL found for video %s", id)
-	}
-	ytDlpPath, err := m.deps.GetYtDlpPath()
-	if err != nil {
-		return err
-	}
-
-	// Prepare command
-	dir := filepath.Dir(v.FilePath)
-	ext := filepath.Ext(v.FilePath)
-	baseName := strings.TrimSuffix(filepath.Base(v.FilePath), ext)
-	outputTemplate := filepath.Join(dir, baseName+".%(ext)s")
-
-	args := []string{
-		"--skip-download",
-		"--write-subs",
-		"--write-auto-subs",
-		"--sub-langs", "all,-danmaku",
-		"-o", outputTemplate,
-	}
-
-	if proxy := config.GetProxyUrl(); proxy != "" {
-		args = append(args, "--proxy", proxy)
-	}
-	if ua := config.GetUserAgent(); ua != "" {
-		args = append(args, "--user-agent", ua)
-	}
-	if cookieArgs := config.GetCookieArgs(); len(cookieArgs) > 0 {
-		args = append(args, cookieArgs...)
-	}
-
-	args = append(args, v.URL)
-	cmd := utils.CreateCommandContext(m.ctx, ytDlpPath, args...)
-
-	if output, err := cmd.CombinedOutput(); err != nil {
-		log.Printf("[FetchSubtitles] error fetch subtitles: %v, output: %s", err, string(output))
-		return fmt.Errorf("failed to fetch subtitles: %v, output: %s", err, string(output))
-	}
-
-	matches := scanSubtitles(dir, baseName)
-	if len(matches) == 0 {
-		asrMatches, err := m.GenerateSubtitlesByASR(v, dir)
-		if err != nil {
-			log.Printf("[FetchSubtitles] error generate subtitles by ASR: %v", err)
-		}
-		if len(asrMatches) > 0 {
-			matches = asrMatches
-		}
-	}
-
-	v.Subtitles = matches
-
-	// Update DB
-	if err := m.SaveVideo(v); err != nil {
-		log.Printf("[FetchSubtitles] error save video: %v", err)
-		return err
-	}
-
-	// Emit update event
-	wailsRuntime.EventsEmit(m.ctx, "video:updated", v)
-	return nil
-}
-
-func (m *Manager) GenerateSubtitlesByASR(v *models.Video, dir string) ([]string, error) {
-	if !config.GetSettings().WhisperAI.Enabled {
-		log.Printf("[GenerateSubtitlesByASR] Whisper disabled, skip generating subtitles")
-		return nil, nil
-	}
-
-	log.Printf("[GenerateSubtitlesByASR] start generate subtitles by ASR for video %s,", v.ID)
-	inputPath := v.FilePath
-	tempPath := ""
-	if strings.ToLower(filepath.Ext(v.FilePath)) != ".mp3" {
-		ffmpegPath, err := m.deps.GetFFmpegPath()
-		if err != nil {
-			log.Printf("[GenerateSubtitlesByASR] error get ffmpeg path: %v", err)
-			return nil, fmt.Errorf("asr failed: %v", err)
-		}
-		tempDir := filepath.Dir(v.FilePath)
-		tempFile, err := os.CreateTemp(tempDir, "whisper-*.mp3")
-		if err != nil {
-			log.Printf("[GenerateSubtitlesByASR] error create temp file: %v", err)
-			return nil, err
-		}
-		tempPath = tempFile.Name()
-		if err := tempFile.Close(); err != nil {
-			log.Printf("[GenerateSubtitlesByASR] error close temp file: %v", err)
-			return nil, err
-		}
-		args := []string{"-i", v.FilePath, "-vn", "-ac", "1", "-ar", "16000", "-c:a", "libmp3lame", "-y", tempPath}
-		cmd := utils.CreateCommand(ffmpegPath, args...)
-		if output, err := cmd.CombinedOutput(); err != nil {
-			log.Printf("[GenerateSubtitlesByASR] error convert to mp3: %v, output: %s", err, string(output))
-			_ = os.Remove(tempPath)
-			return nil, fmt.Errorf("ffmpeg error: %v, output: %s", err, string(output))
-		}
-		inputPath = tempPath
-	}
-	if tempPath != "" {
-		defer os.Remove(tempPath)
-	}
-	content, err := m.aiService.TranscribeWhisper(inputPath, "vtt")
-	if err != nil {
-		log.Printf("[GenerateSubtitlesByASR] error transcribe whisper: %v", err)
-		if errors.Is(err, ai.ErrWhisperDisabled) {
-			log.Printf("[GenerateSubtitlesByASR] Whisper disabled, skip generating subtitles")
-			return nil, nil
-		}
-		return nil, fmt.Errorf("asr failed: %v", err)
-	}
-
-	ext := filepath.Ext(v.FilePath)
-	baseName := strings.TrimSuffix(filepath.Base(v.FilePath), ext)
-	outputPath := filepath.Join(dir, baseName+".asr.vtt")
-	if err := os.WriteFile(outputPath, []byte(content), 0o644); err != nil {
-		log.Printf("[GenerateSubtitlesByASR] error write vtt file: %v", err)
-		return nil, err
-	}
-	log.Printf("[GenerateSubtitlesByASR] generate subtitles by ASR success, file: %s", outputPath)
-	return scanSubtitles(dir, baseName), nil
 }
 
 func (m *Manager) UpdateVideoStatus(id, status, summary, evaluation string, tags []string, highlights []models.AIHighlight) error {
@@ -514,13 +381,23 @@ func (m *Manager) AnalyzeVideo(id string) error {
 		var energyCandidatesText string
 		var energyCandidates []energyCandidate
 		var subtitleSegments []subtitleSegment
-		if len(v.Subtitles) > 0 {
-			if segments, err := parseSubtitleFile(v.Subtitles[0]); err == nil && len(segments) > 0 {
+		subtitlePath := ""
+		if subs, err := m.GetVideoSubtitles(v.ID); err == nil {
+			for _, sub := range subs {
+				if sub.Status == models.SubtitleStatusSuccess && strings.TrimSpace(sub.FilePath) != "" {
+					subtitlePath = sub.FilePath
+					break
+				}
+			}
+		}
+
+		if strings.TrimSpace(subtitlePath) != "" {
+			if segments, err := parseSubtitleFile(subtitlePath); err == nil && len(segments) > 0 {
 				subtitleSegments = segments
 				subtitlesContent = buildSubtitleText(segments)
 				subtitleStats, energyCandidates = buildSubtitleAnalysis(segments, v.Duration)
 				energyCandidatesText = formatEnergyCandidates(energyCandidates)
-			} else if content, readErr := os.ReadFile(v.Subtitles[0]); readErr == nil {
+			} else if content, readErr := os.ReadFile(subtitlePath); readErr == nil {
 				subtitlesContent = string(content)
 			}
 		}
@@ -813,4 +690,60 @@ func (m *Manager) ClipHighlights(videoID string, highlights []models.AIHighlight
 		"tags":       v.Tags,
 		"highlights": updatedHighlights,
 	})
+}
+
+func (m *Manager) UpdateSubtitle(subtitleID string, content string, language string) (*models.VideoSubtitle, error) {
+	if m.db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	sub, err := m.getSubtitleByID(subtitleID)
+	if err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(content) == "" {
+		return nil, fmt.Errorf("content is empty")
+	}
+
+	lang := strings.TrimSpace(language)
+	if lang == "" {
+		lang = sub.Language // fallback to existing language if not provided
+	}
+
+	if lang != sub.Language {
+		// Language changed, generate new path
+		video, err := m.GetVideo(sub.VideoID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get video: %v", err)
+		}
+
+		// Use ensureUniqueSubtitlePath to generate new path
+		newPath := ensureUniqueSubtitlePath(video.FilePath, lang, "manual")
+
+		if err := os.WriteFile(newPath, []byte(content), 0o644); err != nil {
+			return nil, err
+		}
+
+		// Delete old file
+		if err := utils.DeleteFile(sub.FilePath); err != nil {
+			log.Printf("Failed to delete old subtitle file %s: %v", sub.FilePath, err)
+			// Non-fatal, continue
+		}
+
+		sub.FilePath = newPath
+		sub.Language = lang
+	} else {
+		// Language same, just overwrite
+		if err := os.WriteFile(sub.FilePath, []byte(content), 0o644); err != nil {
+			return nil, err
+		}
+	}
+
+	sub.UpdatedAt = time.Now().UnixMilli()
+	_, err = m.db.Exec("UPDATE video_subtitles SET updated_at = ?, file_path = ?, language = ? WHERE id = ?",
+		sub.UpdatedAt, sub.FilePath, sub.Language, sub.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return sub, nil
 }

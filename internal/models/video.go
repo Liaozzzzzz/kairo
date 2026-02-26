@@ -14,9 +14,8 @@ type Video struct {
 	CreatedAt  int64   `json:"created_at"`
 
 	// Metadata
-	Description string   `json:"description"`
-	Uploader    string   `json:"uploader"`
-	Subtitles   []string `json:"subtitles"` // Paths to subtitle files
+	Description string `json:"description"`
+	Uploader    string `json:"uploader"`
 
 	// AI Analysis
 	Summary    string        `json:"summary"`

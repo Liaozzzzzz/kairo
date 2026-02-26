@@ -40,3 +40,5 @@ export enum MenuItemKey {
   Videos = 'videos',
   Settings = 'settings',
 }
+
+export const Languages = ['en', 'zh-Hans', 'ja', 'ko', 'es', 'fr', 'de', 'ru', 'pt', 'it'];

@@ -5,14 +5,19 @@
     "cancel": "Cancel",
     "confirm": "Confirm",
     "save": "Save",
+    "save_success": "Saved successfully",
+    "save_failed": "Failed to save",
     "analyze": "Analyze",
     "duration": "Duration",
+    "add": "Add",
     "size": "Size",
     "resolution": "Resolution",
     "format": "Format",
     "date": "Date",
     "description": "Description",
-    "view_details": "View Details"
+    "view_details": "View Details",
+    "refresh": "Refresh",
+    "or": "Or"
   },
   "app": {
     "title": "Kairo",
@@ -39,6 +44,7 @@
     "ai": {
       "analysisTitle": "Content Analysis",
       "whisperTitle": "Whisper Transcription",
+      "translationTitle": "AI Translation",
       "enabled": "Enable AI Analysis",
       "provider": "AI Provider",
       "baseUrl": "Base URL",
@@ -46,7 +52,8 @@
       "modelName": "Model Name",
       "prompt": "Custom Prompt",
       "promptPlaceholder": "Leave empty to use default prompt",
-      "whisperEnabled": "Enable Whisper Transcription"
+      "whisperEnabled": "Enable Whisper Transcription",
+      "translationEnabled": "Enable AI Translation"
     },
     "appearance": {
       "title": "Appearance",
@@ -250,7 +257,64 @@
       "filter_analyzed": "Analyzed",
       "filter_unanalyzed": "Unanalyzed",
       "empty": "No videos found",
-      "subtitles": "Subtitles",
+      "subtitles": {
+        "title": "Subtitle Manager",
+        "language": "Language",
+        "source": {
+          "title": "Source",
+          "builtin": "Built-in",
+          "asr": "ASR",
+          "manual": "Manual",
+          "translation": "Translation"
+        },
+        "status": {
+          "title": "Status",
+          "generating": "Generating",
+          "pending": "Pending",
+          "success": "Success",
+          "failed": "Failed"
+        },
+        "created_at": "Created",
+        "updated_at": "Updated",
+        "actions": "Actions",
+        "empty": "No subtitles found",
+        "select": {
+          "title": "Select Subtitle",
+          "language_placeholder": "Please select subtitle language",
+          "language_custom_placeholder": "Please enter custom language"
+        },
+        "import": {
+          "title": "Import Subtitles",
+          "language": "Language",
+          "content": "Subtitle Content",
+          "content_placeholder": "Please check subtitle content",
+          "success": "Subtitle import successful",
+          "failed": "Subtitle import failed"
+        },
+        "edit": "Edit",
+        "preview": "Preview",
+        "regenerate": {
+          "title": "Regenerate",
+          "success": "Regeneration added to queue",
+          "failed": "Regeneration failed to add to queue"
+        },
+        "translate": {
+          "title": "Translate Subtitles",
+          "success": "Translation added to queue",
+          "failed": "Translation failed to add to queue"
+        },
+        "auto_detect": {
+          "title": "Auto Detect",
+          "success": "Auto detect successful",
+          "failed": "Auto detect failed"
+        },
+        "delete": {
+          "title": "Delete Subtitle",
+          "confirm": "Are you sure you want to delete this subtitle? The local file will also be deleted.",
+          "success": "Subtitle delete successful",
+          "failed": "Subtitle delete failed"
+        }
+      },
       "ai_analysis": "AI Analysis",
       "analyzed": "Analyzed",
       "analyze": "Analyze with AI",

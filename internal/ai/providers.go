@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -12,7 +13,7 @@ import (
 	"Kairo/internal/config"
 )
 
-func (m *Manager) callOpenAI(cfg config.AIConfig, prompt string) (*AnalysisResult, error) {
+func (m *Manager) callOpenAI(cfg config.AIConfig, prompt string, jsonMode bool) (string, error) {
 	url := fmt.Sprintf("%s/chat/completions", strings.TrimRight(cfg.BaseURL, "/"))
 
 	reqBody := map[string]interface{}{
@@ -20,23 +21,25 @@ func (m *Manager) callOpenAI(cfg config.AIConfig, prompt string) (*AnalysisResul
 		"messages": []map[string]string{
 			{"role": "user", "content": prompt},
 		},
-		"response_format": map[string]string{"type": "json_object"},
+	}
+	if jsonMode {
+		reqBody["response_format"] = map[string]string{"type": "json_object"}
 	}
 
 	jsonData, err := json.Marshal(reqBody)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	preview := prompt
 	if len(preview) > 5000 {
 		preview = preview[:5000] + "..."
 	}
-	fmt.Printf("[AI Request] URL: %s\nModel: %s\nPrompt: %s\n", url, cfg.ModelName, preview)
+	log.Printf("[AI Request] URL: %s\nModel: %s\nPrompt: %s\n", url, cfg.ModelName, preview)
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -49,13 +52,13 @@ func (m *Manager) callOpenAI(cfg config.AIConfig, prompt string) (*AnalysisResul
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API error: %s - %s", resp.Status, string(body))
+		return "", fmt.Errorf("API error: %s - %s", resp.Status, string(body))
 	}
 
 	var result struct {
@@ -67,33 +70,20 @@ func (m *Manager) callOpenAI(cfg config.AIConfig, prompt string) (*AnalysisResul
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
+		return "", err
 	}
 
 	if len(result.Choices) == 0 {
-		return nil, fmt.Errorf("no response from AI")
+		return "", fmt.Errorf("no response from AI")
 	}
 
 	content := result.Choices[0].Message.Content
+	log.Printf("[AI Response] Content: %s\n", content)
+	return content, nil
+}
 
-	fmt.Printf("[AI Response] Content: %s\n", content)
-
-	content = sanitizeJSONContent(content)
-
-	var analysis AnalysisResult
-	if err := json.Unmarshal([]byte(content), &analysis); err != nil {
-		fmt.Printf("[AI Response Error] Failed to parse JSON: %v\n", err)
-		analysis.Summary = content
-		analysis.Tags = []string{}
-		analysis.Highlights = []struct {
-			Start       string `json:"start"`
-			End         string `json:"end"`
-			Description string `json:"description"`
-		}{}
-		analysis.Evaluation = "Failed to parse JSON response"
-	}
-
-	return &analysis, nil
+func (m *Manager) callAnthropic(cfg config.AIConfig, prompt string) (string, error) {
+	return "", fmt.Errorf("Anthropic provider not fully implemented yet")
 }
 
 func sanitizeJSONContent(content string) string {
@@ -114,8 +104,4 @@ func sanitizeJSONContent(content string) string {
 		return strings.TrimSpace(trimmed[start : end+1])
 	}
 	return trimmed
-}
-
-func (m *Manager) callAnthropic(cfg config.AIConfig, prompt string) (*AnalysisResult, error) {
-	return nil, fmt.Errorf("Anthropic provider not fully implemented yet")
 }

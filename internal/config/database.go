@@ -21,8 +21,8 @@ func InitDatabase() *sql.DB {
 		fmt.Printf("Failed to open database: %v\n", err)
 		return nil
 	}
-	db.SetMaxOpenConns(1)
-	db.SetMaxIdleConns(1)
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
 	db.SetConnMaxLifetime(0)
 	if _, err := db.Exec("PRAGMA synchronous=NORMAL"); err != nil {
 		fmt.Printf("Failed to set pragma: %v\n", err)
@@ -74,12 +74,22 @@ func initSchema(db *sql.DB) {
 			created_at INTEGER,
 			description TEXT,
 			uploader TEXT,
-			subtitles TEXT,
 			summary TEXT,
 			tags TEXT,
 			evaluation TEXT,
 			status TEXT
 		);
+		CREATE TABLE IF NOT EXISTS video_subtitles (
+			id TEXT PRIMARY KEY,
+			video_id TEXT,
+			file_path TEXT,
+			language TEXT,
+			status INTEGER,
+			source INTEGER,
+			created_at INTEGER,
+			updated_at INTEGER
+		);
+		CREATE INDEX IF NOT EXISTS idx_video_subtitles_video_id ON video_subtitles(video_id);
 		CREATE TABLE IF NOT EXISTS video_highlights (
 			id TEXT PRIMARY KEY,
 			video_id TEXT,

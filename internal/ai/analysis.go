@@ -2,6 +2,8 @@ package ai
 
 import (
 	_ "embed"
+	"encoding/json"
+	"log"
 	"strings"
 
 	"Kairo/internal/config"
@@ -41,8 +43,7 @@ func (m *Manager) Analyze(meta VideoMetadata) (*AnalysisResult, error) {
 		return nil, ErrAIDisabled
 	}
 
-	prompt := loadPrompt(settings.AI)
-
+	prompt := defaultAIPrompt
 	prompt = strings.ReplaceAll(prompt, "{{title}}", meta.Title)
 	prompt = strings.ReplaceAll(prompt, "{{uploader}}", meta.Uploader)
 	prompt = strings.ReplaceAll(prompt, "{{date}}", meta.Date)
@@ -56,24 +57,39 @@ func (m *Manager) Analyze(meta VideoMetadata) (*AnalysisResult, error) {
 	prompt = strings.ReplaceAll(prompt, "{{energy_candidates}}", meta.EnergyCandidates)
 	prompt = strings.ReplaceAll(prompt, "{{language}}", settings.Language)
 
+	if settings.AI.Prompt != "" {
+		prompt = prompt + "\n\n" + settings.AI.Prompt
+	}
+
+	var content string
+	var err error
 	switch settings.AI.Provider {
 	case "openai", "local", "custom", "deepseek", "siliconflow":
-		return m.callOpenAI(settings.AI, prompt)
+		content, err = m.callOpenAI(settings.AI, prompt, true)
 	case "anthropic":
-		return m.callAnthropic(settings.AI, prompt)
+		content, err = m.callAnthropic(settings.AI, prompt)
 	default:
-		return m.callOpenAI(settings.AI, prompt)
+		content, err = m.callOpenAI(settings.AI, prompt, true)
 	}
-}
+	if err != nil {
+		log.Printf("[Analysis] Error calling AI provider: %v", err)
+		return nil, err
+	}
 
-func loadPrompt(cfg config.AIConfig) string {
-	basePrompt := strings.TrimSpace(defaultAIPrompt)
-	extraPrompt := strings.TrimSpace(cfg.Prompt)
-	if basePrompt == "" {
-		return extraPrompt
+	content = sanitizeJSONContent(content)
+
+	var analysis AnalysisResult
+	if err := json.Unmarshal([]byte(content), &analysis); err != nil {
+		log.Printf("[Analysis] Error unmarshalling analysis response: %v", err)
+		analysis.Summary = content
+		analysis.Tags = []string{}
+		analysis.Highlights = []struct {
+			Start       string `json:"start"`
+			End         string `json:"end"`
+			Description string `json:"description"`
+		}{}
+		analysis.Evaluation = "Failed to parse JSON response"
 	}
-	if extraPrompt == "" {
-		return basePrompt
-	}
-	return basePrompt + "\n\n" + extraPrompt
+
+	return &analysis, nil
 }

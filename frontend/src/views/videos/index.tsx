@@ -7,7 +7,7 @@ import PageContainer from '@/components/PageContainer';
 import PageHeader from '@/components/PageHeader';
 import { Video } from '@/types';
 import VideoList from './VideoList';
-import VideoDetailModal from './VideoDetailModal';
+import SubtitlesModal from './SubtitlesModal';
 import HighlightsModal from './HighlightsModal';
 import { useVideoStore } from '@/store/useVideoStore';
 
@@ -81,7 +81,7 @@ export default function Videos() {
       />
 
       {selectedVideoId && (
-        <VideoDetailModal
+        <SubtitlesModal
           videoId={selectedVideoId}
           isOpen={!!selectedVideoId}
           onClose={() => setSelectedVideoId(null)}

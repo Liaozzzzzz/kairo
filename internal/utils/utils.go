@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"unicode"
 
 	"github.com/xi2/xz"
 )
@@ -135,4 +136,79 @@ func EnsureHTTPS(url string) string {
 		return "https:" + url
 	}
 	return url
+}
+
+func DetectLanguageFromText(text string) string {
+	counts := map[string]int{}
+	for _, r := range text {
+		if unicode.IsSpace(r) || unicode.IsPunct(r) {
+			continue
+		}
+		switch {
+		case unicode.In(r, unicode.Han):
+			counts["zh-Hans"]++
+		case unicode.In(r, unicode.Hiragana, unicode.Katakana):
+			counts["ja"]++
+		case unicode.In(r, unicode.Hangul):
+			counts["ko"]++
+		case unicode.In(r, unicode.Cyrillic):
+			counts["ru"]++
+		case unicode.In(r, unicode.Arabic):
+			counts["ar"]++
+		case unicode.In(r, unicode.Devanagari):
+			counts["hi"]++
+		case unicode.In(r, unicode.Thai):
+			counts["th"]++
+		case unicode.In(r, unicode.Hebrew):
+			counts["he"]++
+		case unicode.In(r, unicode.Latin):
+			counts["en"]++
+		}
+	}
+	best := ""
+	bestCount := 0
+	for lang, count := range counts {
+		if count > bestCount {
+			best = lang
+			bestCount = count
+		}
+	}
+	if bestCount == 0 {
+		return "und"
+	}
+	return best
+}
+
+func ExtractTextFromVTT(content string) string {
+	lines := strings.Split(content, "\n")
+	var b strings.Builder
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+		if strings.HasPrefix(trimmed, "WEBVTT") {
+			continue
+		}
+		if strings.Contains(trimmed, "-->") {
+			continue
+		}
+		if isSubtitleIndex(trimmed) {
+			continue
+		}
+		if b.Len() > 0 {
+			b.WriteString(" ")
+		}
+		b.WriteString(trimmed)
+	}
+	return b.String()
+}
+
+func isSubtitleIndex(line string) bool {
+	for _, r := range line {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return line != ""
 }

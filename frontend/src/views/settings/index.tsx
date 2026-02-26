@@ -98,7 +98,10 @@ const Settings = () => {
 
   const handleChooseCookiesFile = async (currentConfig: CookieConfig) => {
     try {
-      const file = await ChooseFile();
+      const file = await ChooseFile([
+        { displayName: 'Text Files (*.txt)', pattern: '*.txt' },
+        { displayName: 'All Files (*)', pattern: '*' },
+      ]);
       if (file) {
         const update = { ...currentConfig, file };
         setCookie(update);
@@ -504,7 +507,7 @@ const Settings = () => {
                     setLanguage(val as AppLanguage);
                   }}
                   options={[
-                    { label: '中文', value: 'zh' },
+                    { label: '简体中文', value: 'zh-Hans' },
                     { label: 'English', value: 'en' },
                   ]}
                   className="font-medium"

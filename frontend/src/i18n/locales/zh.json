@@ -5,14 +5,20 @@
     "cancel": "取消",
     "confirm": "确认",
     "save": "保存",
+    "save_success": "保存成功",
+    "save_failed": "保存失败",
+    "edit": "编辑",
     "analyze": "分析",
     "duration": "时长",
+    "add": "添加",
     "size": "大小",
     "resolution": "分辨率",
     "format": "格式",
     "date": "日期",
     "description": "简介",
-    "view_details": "查看详情"
+    "view_details": "查看详情",
+    "refresh": "刷新",
+    "or": "或"
   },
   "app": {
     "title": "Kairo",
@@ -39,6 +45,7 @@
     "ai": {
       "analysisTitle": "内容分析",
       "whisperTitle": "Whisper 转写",
+      "translationTitle": "AI 翻译",
       "enabled": "启用 AI 分析",
       "provider": "AI 提供商",
       "baseUrl": "API 地址",
@@ -47,6 +54,7 @@
       "prompt": "自定义提示词",
       "promptPlaceholder": "留空使用默认提示词",
       "whisperEnabled": "启用 Whisper 转写",
+      "translationEnabled": "启用 AI 翻译",
       "language": "语言"
     },
     "appearance": {
@@ -251,7 +259,66 @@
       "filter_analyzed": "已分析",
       "filter_unanalyzed": "未分析",
       "empty": "暂无视频",
-      "subtitles": "字幕",
+      "subtitles": {
+        "title": "字幕管理",
+        "language": "语言",
+        "language_placeholder": "选择字幕语言",
+        "source": {
+          "title": "来源",
+          "builtin": "内建",
+          "asr": "自动识别",
+          "manual": "手动导入",
+          "translation": "AI 翻译"
+        },
+        "status": {
+          "title": "状态",
+          "generating": "生成中",
+          "pending": "等待中",
+          "success": "成功",
+          "failed": "失败"
+        },
+        "created_at": "创建时间",
+        "updated_at": "更新时间",
+        "actions": "操作",
+        "empty": "暂无字幕",
+        "select": {
+          "title": "选择字幕",
+          "language_placeholder": "请选择字幕语言",
+          "language_custom_placeholder": "请输入自定义语言"
+        },
+        "import": {
+          "title": "导入字幕",
+          "language": "语言",
+          "content": "字幕内容",
+          "content_placeholder": "请核对字幕内容",
+          "success": "字幕导入成功",
+          "failed": "字幕导入失败"
+        },
+        "edit": "编辑字幕",
+        "preview": "预览",
+        "regenerate": {
+          "title": "重新生成",
+          "success": "加入队列成功",
+          "failed": "加入队列失败"
+        },
+        "translate": {
+          "title": "翻译字幕",
+          "same_language": "目标语言与当前语言相同",
+          "success": "加入翻译队列成功",
+          "failed": "加入翻译队列失败"
+        },
+        "auto_detect": {
+          "title": "自动识别",
+          "success": "识别成功",
+          "failed": "识别失败"
+        },
+        "delete": {
+          "title": "确认删除该字幕?",
+          "confirm": "删除该记录, 连本地文件也将一起删除。",
+          "success": "字幕删除成功",
+          "failed": "字幕删除失败"
+        }
+      },
       "ai_analysis": "AI 分析",
       "analyzed": "已分析",
       "analyze": "AI 分析",

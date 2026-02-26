@@ -159,7 +159,7 @@ const Cell = (props: any) => {
           </Tooltip>
           <Divider size="small" />
           <div className="flex items-center justify-around text-xs text-slate-500 dark:text-slate-400">
-            <Tooltip title={t('common.view_details')}>
+            <Tooltip title={t('videos.subtitles.title')}>
               <div
                 className="w-7 h-7 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 flex items-center justify-center transition-colors"
                 onClick={(e) => {
@@ -237,7 +237,7 @@ export default function VideoList({
   return (
     <div className="h-full w-full relative">
       {loading && (
-        <div className="absolute inset-0 bg-white/50 dark:bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
+        <div className="absolute inset-36 bg-white/50 dark:bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
           <Spin size="large" />
         </div>
       )}

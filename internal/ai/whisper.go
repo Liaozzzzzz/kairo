@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -15,44 +16,42 @@ import (
 	"Kairo/internal/config"
 )
 
-func (m *Manager) TranscribeWhisper(filePath string, responseFormat string) (string, error) {
-	if responseFormat == "" {
-		responseFormat = "vtt"
-	}
-	data, err := m.transcribeWhisperRaw(filePath, responseFormat)
-	if err != nil {
-		return "", err
-	}
-	if responseFormat != "vtt" {
-		return string(data), nil
-	}
-	if hasVttTimestamps(string(data)) {
-		return string(data), nil
-	}
-	if vtt, ok := buildVttFromVerboseJSON(data); ok {
-		return vtt, nil
-	}
-	verboseData, err := m.transcribeWhisperRaw(filePath, "verbose_json")
-	if err == nil {
-		if vtt, ok := buildVttFromVerboseJSON(verboseData); ok {
-			return vtt, nil
-		}
-	}
-	srtData, err := m.transcribeWhisperRaw(filePath, "srt")
-	if err == nil {
-		if vtt, ok := convertSrtToVtt(string(srtData)); ok {
-			return vtt, nil
-		}
-	}
-	return string(data), nil
-}
-
 type whisperVerboseResponse struct {
 	Segments []struct {
 		Start float64 `json:"start"`
 		End   float64 `json:"end"`
 		Text  string  `json:"text"`
 	} `json:"segments"`
+}
+
+func (m *Manager) TranscribeWhisper(filePath string) (string, error) {
+	cfg := config.GetSettings().WhisperAI
+	model := cfg.ModelName
+	if model == "" {
+		model = "whisper-1"
+	}
+
+	responseFormat := "vtt"
+	if model != "whisper-1" {
+		responseFormat = "verbose_json"
+	}
+
+	data, err := m.transcribeWhisperRaw(filePath, responseFormat)
+	log.Printf("[TranscribeWhisper] transcribe whisper raw, responseFormat: %s", responseFormat)
+	if err != nil {
+		log.Printf("[TranscribeWhisper] Error transcribing whisper raw: %v", err)
+		return "", err
+	}
+
+	if responseFormat == "vtt" && strings.Contains(string(data), "-->") {
+		return string(data), nil
+	}
+
+	if vtt, ok := buildVttFromVerboseJSON(data); ok {
+		return vtt, nil
+	}
+	log.Printf("[TranscribeWhisper] Error building vtt from verbose json: %v", err)
+	return "", fmt.Errorf("failed to build vtt from response")
 }
 
 func buildVttFromVerboseJSON(data []byte) (string, bool) {
@@ -65,14 +64,14 @@ func buildVttFromVerboseJSON(data []byte) (string, bool) {
 	}
 	var b strings.Builder
 	b.WriteString("WEBVTT\n\n")
-	for i, seg := range resp.Segments {
+	for _, seg := range resp.Segments {
 		start := formatVttTimestamp(seg.Start)
 		end := formatVttTimestamp(seg.End)
 		text := strings.TrimSpace(seg.Text)
 		if text == "" {
 			continue
 		}
-		fmt.Fprintf(&b, "%d\n%s --> %s\n%s\n\n", i+1, start, end, text)
+		fmt.Fprintf(&b, "%s --> %s\n%s\n\n", start, end, text)
 	}
 	return b.String(), true
 }
@@ -87,34 +86,6 @@ func formatVttTimestamp(seconds float64) string {
 	secs := (totalMillis % 60000) / 1000
 	millis := totalMillis % 1000
 	return fmt.Sprintf("%02d:%02d:%02d.%03d", hours, minutes, secs, millis)
-}
-
-func hasVttTimestamps(data string) bool {
-	return strings.Contains(data, "-->")
-}
-
-func convertSrtToVtt(srt string) (string, bool) {
-	s := strings.ReplaceAll(srt, "\r\n", "\n")
-	s = strings.TrimPrefix(s, "\ufeff")
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return "", false
-	}
-	lines := strings.Split(s, "\n")
-	hasTimestamp := false
-	for i, line := range lines {
-		if strings.Contains(line, "-->") {
-			hasTimestamp = true
-			lines[i] = strings.ReplaceAll(line, ",", ".")
-		}
-	}
-	if !hasTimestamp {
-		return "", false
-	}
-	if strings.HasPrefix(lines[0], "WEBVTT") {
-		return strings.Join(lines, "\n"), true
-	}
-	return "WEBVTT\n\n" + strings.Join(lines, "\n"), true
 }
 
 func (m *Manager) transcribeWhisperRaw(filePath string, responseFormat string) ([]byte, error) {

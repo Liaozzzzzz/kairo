@@ -14,6 +14,8 @@ import { useTranslation } from 'react-i18next';
 import { DeleteVideo, OpenFile, ShowInFolder } from '@root/wailsjs/go/main/App';
 import { Grid, GridProps } from 'react-window';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
+import { ThumbnailImage } from '@/components/ThumbnailImage';
+import icon from '@/assets/images/icon.png';
 
 interface VideoListProps {
   videos: Video[];
@@ -101,14 +103,14 @@ const Cell = (props: any) => {
       <div className="group relative flex flex-col bg-white dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer h-full">
         {/* Thumbnail Section */}
         <div className="relative aspect-video bg-slate-100 dark:bg-slate-900 overflow-hidden shrink-0">
-          <img
+          <ThumbnailImage
+            src={video.thumbnail}
             alt={video.title}
-            src={video.thumbnail || 'src/assets/images/icon.png'}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = '';
-              (e.target as HTMLImageElement).classList.add('hidden');
+            classNames={{
+              root: 'w-full h-full',
             }}
+            preview={false}
+            fallback={icon}
           />
 
           {/* Overlay Gradient */}

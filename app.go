@@ -4,8 +4,10 @@ import (
 	"context"
 	"database/sql"
 	_ "embed"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -335,6 +337,21 @@ func (a *App) ReadFileContent(filePath string) (string, error) {
 		return "", err
 	}
 	return string(contentBytes), nil
+}
+
+func (a *App) ReadImageBase64(filePath string) (string, error) {
+	if strings.TrimSpace(filePath) == "" {
+		return "", fmt.Errorf("file path is empty")
+	}
+	contentBytes, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", err
+	}
+
+	mimeType := http.DetectContentType(contentBytes)
+	base64Str := base64.StdEncoding.EncodeToString(contentBytes)
+
+	return fmt.Sprintf("data:%s;base64,%s", mimeType, base64Str), nil
 }
 
 // GetDefaultDownloadDir returns the system download directory

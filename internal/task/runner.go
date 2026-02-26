@@ -81,6 +81,8 @@ func (m *Manager) buildYtDlpArgs(task *models.DownloadTask, outputDir, ffmpegPat
 
 	args := []string{
 		"--newline",
+		"--write-thumbnail",
+		"--convert-thumbnails", "jpg",
 		"--encoding", "utf-8",
 		"--ffmpeg-location", filepath.Dir(ffmpegPath),
 		"-o", "%(title)s.%(ext)s",
@@ -457,6 +459,15 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		if !task.FileExists && task.FilePath != "" {
 			if _, statErr := os.Stat(task.FilePath); statErr == nil {
 				task.FileExists = true
+			}
+		}
+
+		// Check for thumbnail
+		if task.FilePath != "" {
+			ext := filepath.Ext(task.FilePath)
+			thumbPath := strings.TrimSuffix(task.FilePath, ext) + ".jpg"
+			if _, err := os.Stat(thumbPath); err == nil {
+				task.Thumbnail = thumbPath
 			}
 		}
 

@@ -1,5 +1,5 @@
 import { ReactNode, useMemo } from 'react';
-import { Card, Progress, Dropdown, MenuProps, Image, Badge, Modal, message } from 'antd';
+import { Card, Progress, Dropdown, MenuProps, Badge, Modal, message } from 'antd';
 import {
   PlayCircleOutlined,
   PauseCircleOutlined,
@@ -24,9 +24,9 @@ import {
   AddVideoToLibrary,
 } from '@root/wailsjs/go/main/App';
 import { useTaskStore } from '@/store/useTaskStore';
-import { ImageFallback } from '@/data/variables';
 import { formatBytes } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
+import { ThumbnailImage } from '@/components/ThumbnailImage';
 
 interface TaskItemProps {
   task: Task;
@@ -241,21 +241,14 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
             <div className="flex items-center gap-4">
               {/* Thumbnail Column */}
               <div className="flex-shrink-0 w-24 h-16 bg-gray-100 dark:bg-white/5 rounded-md overflow-hidden relative border border-gray-100 dark:border-white/5">
-                {task.thumbnail ? (
-                  <Image
-                    src={task.thumbnail}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover"
-                    alt=""
-                    width="100%"
-                    height="100%"
-                    fallback={ImageFallback}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center w-full h-full text-gray-300 dark:text-muted-foreground/50">
-                    <PlayCircleOutlined className="w-4 h-4" />
-                  </div>
-                )}
+                <ThumbnailImage
+                  src={task.thumbnail}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                  alt=""
+                  width="100%"
+                  height="100%"
+                />
                 <div className="flex items-center justify-center absolute w-6 h-6 -bottom-1 -right-1 bg-white dark:bg-card rounded-full p-0.5 shadow-sm border border-gray-100 dark:border-border scale-75 z-10">
                   {getStatusIcon(task.status)}
                 </div>

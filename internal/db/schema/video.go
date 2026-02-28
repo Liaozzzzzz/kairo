@@ -3,28 +3,30 @@ package schema
 import (
 	"encoding/json"
 	"strings"
+
+	"gorm.io/gorm"
 )
 
 type Video struct {
-	ID          string `gorm:"primaryKey;size:36" json:"id"`
-	TaskID      string `gorm:"index" json:"task_id"`
-	Title       string `json:"title"`
-	URL         string `json:"url"`
-	FilePath    string `json:"file_path"`
-	Thumbnail   string `json:"thumbnail"`
+	ID          string  `gorm:"primaryKey;size:36" json:"id"`
+	TaskID      string  `gorm:"index" json:"task_id"`
+	Title       string  `json:"title"`
+	URL         string  `json:"url"`
+	FilePath    string  `json:"file_path"`
+	Thumbnail   string  `json:"thumbnail"`
 	Duration    float64 `json:"duration"`
 	Size        int64   `json:"size"`
 	Format      string  `json:"format"`
 	Resolution  string  `json:"resolution"`
-	CreatedAt   int64 `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt   int64 `gorm:"autoUpdateTime" json:"updated_at"`
-	Description string `json:"description"`
-	Uploader    string `json:"uploader"`
-	Summary     string `json:"summary"`
-	Tags        string `gorm:"type:text" json:"-"`
-	Evaluation  string `json:"evaluation"`
-	CategoryID  string `gorm:"index" json:"category_id"`
-	Status      string `gorm:"index" json:"status"`
+	CreatedAt   int64   `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt   int64   `gorm:"autoUpdateTime" json:"updated_at"`
+	Description string  `json:"description"`
+	Uploader    string  `json:"uploader"`
+	Summary     string  `json:"summary"`
+	Tags        string  `gorm:"type:text" json:"-"`
+	Evaluation  string  `json:"evaluation"`
+	CategoryID  string  `gorm:"index" json:"category_id"`
+	Status      string  `gorm:"index" json:"status"`
 
 	// Virtual fields for JSON
 	TagsList   []string         `gorm:"-" json:"tags"`
@@ -32,7 +34,7 @@ type Video struct {
 }
 
 // AfterFind hook to parse Tags string to TagsList slice
-func (v *Video) AfterFind() (err error) {
+func (v *Video) AfterFind(tx *gorm.DB) (err error) {
 	if v.Tags != "" {
 		if strings.HasPrefix(v.Tags, "[") {
 			_ = json.Unmarshal([]byte(v.Tags), &v.TagsList)
@@ -53,8 +55,8 @@ type VideoHighlight struct {
 	EndTime     string `gorm:"column:end_time" json:"end"`     // Mapped to 'end' for frontend compatibility
 	Description string `json:"description"`
 	FilePath    string `json:"file_path"`
-	CreatedAt   int64 `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt   int64 `gorm:"autoUpdateTime" json:"updated_at"`
+	CreatedAt   int64  `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt   int64  `gorm:"autoUpdateTime" json:"updated_at"`
 }
 
 type PlaylistItem struct {
@@ -78,13 +80,13 @@ type QualityOption struct {
 }
 
 type VideoInfo struct {
-	Title         string            `json:"title"`
-	Thumbnail     string            `json:"thumbnail"`
-	Duration      float64           `json:"duration"`
-	Qualities     []QualityOption   `json:"qualities"`
-	SourceType    SourceType        `json:"source_type"`
-	PlaylistItems []PlaylistItem    `json:"playlist_items"`
-	TotalItems    int               `json:"total_items"`
+	Title         string          `json:"title"`
+	Thumbnail     string          `json:"thumbnail"`
+	Duration      float64         `json:"duration"`
+	Qualities     []QualityOption `json:"qualities"`
+	SourceType    SourceType      `json:"source_type"`
+	PlaylistItems []PlaylistItem  `json:"playlist_items"`
+	TotalItems    int             `json:"total_items"`
 }
 
 type VideoFilter struct {

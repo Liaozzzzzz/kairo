@@ -2,6 +2,7 @@ package task
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -12,10 +13,29 @@ import (
 )
 
 const taskColumns = `
-	id, url, dir, quality, format, format_id, parent_id, source_type,
-	status, progress, title, thumbnail, speed, eta,
-	log_path, file_exists, file_path,
-	total_bytes, trim_start, trim_end, trim_mode, created_at
+	id,
+	COALESCE(url, '') AS url,
+	COALESCE(dir, '') AS dir,
+	COALESCE(quality, '') AS quality,
+	COALESCE(format, '') AS format,
+	COALESCE(format_id, '') AS format_id,
+	COALESCE(parent_id, '') AS parent_id,
+	source_type,
+	COALESCE(status, '') AS status,
+	progress,
+	COALESCE(title, '') AS title,
+	COALESCE(thumbnail, '') AS thumbnail,
+	COALESCE(speed, '') AS speed,
+	COALESCE(eta, '') AS eta,
+	COALESCE(log_path, '') AS log_path,
+	file_exists,
+	COALESCE(file_path, '') AS file_path,
+	total_bytes,
+	COALESCE(trim_start, '') AS trim_start,
+	COALESCE(trim_end, '') AS trim_end,
+	COALESCE(trim_mode, '') AS trim_mode,
+	COALESCE(category_id, '') AS category_id,
+	created_at
 `
 
 type Scanner interface {
@@ -28,9 +48,10 @@ func scanTask(s Scanner) (*models.DownloadTask, error) {
 		&t.ID, &t.URL, &t.Dir, &t.Quality, &t.Format, &t.FormatID, &t.ParentID, &t.SourceType,
 		&t.Status, &t.Progress, &t.Title, &t.Thumbnail, &t.Speed, &t.Eta,
 		&t.LogPath, &t.FileExists, &t.FilePath,
-		&t.TotalBytes, &t.TrimStart, &t.TrimEnd, &t.TrimMode, &t.CreatedAt,
+		&t.TotalBytes, &t.TrimStart, &t.TrimEnd, &t.TrimMode, &t.CategoryID, &t.CreatedAt,
 	)
 	if err != nil {
+		log.Printf("Failed to scan task: %v\n", err)
 		return nil, err
 	}
 
@@ -82,7 +103,7 @@ func validateTaskInput(url, dir string) (string, error) {
 	return dir, nil
 }
 
-func newTask(url, dir, title, thumbnail string, sourceType models.SourceType) *models.DownloadTask {
+func newTask(url, dir, title, thumbnail string, sourceType models.SourceType, categoryID string) *models.DownloadTask {
 	id := uuid.New().String()
 	return &models.DownloadTask{
 		ID:         id,
@@ -95,5 +116,6 @@ func newTask(url, dir, title, thumbnail string, sourceType models.SourceType) *m
 		CreatedAt:  time.Now().Unix(),
 		LogPath:    config.GetLogPath(id),
 		TrimMode:   models.TrimModeNone,
+		CategoryID: categoryID,
 	}
 }

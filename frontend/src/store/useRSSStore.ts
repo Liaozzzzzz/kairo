@@ -21,6 +21,7 @@ interface AddFeedInput {
   filters: string;
   tags: string;
   filename_template: string;
+  category_id?: string;
 }
 
 interface UpdateFeedInput {
@@ -30,6 +31,7 @@ interface UpdateFeedInput {
   filters: string;
   tags: string;
   filename_template: string;
+  category_id?: string;
 }
 
 interface RSSState {
@@ -92,7 +94,10 @@ export const useRSSStore = create<RSSState>((set, get) => ({
   addFeed: async (input: AddFeedInput) => {
     set({ isLoading: true });
     try {
-      const feed = await AddRSSFeed(input);
+      const feed = await AddRSSFeed({
+        ...input,
+        category_id: input.category_id || '',
+      });
       set((state) => ({ feeds: [...state.feeds, feed] }));
     } finally {
       set({ isLoading: false });
@@ -112,6 +117,7 @@ export const useRSSStore = create<RSSState>((set, get) => ({
         filters: input.filters,
         tags: input.tags,
         filename_template: input.filename_template,
+        category_id: input.category_id || '',
       };
 
       await UpdateRSSFeed(updatedFeed);

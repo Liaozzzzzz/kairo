@@ -185,6 +185,7 @@ const FeedItems: React.FC = () => {
             item_title: item.title,
             item_thumbnail: item.thumbnail,
             dir: currentFeed?.custom_dir || '',
+            category_id: currentFeed?.category_id || '',
           })
         );
         await markItemRead(item.id);

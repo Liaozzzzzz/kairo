@@ -67,6 +67,7 @@ type DownloadTask struct {
 	TrimStart  string     `json:"trim_start"`
 	TrimEnd    string     `json:"trim_end"`
 	TrimMode   TrimMode   `json:"trim_mode"`
+	CategoryID string     `json:"category_id"`
 	CreatedAt  int64      `json:"created_at"`
 }
 
@@ -105,6 +106,7 @@ type AddTaskInput struct {
 	TrimEnd    string     `json:"trim_end"`
 	TrimMode   TrimMode   `json:"trim_mode"`
 	SourceType SourceType `json:"source_type"`
+	CategoryID string     `json:"category_id"`
 }
 
 type AddRSSTaskInput struct {
@@ -115,6 +117,7 @@ type AddRSSTaskInput struct {
 	ItemTitle     string `json:"item_title"`
 	ItemThumbnail string `json:"item_thumbnail"`
 	Dir           string `json:"dir"`
+	CategoryID    string `json:"category_id"`
 }
 
 type RSSFeed struct {
@@ -130,6 +133,7 @@ type RSSFeed struct {
 	Filters          string `json:"filters"` // Comma separated keywords
 	Tags             string `json:"tags"`
 	FilenameTemplate string `json:"filename_template"`
+	CategoryID       string `json:"category_id"`
 	Enabled          bool   `json:"enabled"`
 }
 
@@ -140,6 +144,7 @@ type AddRSSFeedInput struct {
 	Filters          string `json:"filters"`
 	Tags             string `json:"tags"`
 	FilenameTemplate string `json:"filename_template"`
+	CategoryID       string `json:"category_id"`
 }
 
 type RSSItemStatus int
@@ -150,6 +155,13 @@ const (
 	RSSItemStatusQueued     RSSItemStatus = 2
 	RSSItemStatusFailed     RSSItemStatus = 3
 	RSSItemStatusDownloaded RSSItemStatus = 4
+)
+
+type CategorySource string
+
+const (
+	CategorySourceBuiltin CategorySource = "builtin"
+	CategorySourceCustom  CategorySource = "custom"
 )
 
 type RSSItem struct {
@@ -169,4 +181,14 @@ type AddPlaylistTaskInput struct {
 	Title         string         `json:"title"`
 	Thumbnail     string         `json:"thumbnail"`
 	PlaylistItems []PlaylistItem `json:"playlist_items"`
+	CategoryID    string         `json:"category_id"`
+}
+
+type Category struct {
+	ID        string         `json:"id"`
+	Name      string         `json:"name"`
+	Prompt    string         `json:"prompt"`
+	Source    CategorySource `json:"source"`
+	CreatedAt int64          `json:"created_at"`
+	UpdatedAt int64          `json:"updated_at"`
 }

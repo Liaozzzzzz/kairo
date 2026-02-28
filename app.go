@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"strings"
 
+	"Kairo/internal/category"
 	"Kairo/internal/config"
 	"Kairo/internal/deps"
 	"Kairo/internal/models"
@@ -30,12 +31,13 @@ var wailsJSON []byte
 
 // App struct
 type App struct {
-	ctx          context.Context
-	depsManager  *deps.Manager
-	taskManager  *task.Manager
-	rssManager   *rss.Manager
-	videoManager *video.Manager
-	db           *sql.DB
+	ctx             context.Context
+	depsManager     *deps.Manager
+	taskManager     *task.Manager
+	rssManager      *rss.Manager
+	videoManager    *video.Manager
+	categoryManager *category.Manager
+	db              *sql.DB
 }
 
 // NewApp creates a new App application struct
@@ -82,6 +84,7 @@ func (a *App) startup(ctx context.Context) {
 
 	a.rssManager = rss.NewManager(ctx, a.db)
 	a.rssManager.Start()
+	a.categoryManager = category.NewManager(ctx, a.db)
 
 	// Wire up Task Manager callback to RSS Manager and Video Manager
 	a.taskManager.OnTaskComplete = func(task *models.DownloadTask) {
@@ -107,6 +110,7 @@ func (a *App) startup(ctx context.Context) {
 			ItemURL:       item.Link,
 			ItemTitle:     item.Title,
 			Dir:           feed.CustomDir,
+			CategoryID:    feed.CategoryID,
 		}
 		_, err := a.taskManager.AddRSSTask(input)
 		if err != nil {
@@ -413,6 +417,22 @@ func (a *App) UpdateSettings(settings config.AppSettings) {
 // GetSettings returns the current application settings
 func (a *App) GetSettings() config.AppSettings {
 	return config.GetSettings()
+}
+
+func (a *App) GetCategories() ([]models.Category, error) {
+	return a.categoryManager.GetCategories()
+}
+
+func (a *App) CreateCategory(name string, prompt string) (*models.Category, error) {
+	return a.categoryManager.CreateCategory(name, prompt)
+}
+
+func (a *App) UpdateCategory(id string, name string, prompt string) (*models.Category, error) {
+	return a.categoryManager.UpdateCategory(id, name, prompt)
+}
+
+func (a *App) DeleteCategory(id string) error {
+	return a.categoryManager.DeleteCategory(id)
 }
 
 // RSS Methods

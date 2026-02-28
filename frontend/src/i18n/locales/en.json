@@ -26,6 +26,7 @@
       "tasks": "Tasks",
       "rss": "RSS",
       "videos": "Videos",
+      "categories": "Categories",
       "settings": "Settings"
     }
   },
@@ -122,7 +123,9 @@
     "noTrim": "No Trim",
     "trimOverwrite": "Overwrite",
     "trimKeep": "Keep Both",
-    "trimRange": "Trim Range"
+    "trimRange": "Trim Range",
+    "category": "Category",
+    "categoryPlaceholder": "Select category (optional)"
   },
   "tasks": {
     "title": "Tasks",
@@ -245,9 +248,42 @@
       "advanced": "Advanced Options",
       "tags": "Auto Tags",
       "tagsPlaceholder": "e.g. tech, youtube",
-      "template": "Custom Filename Template (File only)",
+      "template": "Custom filename template (filename only)",
+      "category": "Category",
+      "categoryPlaceholder": "Select category (optional)",
       "success": "Feed added successfully",
       "failed": "Failed to add feed"
+    }
+  },
+  "categories": {
+    "title": "Categories",
+    "subtitle": "Manage video categories and prompts",
+    "add": "Add Category",
+    "addTitle": "Add Category",
+    "editTitle": "Edit Category",
+    "saveSuccess": "Saved successfully",
+    "saveFailed": "Save failed",
+    "columns": {
+      "index": "No.",
+      "name": "Category Name",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At",
+      "actions": "Actions"
+    },
+    "form": {
+      "name": "Category Name",
+      "nameRequired": "Please enter category name",
+      "namePlaceholder": "e.g. English Speaking",
+      "prompt": "Prompt",
+      "promptPlaceholder": "Leave empty to use default analysis template",
+      "variables": "Available variables"
+    },
+    "deleteConfirm": {
+      "title": "Confirm Delete",
+      "content": "Remove this category from the list?",
+      "ok": "Delete",
+      "cancel": "Cancel",
+      "success": "Deleted successfully"
     }
   },
   "videos": {

@@ -27,6 +27,7 @@
       "tasks": "任务列表",
       "rss": "订阅",
       "videos": "视频库",
+      "categories": "类目管理",
       "settings": "设置"
     }
   },
@@ -124,7 +125,9 @@
     "noTrim": "不裁剪",
     "trimOverwrite": "覆盖原文件",
     "trimKeep": "保留原文件",
-    "trimRange": "裁剪范围"
+    "trimRange": "裁剪范围",
+    "category": "类目",
+    "categoryPlaceholder": "选择类目（可选）"
   },
   "tasks": {
     "title": "任务列表",
@@ -248,8 +251,41 @@
       "tags": "自动标签",
       "tagsPlaceholder": "例如: tech, youtube",
       "template": "自定义文件名模板 (仅文件名)",
+      "category": "类目",
+      "categoryPlaceholder": "选择类目（可选）",
       "success": "订阅添加成功",
       "failed": "订阅添加失败"
+    }
+  },
+  "categories": {
+    "title": "类目管理",
+    "subtitle": "配置视频类目与提示词",
+    "add": "新增类目",
+    "addTitle": "新增类目",
+    "editTitle": "编辑类目",
+    "saveSuccess": "保存成功",
+    "saveFailed": "保存失败",
+    "columns": {
+      "index": "编号",
+      "name": "类目名称",
+      "createdAt": "创建时间",
+      "updatedAt": "更新时间",
+      "actions": "操作"
+    },
+    "form": {
+      "name": "类目名称",
+      "nameRequired": "请输入类目名称",
+      "namePlaceholder": "例如：英语口语",
+      "prompt": "提示词",
+      "promptPlaceholder": "留空则使用默认分析模板",
+      "variables": "可用变量"
+    },
+    "deleteConfirm": {
+      "title": "确认删除",
+      "content": "删除后将从列表移除，是否继续？",
+      "ok": "删除",
+      "cancel": "取消",
+      "success": "删除成功"
     }
   },
   "videos": {

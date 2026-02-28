@@ -3,6 +3,7 @@ import {
   BellOutlined,
   DownloadOutlined,
   SettingOutlined,
+  TagsOutlined,
   UnorderedListOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
@@ -44,6 +45,11 @@ export const useAppStore = create<TaskState>((set) => ({
       id: MenuItemKey.Videos,
       icon: VideoCameraOutlined,
       labelKey: 'app.sidebar.videos',
+    },
+    {
+      id: MenuItemKey.Categories,
+      icon: TagsOutlined,
+      labelKey: 'app.sidebar.categories',
     },
     { id: MenuItemKey.Settings, icon: SettingOutlined, labelKey: 'app.sidebar.settings' },
   ],

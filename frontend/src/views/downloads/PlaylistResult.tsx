@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Grid, CellComponentProps } from 'react-window';
 import { useTranslation } from 'react-i18next';
-import { Button, Checkbox, Divider, Image, Tag } from 'antd';
+import { Button, Checkbox, Divider, Image, Select, Tag } from 'antd';
 import { models } from '@root/wailsjs/go/models';
 import { ImageFallback } from '@/data/variables';
 import dayjs from 'dayjs';
@@ -9,13 +9,23 @@ import { DownloadOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import DownloadDir from '@/components/DownloadDir';
 import { useShallow } from 'zustand/react/shallow';
 import { useSettingStore } from '@/store/useSettingStore';
+import { Category } from '@/types';
 
 interface VideoResultProps {
   videoInfo: models.VideoInfo;
   onStartDownload: ({ newDir, playList }: { newDir: string; playList?: number[] }) => void;
+  categories: Category[];
+  categoryId: string;
+  onCategoryChange: (id: string) => void;
 }
 
-const PlaylistResult = ({ videoInfo, onStartDownload }: VideoResultProps) => {
+const PlaylistResult = ({
+  videoInfo,
+  onStartDownload,
+  categories,
+  categoryId,
+  onCategoryChange,
+}: VideoResultProps) => {
   const { t } = useTranslation();
 
   const { defaultDir, themeColor } = useSettingStore(
@@ -188,8 +198,21 @@ const PlaylistResult = ({ videoInfo, onStartDownload }: VideoResultProps) => {
         overscanCount={2}
       />
       <Divider size="large" />
-      <div className="flex items-end justify-between gap-4">
-        <DownloadDir defaultDir={newDir} setNewDir={setNewDir} className="!w-auto grow-0" />
+      <div className="flex items-end justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-4 flex-wrap">
+          <DownloadDir defaultDir={newDir} setNewDir={setNewDir} className="!w-auto grow-0" />
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">{t('downloads.category')}</label>
+            <Select
+              value={categoryId || undefined}
+              onChange={(value) => onCategoryChange(value || '')}
+              allowClear
+              placeholder={t('downloads.categoryPlaceholder')}
+              options={categories.map((item) => ({ label: item.name, value: item.id }))}
+              style={{ width: 220 }}
+            />
+          </div>
+        </div>
         <Button
           type="primary"
           onClick={() => onStartDownload({ newDir, playList: selectedPlaylistItems })}

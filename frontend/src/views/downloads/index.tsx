@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 import { Input, Card, notification, message, Empty, Spin } from 'antd';
@@ -6,6 +6,7 @@ import { GetVideoInfo, AddTask as AddTaskGo, AddPlaylistTask } from '@root/wails
 import { models } from '@root/wailsjs/go/models';
 import { useAppStore } from '@/store/useAppStore';
 import { useTaskStore } from '@/store/useTaskStore';
+import { useCategoryStore } from '@/store/useCategoryStore';
 import PageContainer from '@/components/PageContainer';
 import PageHeader from '@/components/PageHeader';
 import bilibiliIcon from '@/assets/images/bilibili.png';
@@ -26,11 +27,23 @@ export default function Downloads() {
 
   const [videoInfo, setVideoInfo] = useState<models.VideoInfo | null>(null);
   const [isFetchingInfo, setIsFetchingInfo] = useState(false);
+  const [categoryId, setCategoryId] = useState('');
+
+  const { categories, fetchCategories } = useCategoryStore(
+    useShallow((state) => ({
+      categories: state.categories,
+      fetchCategories: state.fetchCategories,
+    }))
+  );
 
   const playlistItems = videoInfo?.playlist_items || [];
   const isPlaylist = Boolean(
     videoInfo?.source_type === SourceType.Playlist && playlistItems.length
   );
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   const fetchVideoInfo = async () => {
     if (!newUrl) return;
@@ -92,6 +105,7 @@ export default function Downloads() {
           trim_end: trimEnd,
           trim_mode: trimMode,
           source_type: SourceType.Single,
+          category_id: categoryId,
         })
       );
       setNewUrl('');
@@ -131,6 +145,7 @@ export default function Downloads() {
           title: videoInfo?.title || newUrl,
           thumbnail: videoInfo?.thumbnail || '',
           playlist_items: selectedItems,
+          category_id: categoryId,
         })
       );
 
@@ -192,11 +207,23 @@ export default function Downloads() {
           )}
 
           {videoInfo && !isPlaylist && (
-            <SingleVideoResult videoInfo={videoInfo} onStartDownload={handleStartDownload} />
+            <SingleVideoResult
+              videoInfo={videoInfo}
+              onStartDownload={handleStartDownload}
+              categories={categories}
+              categoryId={categoryId}
+              onCategoryChange={setCategoryId}
+            />
           )}
 
           {videoInfo && isPlaylist && (
-            <PlaylistResult videoInfo={videoInfo} onStartDownload={handleStartPlaylistDownload} />
+            <PlaylistResult
+              videoInfo={videoInfo}
+              onStartDownload={handleStartPlaylistDownload}
+              categories={categories}
+              categoryId={categoryId}
+              onCategoryChange={setCategoryId}
+            />
           )}
         </div>
       </Card>

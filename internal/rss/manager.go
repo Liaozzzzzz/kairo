@@ -75,6 +75,7 @@ func (m *Manager) AddFeed(input models.AddRSSFeedInput) (*models.RSSFeed, error)
 		Filters:          input.Filters,
 		Tags:             input.Tags,
 		FilenameTemplate: input.FilenameTemplate,
+		CategoryID:       input.CategoryID,
 		Enabled:          true,
 	}
 
@@ -82,9 +83,9 @@ func (m *Manager) AddFeed(input models.AddRSSFeedInput) (*models.RSSFeed, error)
 		rssFeed.Thumbnail = utils.EnsureHTTPS(feed.Image.URL)
 	}
 
-	_, err = tx.Exec(`INSERT INTO feeds (id, url, title, description, thumbnail, last_updated, unread_count, custom_dir, download_latest, filters, tags, filename_template, enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+	_, err = tx.Exec(`INSERT INTO feeds (id, url, title, description, thumbnail, last_updated, unread_count, custom_dir, download_latest, filters, tags, filename_template, category_id, enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		rssFeed.ID, rssFeed.URL, rssFeed.Title, rssFeed.Description, rssFeed.Thumbnail, rssFeed.LastUpdated, rssFeed.UnreadCount,
-		rssFeed.CustomDir, rssFeed.DownloadLatest, rssFeed.Filters, rssFeed.Tags, rssFeed.FilenameTemplate, rssFeed.Enabled)
+		rssFeed.CustomDir, rssFeed.DownloadLatest, rssFeed.Filters, rssFeed.Tags, rssFeed.FilenameTemplate, rssFeed.CategoryID, rssFeed.Enabled)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +131,7 @@ func (m *Manager) AddFeed(input models.AddRSSFeedInput) (*models.RSSFeed, error)
 }
 
 func (m *Manager) GetFeeds() ([]models.RSSFeed, error) {
-	rows, err := m.db.Query(`SELECT id, url, title, description, thumbnail, last_updated, unread_count, custom_dir, download_latest, filters, tags, filename_template, enabled FROM feeds`)
+	rows, err := m.db.Query(`SELECT id, url, title, description, thumbnail, last_updated, unread_count, custom_dir, download_latest, filters, tags, filename_template, category_id, enabled FROM feeds`)
 	if err != nil {
 		return nil, err
 	}
@@ -139,15 +140,16 @@ func (m *Manager) GetFeeds() ([]models.RSSFeed, error) {
 	var feeds []models.RSSFeed
 	for rows.Next() {
 		var feed models.RSSFeed
-		var customDir, filters, tags, filenameTemplate sql.NullString
+		var customDir, filters, tags, filenameTemplate, categoryID sql.NullString
 		var downloadLatest, enabled sql.NullInt32
-		if err := rows.Scan(&feed.ID, &feed.URL, &feed.Title, &feed.Description, &feed.Thumbnail, &feed.LastUpdated, &feed.UnreadCount, &customDir, &downloadLatest, &filters, &tags, &filenameTemplate, &enabled); err != nil {
+		if err := rows.Scan(&feed.ID, &feed.URL, &feed.Title, &feed.Description, &feed.Thumbnail, &feed.LastUpdated, &feed.UnreadCount, &customDir, &downloadLatest, &filters, &tags, &filenameTemplate, &categoryID, &enabled); err != nil {
 			continue
 		}
 		feed.CustomDir = customDir.String
 		feed.Filters = filters.String
 		feed.Tags = tags.String
 		feed.FilenameTemplate = filenameTemplate.String
+		feed.CategoryID = categoryID.String
 		feed.DownloadLatest = downloadLatest.Int32 == 1
 		// Default to true if null (for old records if migration fails silently or default not applied)
 		if enabled.Valid {
@@ -206,8 +208,8 @@ func (m *Manager) GetFeedItems(feedID string) ([]models.RSSItem, error) {
 }
 
 func (m *Manager) UpdateFeed(feed models.RSSFeed) error {
-	_, err := m.db.Exec(`UPDATE feeds SET custom_dir = ?, download_latest = ?, filters = ?, tags = ?, filename_template = ? WHERE id = ?`,
-		feed.CustomDir, feed.DownloadLatest, feed.Filters, feed.Tags, feed.FilenameTemplate, feed.ID)
+	_, err := m.db.Exec(`UPDATE feeds SET custom_dir = ?, download_latest = ?, filters = ?, tags = ?, filename_template = ?, category_id = ? WHERE id = ?`,
+		feed.CustomDir, feed.DownloadLatest, feed.Filters, feed.Tags, feed.FilenameTemplate, feed.CategoryID, feed.ID)
 	return err
 }
 

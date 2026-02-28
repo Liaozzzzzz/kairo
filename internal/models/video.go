@@ -12,6 +12,7 @@ type Video struct {
 	Format     string  `json:"format"`
 	Resolution string  `json:"resolution"`
 	CreatedAt  int64   `json:"created_at"`
+	CategoryID string  `json:"category_id"`
 
 	// Metadata
 	Description string `json:"description"`

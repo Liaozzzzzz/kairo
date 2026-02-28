@@ -51,14 +51,14 @@ func (m *Manager) SaveVideo(v *models.Video) error {
 
 	query := `INSERT OR REPLACE INTO videos (
 		id, task_id, title, url, file_path, thumbnail, duration, size, format, resolution, created_at,
-		description, uploader, summary, tags, evaluation, status
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		description, uploader, summary, tags, evaluation, category_id, status
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	tagsJSON, _ := json.Marshal(v.Tags)
 
 	_, err := m.db.Exec(query,
 		v.ID, v.TaskID, v.Title, v.URL, v.FilePath, v.Thumbnail, v.Duration, v.Size, v.Format, v.Resolution, v.CreatedAt,
-		v.Description, v.Uploader, v.Summary, string(tagsJSON), v.Evaluation, v.Status,
+		v.Description, v.Uploader, v.Summary, string(tagsJSON), v.Evaluation, v.CategoryID, v.Status,
 	)
 
 	return err
@@ -87,6 +87,7 @@ func (m *Manager) CreateFromTask(t *models.DownloadTask) error {
 		Format:     t.Format,
 		Resolution: t.Quality,
 		CreatedAt:  time.Now().Unix(),
+		CategoryID: t.CategoryID,
 		Status:     "none",
 	}
 
@@ -205,7 +206,7 @@ func (m *Manager) GetVideos(filter models.VideoFilter) ([]*models.Video, error) 
 		var url sql.NullString
 		err := rows.Scan(
 			&v.ID, &v.TaskID, &v.Title, &url, &v.FilePath, &v.Thumbnail, &v.Duration, &v.Size, &v.Format, &v.Resolution, &v.CreatedAt,
-			&v.Description, &v.Uploader, &v.Summary, &tagsJSON, &v.Evaluation, &v.Status,
+			&v.Description, &v.Uploader, &v.Summary, &tagsJSON, &v.Evaluation, &v.CategoryID, &v.Status,
 		)
 		if err != nil {
 			continue
@@ -231,12 +232,12 @@ func (m *Manager) GetVideo(id string) (*models.Video, error) {
 	var url sql.NullString
 	// Explicitly select columns to avoid issues with old schema having extra columns
 	query := `SELECT id, task_id, title, url, file_path, thumbnail, duration, size, format, resolution, created_at,
-		description, uploader, summary, tags, evaluation, status
+		description, uploader, summary, tags, evaluation, category_id, status
 		FROM videos WHERE id = ?`
 
 	err := m.db.QueryRow(query, id).Scan(
 		&v.ID, &v.TaskID, &v.Title, &url, &v.FilePath, &v.Thumbnail, &v.Duration, &v.Size, &v.Format, &v.Resolution, &v.CreatedAt,
-		&v.Description, &v.Uploader, &v.Summary, &tagsJSON, &v.Evaluation, &v.Status,
+		&v.Description, &v.Uploader, &v.Summary, &tagsJSON, &v.Evaluation, &v.CategoryID, &v.Status,
 	)
 	if err != nil {
 		return nil, err
@@ -247,6 +248,21 @@ func (m *Manager) GetVideo(id string) (*models.Video, error) {
 	json.Unmarshal([]byte(tagsJSON), &v.Tags)
 
 	return &v, nil
+}
+
+func (m *Manager) getCategoryPrompt(categoryID string) (string, error) {
+	if m.db == nil || strings.TrimSpace(categoryID) == "" {
+		return "", nil
+	}
+	var prompt sql.NullString
+	err := m.db.QueryRow("SELECT prompt FROM categories WHERE id = ?", categoryID).Scan(&prompt)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return prompt.String, nil
 }
 
 func (m *Manager) GetHighlights(videoID string) ([]models.AIHighlight, error) {
@@ -421,7 +437,8 @@ func (m *Manager) AnalyzeVideo(id string) error {
 			Date:             time.Unix(v.CreatedAt, 0).Format("2006-01-02"),
 		}
 
-		result, err := m.aiService.Analyze(meta)
+		categoryPrompt, _ := m.getCategoryPrompt(v.CategoryID)
+		result, err := m.aiService.Analyze(meta, categoryPrompt)
 
 		if err != nil {
 			if errors.Is(err, ai.ErrAIDisabled) {

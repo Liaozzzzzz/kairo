@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal, Input, Form, message, Button, Switch } from 'antd';
+import { Modal, Input, Form, message, Button, Switch, Select } from 'antd';
 import { useRSSStore } from '@/store/useRSSStore';
 import { BrowserOpenURL } from '@root/wailsjs/runtime/runtime';
 import DownloadDir from '@/components/DownloadDir';
 import { useSettingStore } from '@/store/useSettingStore';
 import { useShallow } from 'zustand/react/shallow';
 import { RSSFeed } from '@/types';
+import { useCategoryStore } from '@/store/useCategoryStore';
 
 interface AddFeedModalProps {
   open: boolean;
@@ -29,9 +30,18 @@ const AddFeedModal: React.FC<AddFeedModalProps> = ({
   );
   const [form] = Form.useForm();
   const { addFeed, updateFeed, isLoading } = useRSSStore();
+  const { categories, fetchCategories } = useCategoryStore(
+    useShallow((state) => ({
+      categories: state.categories,
+      fetchCategories: state.fetchCategories,
+    }))
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    if (open) {
+      fetchCategories();
+    }
     if (open) {
       if (mode === 'edit' && initialValues) {
         form.setFieldsValue({
@@ -41,16 +51,18 @@ const AddFeedModal: React.FC<AddFeedModalProps> = ({
           filters: initialValues.filters,
           tags: initialValues.tags,
           filename_template: initialValues.filename_template,
+          category_id: initialValues.category_id || undefined,
         });
       } else {
         form.resetFields();
         form.setFieldsValue({
           download_latest: true,
           custom_dir: defaultDir,
+          category_id: undefined,
         });
       }
     }
-  }, [open, mode, initialValues, form, defaultDir]);
+  }, [open, mode, initialValues, form, defaultDir, fetchCategories]);
 
   const handleSubmit = async () => {
     try {
@@ -65,6 +77,7 @@ const AddFeedModal: React.FC<AddFeedModalProps> = ({
           filters: values.filters || '',
           tags: values.tags || '',
           filename_template: values.filename_template || '',
+          category_id: values.category_id || '',
         });
         message.success(t('rss.modal.updateSuccess'));
       } else {
@@ -75,6 +88,7 @@ const AddFeedModal: React.FC<AddFeedModalProps> = ({
           filters: values.filters || '',
           tags: values.tags || '',
           filename_template: values.filename_template || '',
+          category_id: values.category_id || '',
         });
         message.success(t('rss.modal.success'));
       }
@@ -155,6 +169,13 @@ const AddFeedModal: React.FC<AddFeedModalProps> = ({
         </Form.Item>
         <Form.Item name="filename_template" label={t('rss.modal.template')} className="mb-4">
           <Input placeholder="%(uploader)s/%(title)s.%(ext)s" />
+        </Form.Item>
+        <Form.Item name="category_id" label={t('rss.modal.category')} className="mb-2">
+          <Select
+            allowClear
+            placeholder={t('rss.modal.categoryPlaceholder')}
+            options={categories.map((item) => ({ label: item.name, value: item.id }))}
+          />
         </Form.Item>
       </Form>
     </Modal>

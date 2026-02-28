@@ -26,6 +26,10 @@ type VideoMetadata struct {
 	Date             string
 }
 
+func DefaultPrompt() string {
+	return defaultAIPrompt
+}
+
 type AnalysisResult struct {
 	Summary    string   `json:"summary"`
 	Tags       []string `json:"tags"`
@@ -37,13 +41,16 @@ type AnalysisResult struct {
 	} `json:"highlights"`
 }
 
-func (m *Manager) Analyze(meta VideoMetadata) (*AnalysisResult, error) {
+func (m *Manager) Analyze(meta VideoMetadata, promptTemplate string) (*AnalysisResult, error) {
 	settings := config.GetSettings()
 	if !settings.AI.Enabled {
 		return nil, ErrAIDisabled
 	}
 
 	prompt := defaultAIPrompt
+	if strings.TrimSpace(promptTemplate) != "" {
+		prompt = promptTemplate
+	}
 	prompt = strings.ReplaceAll(prompt, "{{title}}", meta.Title)
 	prompt = strings.ReplaceAll(prompt, "{{uploader}}", meta.Uploader)
 	prompt = strings.ReplaceAll(prompt, "{{date}}", meta.Date)

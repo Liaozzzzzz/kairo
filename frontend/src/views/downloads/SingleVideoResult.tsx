@@ -13,6 +13,7 @@ import { ImageFallback } from '@/data/variables';
 import { useSettingStore } from '@/store/useSettingStore';
 import { useShallow } from 'zustand/react/shallow';
 import DownloadDir from '@/components/DownloadDir';
+import { Category } from '@/types';
 
 import { TrimMode } from '@/data/variables';
 
@@ -33,9 +34,18 @@ interface SingleVideoResultProps {
     trimEnd: string;
     trimMode: TrimMode;
   }) => void;
+  categories: Category[];
+  categoryId: string;
+  onCategoryChange: (id: string) => void;
 }
 
-const SingleVideoResult = ({ videoInfo, onStartDownload }: SingleVideoResultProps) => {
+const SingleVideoResult = ({
+  videoInfo,
+  onStartDownload,
+  categories,
+  categoryId,
+  onCategoryChange,
+}: SingleVideoResultProps) => {
   const { t } = useTranslation();
   const defaultDir = useSettingStore(useShallow((state) => state.defaultDir));
   const [newDir, setNewDir] = useState(defaultDir);
@@ -166,7 +176,17 @@ const SingleVideoResult = ({ videoInfo, onStartDownload }: SingleVideoResultProp
             <label className="text-sm font-medium text-foreground">{t('downloads.saveTo')}</label>
             <DownloadDir defaultDir={newDir} setNewDir={setNewDir} />
           </div>
-          <div></div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">{t('downloads.category')}</label>
+            <Select
+              value={categoryId || undefined}
+              onChange={(value) => onCategoryChange(value || '')}
+              allowClear
+              placeholder={t('downloads.categoryPlaceholder')}
+              options={categories.map((item) => ({ label: item.name, value: item.id }))}
+              style={{ width: '100%' }}
+            />
+          </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
               {t('downloads.trimVideo')}

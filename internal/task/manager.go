@@ -70,7 +70,7 @@ func (m *Manager) AddPlaylistTask(input models.AddPlaylistTaskInput) (string, er
 	}
 
 	// 1. Create parent task
-	parentTask := newTask(input.URL, dir, input.Title, input.Thumbnail, models.SourceTypePlaylist)
+	parentTask := newTask(input.URL, dir, input.Title, input.Thumbnail, models.SourceTypePlaylist, input.CategoryID)
 	parentTask.Status = models.TaskStatusCompleted
 	parentTask.Progress = 100
 	parentTask.TotalBytes = 0
@@ -82,7 +82,7 @@ func (m *Manager) AddPlaylistTask(input models.AddPlaylistTaskInput) (string, er
 		parentTask,
 	}
 	for _, item := range input.PlaylistItems {
-		childTask := newTask(item.URL, dir, item.Title, item.Thumbnail, models.SourceTypePlaylist)
+		childTask := newTask(item.URL, dir, item.Title, item.Thumbnail, models.SourceTypePlaylist, input.CategoryID)
 		childTask.LogPath = config.GetLogPath(childTask.ID)
 		childTask.ParentID = parentTask.ID
 		childTask.Quality = "best"
@@ -123,7 +123,7 @@ func (m *Manager) AddRSSTask(input models.AddRSSTaskInput) (string, error) {
 
 	// 2. Create parent if not exists
 	if parentTask == nil {
-		parentTask = newTask(input.FeedURL, dir, input.FeedTitle, input.FeedThumbnail, models.SourceTypeRSS)
+		parentTask = newTask(input.FeedURL, dir, input.FeedTitle, input.FeedThumbnail, models.SourceTypeRSS, input.CategoryID)
 		parentTask.Status = models.TaskStatusCompleted
 		parentTask.Progress = 100
 		parentTask.TotalBytes = 0
@@ -133,7 +133,7 @@ func (m *Manager) AddRSSTask(input models.AddRSSTaskInput) (string, error) {
 	}
 
 	// 3. Create child task
-	childTask := newTask(input.ItemURL, dir, input.ItemTitle, input.ItemThumbnail, models.SourceTypeRSS)
+	childTask := newTask(input.ItemURL, dir, input.ItemTitle, input.ItemThumbnail, models.SourceTypeRSS, input.CategoryID)
 	childTask.LogPath = config.GetLogPath(childTask.ID)
 	childTask.ParentID = parentTask.ID
 	childTask.Quality = "best"
@@ -159,7 +159,7 @@ func (m *Manager) AddTask(input models.AddTaskInput) (string, error) {
 		return "", err
 	}
 
-	task := newTask(input.URL, dir, input.Title, input.Thumbnail, input.SourceType)
+	task := newTask(input.URL, dir, input.Title, input.Thumbnail, input.SourceType, input.CategoryID)
 	task.Quality = input.Quality
 	task.Format = input.Format
 	task.FormatID = input.FormatID
@@ -167,6 +167,7 @@ func (m *Manager) AddTask(input models.AddTaskInput) (string, error) {
 	task.TrimStart = input.TrimStart
 	task.TrimEnd = input.TrimEnd
 	task.TrimMode = input.TrimMode
+	task.CategoryID = input.CategoryID
 
 	m.registerCancel(task.ID)
 	m.saveTask(task)
@@ -421,14 +422,14 @@ func (m *Manager) saveTask(task *models.DownloadTask) {
 		id, url, dir, quality, format, format_id, parent_id, source_type,
 		status, progress, title, thumbnail, speed, eta,
 		log_path, file_exists, file_path,
-		total_bytes, trim_start, trim_end, trim_mode, created_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		total_bytes, trim_start, trim_end, trim_mode, category_id, created_at
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	_, err := m.db.Exec(query,
 		task.ID, task.URL, task.Dir, task.Quality, task.Format, task.FormatID, task.ParentID, task.SourceType,
 		task.Status, task.Progress, task.Title, task.Thumbnail, task.Speed, task.Eta,
 		task.LogPath, task.FileExists, task.FilePath,
-		task.TotalBytes, task.TrimStart, task.TrimEnd, task.TrimMode, task.CreatedAt,
+		task.TotalBytes, task.TrimStart, task.TrimEnd, task.TrimMode, task.CategoryID, task.CreatedAt,
 	)
 
 	if err != nil {

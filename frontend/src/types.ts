@@ -26,7 +26,22 @@ export interface Task {
   log_path?: string;
   file_exists?: boolean;
   files?: TaskFile[];
+  category_id?: string;
   created_at?: number;
+}
+
+export enum CategorySource {
+  Builtin = 'builtin',
+  Custom = 'custom',
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  prompt: string;
+  source: CategorySource;
+  created_at: number;
+  updated_at: number;
 }
 
 export interface RSSFeed {
@@ -43,6 +58,7 @@ export interface RSSFeed {
   filters: string;
   tags: string;
   filename_template: string;
+  category_id: string;
 }
 
 export interface RSSItem {
@@ -67,6 +83,7 @@ export interface Video {
   format: string;
   resolution: string;
   created_at: number;
+  category_id?: string;
   description: string;
   uploader: string;
   summary: string;

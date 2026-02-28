@@ -72,7 +72,7 @@ func (a *App) startup(ctx context.Context) {
 	// Load settings from disk
 	_ = config.LoadSettings()
 
-	a.db = db.InitDatabase()
+	a.db = db.NewDatabase()
 
 	dep := deps.NewManager(ctx, readEmbedded)
 	dep.EnsureYtDlp()

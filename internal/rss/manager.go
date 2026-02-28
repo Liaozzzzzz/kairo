@@ -89,6 +89,11 @@ func (m *Manager) AddFeed(input schema.AddRSSFeedInput) (*schema.Feed, error) {
 	}
 	feedItems := make([]schema.FeedItem, 0, len(feed.Items))
 	for _, item := range feed.Items {
+		// Filter out items without title or link
+		if item.Title == "" || item.Link == "" {
+			continue
+		}
+
 		pubDate := time.Now().Unix()
 		if item.PublishedParsed != nil {
 			pubDate = item.PublishedParsed.Unix()
@@ -267,6 +272,11 @@ func (m *Manager) RefreshFeed(feedID string) error {
 	now := time.Now().Unix()
 	newItems := make([]schema.FeedItem, 0, len(feed.Items))
 	for _, item := range feed.Items {
+		// Filter out items without title or link
+		if item.Title == "" || item.Link == "" {
+			continue
+		}
+
 		pubDate := time.Now().Unix()
 		if item.PublishedParsed != nil {
 			pubDate = item.PublishedParsed.Unix()

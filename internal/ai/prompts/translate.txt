@@ -1,4 +1,6 @@
+# 文本翻译
+
 Translate each item in the JSON array into {{target_language}}. Return a JSON object with a single key "translations" whose value is an array of translated strings in the same order and length. Do not include any extra text.
 
-Segments:
+## Segments
 {{segments}}

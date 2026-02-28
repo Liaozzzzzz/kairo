@@ -15,11 +15,11 @@ import (
 	"time"
 
 	"Kairo/internal/config"
-	"Kairo/internal/models"
+	"Kairo/internal/db/schema"
 	"Kairo/internal/utils"
 )
 
-func (m *Manager) resolveVideoInfo(task *models.DownloadTask) error {
+func (m *Manager) resolveVideoInfo(task *schema.Task) error {
 	if task.FormatID != "" {
 		return nil
 	}
@@ -47,7 +47,7 @@ func (m *Manager) resolveVideoInfo(task *models.DownloadTask) error {
 	return nil
 }
 
-func (m *Manager) getFormatString(task *models.DownloadTask) string {
+func (m *Manager) getFormatString(task *schema.Task) string {
 	if task.FormatID != "" {
 		return task.FormatID
 	}
@@ -76,7 +76,7 @@ func (m *Manager) getFormatString(task *models.DownloadTask) string {
 	return format
 }
 
-func (m *Manager) buildYtDlpArgs(task *models.DownloadTask, outputDir, ffmpegPath string) []string {
+func (m *Manager) buildYtDlpArgs(task *schema.Task, outputDir, ffmpegPath string) []string {
 	format := m.getFormatString(task)
 
 	args := []string{
@@ -122,9 +122,9 @@ func (m *Manager) buildYtDlpArgs(task *models.DownloadTask, outputDir, ffmpegPat
 	return args
 }
 
-func (m *Manager) handleTrimming(ctx context.Context, task *models.DownloadTask) {
-	if task.TrimMode == models.TrimModeNone || !task.FileExists || task.FilePath == "" {
-		task.Status = models.TaskStatusCompleted
+func (m *Manager) handleTrimming(ctx context.Context, task *schema.Task) {
+	if task.TrimMode == schema.TrimModeNone || !task.FileExists || task.FilePath == "" {
+		task.Status = schema.TaskStatusCompleted
 		m.emitTaskUpdate(task)
 		m.saveTask(task)
 		if m.OnTaskComplete != nil {
@@ -133,12 +133,12 @@ func (m *Manager) handleTrimming(ctx context.Context, task *models.DownloadTask)
 		return
 	}
 
-	task.Status = models.TaskStatusTrimming
+	task.Status = schema.TaskStatusTrimming
 	m.emitTaskUpdate(task)
 	m.saveTask(task)
 
 	modeStr := "保留原文件"
-	if task.TrimMode == models.TrimModeOverwrite {
+	if task.TrimMode == schema.TrimModeOverwrite {
 		modeStr = "覆盖原文件"
 	}
 	m.emitTaskLog(task.ID, fmt.Sprintf("正在进行裁剪 (开始: %s, 结束: %s, 模式: %s)...", task.TrimStart, task.TrimEnd, modeStr), false)
@@ -150,7 +150,7 @@ func (m *Manager) handleTrimming(ctx context.Context, task *models.DownloadTask)
 	ffmpegPath, err := m.deps.GetFFmpegPath()
 	if err != nil {
 		m.emitTaskLog(task.ID, "FFmpeg not found", false)
-		task.Status = models.TaskStatusTrimFailed
+		task.Status = schema.TaskStatusTrimFailed
 		m.emitTaskUpdate(task)
 		m.saveTask(task)
 		return
@@ -169,14 +169,14 @@ func (m *Manager) handleTrimming(ctx context.Context, task *models.DownloadTask)
 
 	if output, err := cmd.CombinedOutput(); err != nil {
 		m.emitTaskLog(task.ID, fmt.Sprintf("裁剪失败: %v, %s", err, string(output)), false)
-		task.Status = models.TaskStatusTrimFailed
+		task.Status = schema.TaskStatusTrimFailed
 		m.emitTaskUpdate(task)
 		m.saveTask(task)
 		return
 	}
 
 	// Success
-	if task.TrimMode == models.TrimModeOverwrite {
+	if task.TrimMode == schema.TrimModeOverwrite {
 		if err := os.Remove(task.FilePath); err != nil {
 			m.emitTaskLog(task.ID, "Failed to overwrite original file: "+err.Error(), false)
 		} else {
@@ -193,7 +193,7 @@ func (m *Manager) handleTrimming(ctx context.Context, task *models.DownloadTask)
 		m.emitTaskLog(task.ID, "裁剪完成 (另存为: "+filepath.Base(trimmedPath)+")", false)
 	}
 
-	task.Status = models.TaskStatusCompleted
+	task.Status = schema.TaskStatusCompleted
 	m.emitTaskUpdate(task)
 	m.saveTask(task)
 
@@ -202,7 +202,7 @@ func (m *Manager) handleTrimming(ctx context.Context, task *models.DownloadTask)
 	}
 }
 
-func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
+func (m *Manager) processTask(ctx context.Context, task *schema.Task) {
 	defer func() {
 		m.mu.Lock()
 		delete(m.cancelFuncs, task.ID)
@@ -218,7 +218,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		if err != nil || t == nil {
 			return false
 		}
-		return t.Status == models.TaskStatusPaused
+		return t.Status == schema.TaskStatusPaused
 	}
 
 	lastSave := time.Now()
@@ -231,7 +231,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 
 	ytDlpPath, err := m.deps.GetYtDlpPath()
 	if err != nil {
-		task.Status = models.TaskStatusError
+		task.Status = schema.TaskStatusError
 		m.emitTaskLog(task.ID, "Error: yt-dlp not found", false)
 		m.emitTaskUpdate(task)
 		m.saveTask(task)
@@ -240,7 +240,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 
 	// Update status (local copy) and save to DB
 	// Note: We don't need to lock for local task updates as we own this struct instance
-	task.Status = models.TaskStatusStarting
+	task.Status = schema.TaskStatusStarting
 	task.Speed = "启动中..."
 	task.Eta = ""
 
@@ -249,7 +249,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 	m.saveTask(task)
 
 	if err := m.resolveVideoInfo(task); err != nil {
-		task.Status = models.TaskStatusError
+		task.Status = schema.TaskStatusError
 		m.emitTaskLog(task.ID, err.Error(), false)
 		m.emitTaskUpdate(task)
 		m.saveTask(task)
@@ -281,14 +281,14 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 			return
 		}
 
-		task.Status = models.TaskStatusError
+		task.Status = schema.TaskStatusError
 		m.emitTaskLog(task.ID, "Start Error: "+err.Error(), false)
 		m.emitTaskUpdate(task)
 		m.saveTask(task)
 		return
 	}
 
-	task.Status = models.TaskStatusDownloading
+	task.Status = schema.TaskStatusDownloading
 	m.emitTaskLog(task.ID, "下载引擎已启动，正在解析...", false)
 	m.emitTaskUpdate(task)
 	m.saveTask(task)
@@ -360,8 +360,8 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 				m.emitTaskUpdate(task)
 			}
 
-			if strings.HasPrefix(line, "[Merger]") && task.Status != models.TaskStatusMerging {
-				task.Status = models.TaskStatusMerging
+			if strings.HasPrefix(line, "[Merger]") && task.Status != schema.TaskStatusMerging {
+				task.Status = schema.TaskStatusMerging
 				m.emitTaskUpdate(task)
 				m.saveTask(task)
 			}
@@ -426,7 +426,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 		// Check for exit code 101 (Max downloads reached)
 		var exitErr *exec.ExitError
 		if errors.As(waitErr, &exitErr) && exitErr.ExitCode() == 101 {
-			task.Status = models.TaskStatusCompleted
+			task.Status = schema.TaskStatusCompleted
 			task.Progress = 100
 			m.emitTaskLog(task.ID, "Download limit reached (expected)", false)
 			m.saveTask(task)
@@ -444,7 +444,7 @@ func (m *Manager) processTask(ctx context.Context, task *models.DownloadTask) {
 				return
 			}
 
-			task.Status = models.TaskStatusError
+			task.Status = schema.TaskStatusError
 			m.emitTaskLog(task.ID, "Exit Error: "+waitErr.Error(), false)
 			m.saveTask(task)
 			if m.OnTaskFailed != nil {

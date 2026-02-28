@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 import { Input, Card, notification, message, Empty, Spin } from 'antd';
 import { GetVideoInfo, AddTask as AddTaskGo, AddPlaylistTask } from '@root/wailsjs/go/main/App';
-import { models } from '@root/wailsjs/go/models';
+import { schema } from '@root/wailsjs/go/models';
 import { useAppStore } from '@/store/useAppStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useCategoryStore } from '@/store/useCategoryStore';
@@ -25,7 +25,7 @@ export default function Downloads() {
 
   const setActiveTab = useAppStore(useShallow((state) => state.setActiveTab));
 
-  const [videoInfo, setVideoInfo] = useState<models.VideoInfo | null>(null);
+  const [videoInfo, setVideoInfo] = useState<schema.VideoInfo | null>(null);
   const [isFetchingInfo, setIsFetchingInfo] = useState(false);
   const [categoryId, setCategoryId] = useState('');
 
@@ -88,11 +88,13 @@ export default function Downloads() {
   }) => {
     if (!newUrl || !newDir) return;
     try {
-      const selectedQuality = videoInfo?.qualities?.find((q) => q.value === newQuality);
+      const selectedQuality = videoInfo?.qualities?.find(
+        (q: schema.QualityOption) => q.value === newQuality
+      );
       const totalBytes = isPlaylist ? 0 : selectedQuality?.total_bytes || 0;
       const formatId = selectedQuality?.format_id || '';
       await AddTaskGo(
-        new models.AddTaskInput({
+        new schema.AddTaskInput({
           url: newUrl,
           quality: newQuality,
           format: newFormat,
@@ -125,7 +127,7 @@ export default function Downloads() {
     if (!newUrl || !newDir) return;
     try {
       const sortedItems = [...playList].sort((a, b) => a - b);
-      const selectedItems: models.PlaylistItem[] = [];
+      const selectedItems: schema.PlaylistItem[] = [];
 
       for (const index of sortedItems) {
         const item = playlistItems.find((playlistItem) => playlistItem.index === index);
@@ -139,7 +141,7 @@ export default function Downloads() {
       }
 
       await AddPlaylistTask(
-        new models.AddPlaylistTaskInput({
+        new schema.AddPlaylistTaskInput({
           url: newUrl,
           dir: newDir,
           title: videoInfo?.title || newUrl,

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Category, CategorySource } from '@/types';
-import { models } from '@root/wailsjs/go/models';
+import { schema } from '@root/wailsjs/go/models';
 import {
   GetCategories,
   CreateCategory,
@@ -17,7 +17,7 @@ interface CategoryState {
   deleteCategory: (id: string) => Promise<void>;
 }
 
-const normalizeCategory = (category: models.Category): Category => ({
+const normalizeCategory = (category: schema.Category): Category => ({
   id: category.id,
   name: category.name,
   prompt: category.prompt,

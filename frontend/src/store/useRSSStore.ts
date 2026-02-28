@@ -3,7 +3,7 @@ import { RSSFeed, RSSItem } from '@/types';
 import { RSSItemStatus } from '@/data/variables';
 
 import {
-  AddRSSFeed,
+  AddFeed,
   GetRSSFeeds,
   DeleteRSSFeed,
   RefreshRSSFeed,
@@ -94,7 +94,7 @@ export const useRSSStore = create<RSSState>((set, get) => ({
   addFeed: async (input: AddFeedInput) => {
     set({ isLoading: true });
     try {
-      const feed = await AddRSSFeed({
+      const feed = await AddFeed({
         ...input,
         category_id: input.category_id || '',
       });

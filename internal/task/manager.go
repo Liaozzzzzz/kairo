@@ -2,19 +2,22 @@ package task
 
 import (
 	"context"
-	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"sync"
+	"time"
 
 	"Kairo/internal/config"
+	"Kairo/internal/db/dal"
+	"Kairo/internal/db/schema"
 	"Kairo/internal/deps"
-	"Kairo/internal/models"
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
+	"gorm.io/gorm"
 )
 
 type Manager struct {
@@ -23,12 +26,13 @@ type Manager struct {
 	cancelFuncs    map[string]context.CancelFunc
 	deletedTasks   map[string]struct{}
 	mu             sync.Mutex
-	db             *sql.DB
-	OnTaskComplete func(task *models.DownloadTask)
-	OnTaskFailed   func(task *models.DownloadTask)
+	db             *gorm.DB
+	taskDAL        *dal.TaskDAL
+	OnTaskComplete func(task *schema.Task)
+	OnTaskFailed   func(task *schema.Task)
 }
 
-func NewManager(ctx context.Context, db *sql.DB, d *deps.Manager) *Manager {
+func NewManager(ctx context.Context, db *gorm.DB, d *deps.Manager) *Manager {
 	m := &Manager{
 		ctx:          ctx,
 		deps:         d,
@@ -36,53 +40,52 @@ func NewManager(ctx context.Context, db *sql.DB, d *deps.Manager) *Manager {
 		deletedTasks: make(map[string]struct{}),
 	}
 	m.db = db
+	if db != nil {
+		m.taskDAL = dal.NewTaskDAL(db)
+	}
 	m.resetInterruptedTasks()
 	return m
 }
 
-func (m *Manager) GetTasks() map[string]*models.DownloadTask {
-	tasks := make(map[string]*models.DownloadTask)
-	if m.db == nil {
+func (m *Manager) GetTasks() map[string]*schema.Task {
+	tasks := make(map[string]*schema.Task)
+	if m.taskDAL == nil {
 		return tasks
 	}
 
-	rows, err := m.db.Query(fmt.Sprintf(`SELECT %s FROM tasks`, taskColumns))
+	rows, err := m.taskDAL.List(m.ctx)
 	if err != nil {
 		fmt.Printf("Failed to query tasks: %v\n", err)
 		return tasks
 	}
-	defer rows.Close()
-
-	for rows.Next() {
-		t, err := scanTask(rows)
-		if err != nil {
-			continue
-		}
-		tasks[t.ID] = t
+	for _, t := range rows {
+		// Create a copy to store in map
+		task := t
+		tasks[task.ID] = &task
 	}
 	return tasks
 }
 
-func (m *Manager) AddPlaylistTask(input models.AddPlaylistTaskInput) (string, error) {
+func (m *Manager) AddPlaylistTask(input schema.AddPlaylistTaskInput) (string, error) {
 	dir, err := validateTaskInput(input.URL, input.Dir)
 	if err != nil {
 		return "", err
 	}
 
 	// 1. Create parent task
-	parentTask := newTask(input.URL, dir, input.Title, input.Thumbnail, models.SourceTypePlaylist, input.CategoryID)
-	parentTask.Status = models.TaskStatusCompleted
+	parentTask := newTask(input.URL, dir, input.Title, input.Thumbnail, schema.SourceTypePlaylist, input.CategoryID)
+	parentTask.Status = schema.TaskStatusCompleted
 	parentTask.Progress = 100
 	parentTask.TotalBytes = 0
 
 	m.registerCancel(parentTask.ID)
 
 	// 2. Create child tasks
-	tasks := []*models.DownloadTask{
+	tasks := []*schema.Task{
 		parentTask,
 	}
 	for _, item := range input.PlaylistItems {
-		childTask := newTask(item.URL, dir, item.Title, item.Thumbnail, models.SourceTypePlaylist, input.CategoryID)
+		childTask := newTask(item.URL, dir, item.Title, item.Thumbnail, schema.SourceTypePlaylist, input.CategoryID)
 		childTask.LogPath = config.GetLogPath(childTask.ID)
 		childTask.ParentID = parentTask.ID
 		childTask.Quality = "best"
@@ -104,7 +107,7 @@ func (m *Manager) AddPlaylistTask(input models.AddPlaylistTaskInput) (string, er
 	return parentTask.ID, nil
 }
 
-func (m *Manager) AddRSSTask(input models.AddRSSTaskInput) (string, error) {
+func (m *Manager) AddRSSTask(input schema.AddRSSTaskInput) (string, error) {
 	if input.FeedURL == "" {
 		return "", fmt.Errorf("feed url is empty")
 	}
@@ -117,14 +120,14 @@ func (m *Manager) AddRSSTask(input models.AddRSSTaskInput) (string, error) {
 	}
 
 	// 1. Check for existing parent task
-	parentTask, _ := m.findTaskBySourceAndURL(models.SourceTypeRSS, input.FeedURL)
+	parentTask, _ := m.findTaskBySourceAndURL(schema.SourceTypeRSS, input.FeedURL)
 
-	var tasks []*models.DownloadTask
+	var tasks []*schema.Task
 
 	// 2. Create parent if not exists
 	if parentTask == nil {
-		parentTask = newTask(input.FeedURL, dir, input.FeedTitle, input.FeedThumbnail, models.SourceTypeRSS, input.CategoryID)
-		parentTask.Status = models.TaskStatusCompleted
+		parentTask = newTask(input.FeedURL, dir, input.FeedTitle, input.FeedThumbnail, schema.SourceTypeRSS, input.CategoryID)
+		parentTask.Status = schema.TaskStatusCompleted
 		parentTask.Progress = 100
 		parentTask.TotalBytes = 0
 
@@ -133,7 +136,7 @@ func (m *Manager) AddRSSTask(input models.AddRSSTaskInput) (string, error) {
 	}
 
 	// 3. Create child task
-	childTask := newTask(input.ItemURL, dir, input.ItemTitle, input.ItemThumbnail, models.SourceTypeRSS, input.CategoryID)
+	childTask := newTask(input.ItemURL, dir, input.ItemTitle, input.ItemThumbnail, schema.SourceTypeRSS, input.CategoryID)
 	childTask.LogPath = config.GetLogPath(childTask.ID)
 	childTask.ParentID = parentTask.ID
 	childTask.Quality = "best"
@@ -153,7 +156,7 @@ func (m *Manager) AddRSSTask(input models.AddRSSTaskInput) (string, error) {
 	return childTask.ID, nil
 }
 
-func (m *Manager) AddTask(input models.AddTaskInput) (string, error) {
+func (m *Manager) AddTask(input schema.AddTaskInput) (string, error) {
 	dir, err := validateTaskInput(input.URL, input.Dir)
 	if err != nil {
 		return "", err
@@ -210,7 +213,7 @@ func (m *Manager) scheduleTasks() {
 
 	for _, task := range pendingTasks {
 		// Update status immediately to prevent duplicate scheduling
-		task.Status = models.TaskStatusStarting
+		task.Status = schema.TaskStatusStarting
 		m.saveTask(task)
 
 		ctx, cancel := context.WithCancel(m.ctx)
@@ -234,7 +237,7 @@ func (m *Manager) DeleteTask(id string, deleteFile bool) ([]string, error) {
 	}
 
 	// 1. If it's a playlist or RSS, delete all children
-	if task.SourceType == models.SourceTypePlaylist || task.SourceType == models.SourceTypeRSS {
+	if task.SourceType == schema.SourceTypePlaylist || task.SourceType == schema.SourceTypeRSS {
 		children, err := m.getTasksByParentID(id)
 		if err != nil {
 			return []string{}, err
@@ -273,7 +276,7 @@ func (m *Manager) deleteTaskInternal(id string, deleteFile bool) {
 	task, _ := m.getTask(id)
 
 	if task != nil {
-		if task.Status == models.TaskStatusMerging || task.Status == models.TaskStatusTrimming {
+		if task.Status == schema.TaskStatusMerging || task.Status == schema.TaskStatusTrimming {
 			return
 		}
 
@@ -295,7 +298,9 @@ func (m *Manager) deleteTaskInternal(id string, deleteFile bool) {
 	m.deleteTaskLog(id)
 
 	// 3. Save
-	m.db.Exec("DELETE FROM tasks WHERE id = ?", id)
+	if m.taskDAL != nil {
+		_ = m.taskDAL.DeleteByID(m.ctx, id)
+	}
 }
 
 func (m *Manager) PauseTask(id string) error {
@@ -320,7 +325,7 @@ func (m *Manager) PauseTask(id string) error {
 		delete(m.cancelFuncs, id)
 	}
 
-	task.Status = models.TaskStatusPaused
+	task.Status = schema.TaskStatusPaused
 	m.mu.Unlock()
 
 	m.emitTaskUpdate(task)
@@ -335,11 +340,11 @@ func (m *Manager) ResumeTask(id string) error {
 	}
 
 	// Allow resuming from paused or error
-	if task.Status != models.TaskStatusPaused && task.Status != models.TaskStatusError {
+	if task.Status != schema.TaskStatusPaused && task.Status != schema.TaskStatusError {
 		return fmt.Errorf("task is not paused or in error state")
 	}
 
-	task.Status = models.TaskStatusPending
+	task.Status = schema.TaskStatusPending
 
 	m.emitTaskUpdate(task)
 	m.saveTask(task)
@@ -359,7 +364,7 @@ func (m *Manager) RetryTask(id string) error {
 		return err
 	}
 
-	task.Status = models.TaskStatusPending
+	task.Status = schema.TaskStatusPending
 	task.Progress = 0
 
 	m.emitTaskUpdate(task)
@@ -402,7 +407,7 @@ func (m *Manager) OpenTaskDir(id string) error {
 	return nil
 }
 
-func (m *Manager) emitTaskUpdate(task *models.DownloadTask) {
+func (m *Manager) emitTaskUpdate(task *schema.Task) {
 	m.mu.Lock()
 	if _, deleted := m.deletedTasks[task.ID]; deleted {
 		m.mu.Unlock()
@@ -413,115 +418,86 @@ func (m *Manager) emitTaskUpdate(task *models.DownloadTask) {
 	wailsRuntime.EventsEmit(m.ctx, "task:update", t)
 }
 
-func (m *Manager) saveTask(task *models.DownloadTask) {
-	if m.db == nil {
+func (m *Manager) saveTask(task *schema.Task) {
+	if m.taskDAL == nil {
 		return
 	}
-
-	query := `INSERT OR REPLACE INTO tasks (
-		id, url, dir, quality, format, format_id, parent_id, source_type,
-		status, progress, title, thumbnail, speed, eta,
-		log_path, file_exists, file_path,
-		total_bytes, trim_start, trim_end, trim_mode, category_id, created_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-
-	_, err := m.db.Exec(query,
-		task.ID, task.URL, task.Dir, task.Quality, task.Format, task.FormatID, task.ParentID, task.SourceType,
-		task.Status, task.Progress, task.Title, task.Thumbnail, task.Speed, task.Eta,
-		task.LogPath, task.FileExists, task.FilePath,
-		task.TotalBytes, task.TrimStart, task.TrimEnd, task.TrimMode, task.CategoryID, task.CreatedAt,
-	)
-
+	task.UpdatedAt = time.Now().Unix()
+	err := m.taskDAL.Save(m.ctx, task)
 	if err != nil {
 		fmt.Printf("Failed to save task %s: %v\n", task.ID, err)
 	}
 }
 
 func (m *Manager) resetInterruptedTasks() {
-	if m.db == nil {
+	if m.taskDAL == nil {
 		return
 	}
-
-	query := `UPDATE tasks SET status = ? WHERE status IN (?, ?, ?, ?)`
-	_, err := m.db.Exec(query,
-		models.TaskStatusPaused,
-		models.TaskStatusDownloading,
-		models.TaskStatusStarting,
-		models.TaskStatusMerging,
-		models.TaskStatusTrimming,
-	)
+	statuses := []string{
+		string(schema.TaskStatusDownloading),
+		string(schema.TaskStatusStarting),
+		string(schema.TaskStatusMerging),
+		string(schema.TaskStatusTrimming),
+	}
+	err := m.taskDAL.ResetInterrupted(m.ctx, string(schema.TaskStatusPaused), statuses)
 	if err != nil {
 		fmt.Printf("Failed to reset interrupted tasks: %v\n", err)
 	}
 }
 
-func (m *Manager) getTask(id string) (*models.DownloadTask, error) {
-	if m.db == nil {
+func (m *Manager) getTask(id string) (*schema.Task, error) {
+	if m.taskDAL == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
-
-	row := m.db.QueryRow(fmt.Sprintf(`SELECT %s FROM tasks WHERE id = ?`, taskColumns), id)
-	t, err := scanTask(row)
-	return t, err
+	return m.taskDAL.GetByID(m.ctx, id)
 }
 
-func (m *Manager) getTasksByParentID(parentID string) ([]*models.DownloadTask, error) {
-	if m.db == nil {
+func (m *Manager) getTasksByParentID(parentID string) ([]*schema.Task, error) {
+	if m.taskDAL == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
-
-	rows, err := m.db.Query(fmt.Sprintf(`SELECT %s FROM tasks WHERE parent_id = ?`, taskColumns), parentID)
+	rows, err := m.taskDAL.ListByParentID(m.ctx, parentID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var tasks []*models.DownloadTask
-	for rows.Next() {
-		t, err := scanTask(rows)
-		if err != nil {
-			continue
-		}
-		tasks = append(tasks, t)
+	var tasks []*schema.Task
+	for _, t := range rows {
+		temp := t
+		tasks = append(tasks, &temp)
 	}
 	return tasks, nil
 }
 
-func (m *Manager) findTaskBySourceAndURL(sourceType models.SourceType, url string) (*models.DownloadTask, error) {
-	if m.db == nil {
+func (m *Manager) findTaskBySourceAndURL(sourceType schema.SourceType, url string) (*schema.Task, error) {
+	if m.taskDAL == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
-
-	row := m.db.QueryRow(fmt.Sprintf(`SELECT %s FROM tasks WHERE source_type = ? AND url = ? LIMIT 1`, taskColumns), sourceType, url)
-	t, err := scanTask(row)
+	task, err := m.taskDAL.FindBySourceAndURL(m.ctx, int(sourceType), url)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err
 	}
-	return t, nil
-}
-
-func (m *Manager) getRunningTaskCount() (int, error) {
-	if m.db == nil {
-		return 0, fmt.Errorf("database not initialized")
-	}
-
-	var count int
-	query := `SELECT count(*) FROM tasks WHERE status IN (?, ?, ?, ?)`
-	err := m.db.QueryRow(query,
-		models.TaskStatusDownloading,
-		models.TaskStatusStarting,
-		models.TaskStatusMerging,
-		models.TaskStatusTrimming,
-	).Scan(&count)
-
-	return count, err
+	return task, nil
 }
 
 func (m *Manager) registerCancel(id string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.cancelFuncs[id] = func() {}
+	delete(m.deletedTasks, id)
+}
+
+func (m *Manager) getRunningTaskCount() (int, error) {
+	if m.taskDAL == nil {
+		return 0, fmt.Errorf("database not initialized")
+	}
+	statuses := []string{
+		string(schema.TaskStatusDownloading),
+		string(schema.TaskStatusStarting),
+		string(schema.TaskStatusMerging),
+		string(schema.TaskStatusTrimming),
+	}
+	count, err := m.taskDAL.CountByStatus(m.ctx, statuses)
+	return int(count), err
 }

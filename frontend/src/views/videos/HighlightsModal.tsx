@@ -17,7 +17,7 @@ import {
 } from '@root/wailsjs/go/main/App';
 import { useVideoStore } from '@/store/useVideoStore';
 import { useShallow } from 'zustand/react/shallow';
-import { models } from '@root/wailsjs/go/models';
+import { schema } from '@root/wailsjs/go/models';
 import { Scrollbar } from '@/components/Scrollbar';
 
 const { Paragraph } = Typography;
@@ -36,7 +36,7 @@ export default function VideoHighlightsModal({
   const { t } = useTranslation();
   const [analyzing, setAnalyzing] = useState(false);
   const [clippingIndex, setClippingIndex] = useState<number | null>(null);
-  const [highlights, setHighlights] = useState<models.AIHighlight[]>([]);
+  const [highlights, setHighlights] = useState<schema.VideoHighlight[]>([]);
 
   // Use selector to get the specific video from store
   const video = useVideoStore(useShallow((state) => state.videos.find((v) => v.id === videoId)));
@@ -71,7 +71,15 @@ export default function VideoHighlightsModal({
   // Listen for highlight updates via video store update (when clip happens)
   useEffect(() => {
     if (video?.highlights) {
-      setHighlights(video.highlights);
+      const mappedHighlights = video.highlights.map(
+        (h) =>
+          new schema.VideoHighlight({
+            ...h,
+            created_at: 0,
+            updated_at: 0,
+          })
+      );
+      setHighlights(mappedHighlights);
     }
   }, [video?.highlights]);
 

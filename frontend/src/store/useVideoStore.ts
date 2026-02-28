@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Video } from '@/types';
 import { GetVideos } from '@root/wailsjs/go/main/App';
-import { models } from '@root/wailsjs/go/models';
+import { schema } from '@root/wailsjs/go/models';
 
 interface VideoState {
   videos: Video[];
@@ -14,7 +14,7 @@ interface VideoState {
     summary?: string,
     evaluation?: string,
     tags?: string[],
-    highlights?: models.AIHighlight[]
+    highlights?: schema.VideoHighlight[]
   ) => void;
   removeVideo: (id: string) => void;
 }
@@ -28,7 +28,7 @@ export const useVideoStore = create<VideoState>((set) => ({
   fetchVideos: async (status = 'all', query = '') => {
     set({ loading: true });
     try {
-      const result = await GetVideos({ status, query });
+      const result = await GetVideos(new schema.VideoFilter({ status, query }));
       set({ videos: result || [] });
     } catch (error) {
       console.error('Failed to fetch videos:', error);

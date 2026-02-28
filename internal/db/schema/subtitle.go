@@ -1,4 +1,4 @@
-package models
+package schema
 
 type SubtitleStatus int
 
@@ -19,14 +19,14 @@ const (
 )
 
 type VideoSubtitle struct {
-	ID        string         `json:"id"`
-	VideoID   string         `json:"video_id"`
+	ID        string         `gorm:"primaryKey;size:36" json:"id"`
+	VideoID   string         `gorm:"index" json:"video_id"`
 	FilePath  string         `json:"file_path"`
 	Language  string         `json:"language"`
 	Status    SubtitleStatus `json:"status"`
 	Source    SubtitleSource `json:"source"`
-	CreatedAt int64          `json:"created_at"`
-	UpdatedAt int64          `json:"updated_at"`
+	CreatedAt int64          `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt int64          `gorm:"autoUpdateTime" json:"updated_at"`
 }
 
 type TranslateSubtitleInput struct {

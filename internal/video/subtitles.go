@@ -1,11 +1,6 @@
 package video
 
 import (
-	"Kairo/internal/ai"
-	"Kairo/internal/config"
-	"Kairo/internal/models"
-	"Kairo/internal/utils"
-	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -14,40 +9,19 @@ import (
 	"strings"
 	"time"
 
+	"Kairo/internal/ai"
+	"Kairo/internal/config"
+	"Kairo/internal/db/schema"
+	"Kairo/internal/utils"
+
 	"github.com/google/uuid"
 )
 
-func (m *Manager) GetVideoSubtitles(videoID string) ([]models.VideoSubtitle, error) {
-	if m.db == nil {
+func (m *Manager) GetVideoSubtitles(videoID string) ([]schema.VideoSubtitle, error) {
+	if m.subtitleDAL == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
-	rows, err := m.db.Query(
-		`SELECT * FROM video_subtitles WHERE video_id = ? ORDER BY created_at ASC`,
-		videoID,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var subs []models.VideoSubtitle
-	for rows.Next() {
-		var s models.VideoSubtitle
-		if err := rows.Scan(
-			&s.ID,
-			&s.VideoID,
-			&s.FilePath,
-			&s.Language,
-			&s.Status,
-			&s.Source,
-			&s.CreatedAt,
-			&s.UpdatedAt,
-		); err != nil {
-			continue
-		}
-		subs = append(subs, s)
-	}
-	return subs, nil
+	return m.subtitleDAL.ListByVideoID(m.ctx, videoID)
 }
 
 func (m *Manager) FetchSubtitles(id string) error {
@@ -104,7 +78,7 @@ func (m *Manager) FetchSubtitles(id string) error {
 
 	entries := extractSubtitleEntriesFromOutput(string(output))
 	for _, entry := range entries {
-		_, _ = m.addSubtitleRecord(v.ID, entry.Path, entry.Language, models.SubtitleStatusSuccess, models.SubtitleSourceBuiltin)
+		_, _ = m.addSubtitleRecord(v.ID, entry.Path, entry.Language, schema.SubtitleStatusSuccess, schema.SubtitleSourceBuiltin)
 	}
 
 	if len(entries) == 0 {
@@ -113,7 +87,7 @@ func (m *Manager) FetchSubtitles(id string) error {
 			return asrErr
 		}
 		if strings.TrimSpace(outputPath) != "" {
-			_, _ = m.addSubtitleRecord(v.ID, outputPath, language, models.SubtitleStatusSuccess, models.SubtitleSourceASR)
+			_, _ = m.addSubtitleRecord(v.ID, outputPath, language, schema.SubtitleStatusSuccess, schema.SubtitleSourceASR)
 			return nil
 		}
 	}
@@ -121,7 +95,7 @@ func (m *Manager) FetchSubtitles(id string) error {
 	return nil
 }
 
-func (m *Manager) GenerateSubtitlesByASR(v *models.Video, dir string) (string, string, error) {
+func (m *Manager) GenerateSubtitlesByASR(v *schema.Video, dir string) (string, string, error) {
 	if !config.GetSettings().WhisperAI.Enabled {
 		log.Printf("[GenerateSubtitlesByASR] Whisper disabled, skip generating subtitles")
 		return "", "", nil
@@ -181,8 +155,8 @@ func (m *Manager) GenerateSubtitlesByASR(v *models.Video, dir string) (string, s
 	return outputPath, language, nil
 }
 
-func (m *Manager) ImportSubtitle(videoID string, filePath string, language string) (*models.VideoSubtitle, error) {
-	if m.db == nil {
+func (m *Manager) ImportSubtitle(videoID string, filePath string, language string) (*schema.VideoSubtitle, error) {
+	if m.subtitleDAL == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
 
@@ -194,53 +168,36 @@ func (m *Manager) ImportSubtitle(videoID string, filePath string, language strin
 		return nil, err
 	}
 	now := time.Now().UnixMilli()
-	sub := &models.VideoSubtitle{
+	sub := &schema.VideoSubtitle{
 		ID:        uuid.New().String(),
 		VideoID:   videoID,
 		FilePath:  filePath,
 		Language:  language,
-		Status:    models.SubtitleStatusSuccess,
-		Source:    models.SubtitleSourceManual,
+		Status:    schema.SubtitleStatusSuccess,
+		Source:    schema.SubtitleSourceManual,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
-	_, err := m.db.Exec(
-		`INSERT INTO video_subtitles (id, video_id, file_path, language, status, source, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		sub.ID,
-		sub.VideoID,
-		sub.FilePath,
-		sub.Language,
-		sub.Status,
-		sub.Source,
-		sub.CreatedAt,
-		sub.UpdatedAt,
-	)
-
+	err := m.subtitleDAL.Create(m.ctx, sub)
 	return sub, err
 }
 
-func (m *Manager) addSubtitleRecord(videoID string, filePath string, language string, status models.SubtitleStatus, source models.SubtitleSource) (*models.VideoSubtitle, error) {
-	if m.db == nil {
+func (m *Manager) addSubtitleRecord(videoID string, filePath string, language string, status schema.SubtitleStatus, source schema.SubtitleSource) (*schema.VideoSubtitle, error) {
+	if m.subtitleDAL == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
 	if strings.TrimSpace(filePath) == "" {
 		return nil, fmt.Errorf("file path is empty")
 	}
-	var exists int
-	err := m.db.QueryRow(
-		"SELECT 1 FROM video_subtitles WHERE video_id = ? AND file_path = ? LIMIT 1",
-		videoID,
-		filePath,
-	).Scan(&exists)
-	if err == nil && exists == 1 {
-		return nil, nil
-	}
-	if err != nil && err != sql.ErrNoRows {
+	exists, err := m.subtitleDAL.ExistsByVideoAndPath(m.ctx, videoID, filePath)
+	if err != nil {
 		return nil, err
 	}
+	if exists {
+		return nil, nil
+	}
 	now := time.Now().UnixMilli()
-	sub := &models.VideoSubtitle{
+	sub := &schema.VideoSubtitle{
 		ID:        uuid.New().String(),
 		VideoID:   videoID,
 		FilePath:  filePath,
@@ -250,26 +207,14 @@ func (m *Manager) addSubtitleRecord(videoID string, filePath string, language st
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
-	_, err = m.db.Exec(
-		`INSERT INTO video_subtitles (id, video_id, file_path, language, status, source, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		sub.ID,
-		sub.VideoID,
-		sub.FilePath,
-		sub.Language,
-		sub.Status,
-		sub.Source,
-		sub.CreatedAt,
-		sub.UpdatedAt,
-	)
-	if err != nil {
+	if err := m.subtitleDAL.Create(m.ctx, sub); err != nil {
 		return nil, err
 	}
 	return sub, nil
 }
 
-func (m *Manager) TranslateSubtitle(input models.TranslateSubtitleInput) (*models.VideoSubtitle, error) {
-	if m.db == nil {
+func (m *Manager) TranslateSubtitle(input schema.TranslateSubtitleInput) (*schema.VideoSubtitle, error) {
+	if m.subtitleDAL == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
 	if strings.TrimSpace(input.TargetLanguage) == "" {
@@ -279,35 +224,22 @@ func (m *Manager) TranslateSubtitle(input models.TranslateSubtitleInput) (*model
 	if err != nil {
 		return nil, err
 	}
-	if sub.Status != models.SubtitleStatusSuccess {
+	if schema.SubtitleStatus(sub.Status) != schema.SubtitleStatusSuccess {
 		return nil, fmt.Errorf("subtitle not ready")
 	}
 
 	now := time.Now().UnixMilli()
-	newSub := &models.VideoSubtitle{
+	newSub := &schema.VideoSubtitle{
 		ID:        uuid.New().String(),
 		VideoID:   input.VideoID,
 		FilePath:  "",
 		Language:  input.TargetLanguage,
-		Status:    models.SubtitleStatusPending,
-		Source:    models.SubtitleSourceTranslation,
+		Status:    schema.SubtitleStatusPending,
+		Source:    schema.SubtitleSourceTranslation,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
-	_, err = m.db.Exec(
-		`INSERT INTO video_subtitles (id, video_id, file_path, language, status, source, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		newSub.ID,
-		newSub.VideoID,
-		newSub.FilePath,
-		newSub.Language,
-		newSub.Status,
-		newSub.Source,
-		newSub.CreatedAt,
-		newSub.UpdatedAt,
-	)
-
-	if err != nil {
+	if err := m.subtitleDAL.Create(m.ctx, newSub); err != nil {
 		return nil, err
 	}
 
@@ -322,8 +254,8 @@ func (m *Manager) TranslateSubtitle(input models.TranslateSubtitleInput) (*model
 	return newSub, nil
 }
 
-func (m *Manager) SaveSubtitleContent(videoID string, language string, content string) (*models.VideoSubtitle, error) {
-	if m.db == nil {
+func (m *Manager) SaveSubtitleContent(videoID string, language string, content string) (*schema.VideoSubtitle, error) {
+	if m.subtitleDAL == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
 	if strings.TrimSpace(content) == "" {
@@ -342,11 +274,11 @@ func (m *Manager) SaveSubtitleContent(videoID string, language string, content s
 	if err := os.WriteFile(outputPath, []byte(content), 0o644); err != nil {
 		return nil, err
 	}
-	return m.addSubtitleRecord(videoID, outputPath, language, models.SubtitleStatusSuccess, models.SubtitleSourceManual)
+	return m.addSubtitleRecord(videoID, outputPath, language, schema.SubtitleStatusSuccess, schema.SubtitleSourceManual)
 }
 
 func (m *Manager) DeleteSubtitle(id string) error {
-	if m.db == nil {
+	if m.subtitleDAL == nil {
 		return fmt.Errorf("database not initialized")
 	}
 	sub, err := m.getSubtitleByID(id)
@@ -358,12 +290,11 @@ func (m *Manager) DeleteSubtitle(id string) error {
 		return err
 	}
 
-	_, err = m.db.Exec("DELETE FROM video_subtitles WHERE id = ?", id)
-	return err
+	return m.subtitleDAL.DeleteByID(m.ctx, id)
 }
 
-func (m *Manager) RegenerateSubtitle(subtitleID string) (*models.VideoSubtitle, error) {
-	if m.db == nil {
+func (m *Manager) RegenerateSubtitle(subtitleID string) (*schema.VideoSubtitle, error) {
+	if m.subtitleDAL == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
 	sub, err := m.getSubtitleByID(subtitleID)
@@ -371,14 +302,14 @@ func (m *Manager) RegenerateSubtitle(subtitleID string) (*models.VideoSubtitle, 
 		return nil, err
 	}
 
-	if sub.Source != models.SubtitleSourceASR && sub.Source != models.SubtitleSourceTranslation {
+	if schema.SubtitleSource(sub.Source) != schema.SubtitleSourceASR && schema.SubtitleSource(sub.Source) != schema.SubtitleSourceTranslation {
 		return nil, fmt.Errorf("subtitle source cannot be regenerated")
 	}
 
-	sub.Status = models.SubtitleStatusPending
+	sub.Status = schema.SubtitleStatusPending
 	sub.UpdatedAt = time.Now().UnixMilli()
-
-	_, err = m.db.Exec("UPDATE video_subtitles SET file_path = ?, status = ?, updated_at = ? WHERE id = ?", "", sub.Status, sub.UpdatedAt, sub.ID)
+	sub.FilePath = ""
+	err = m.subtitleDAL.Update(m.ctx, sub)
 	if err != nil {
 		log.Printf("[SubtitleQueue] failed to update subtitle status: %v", err)
 		return nil, err
@@ -393,13 +324,15 @@ func (m *Manager) RegenerateSubtitle(subtitleID string) (*models.VideoSubtitle, 
 		SubtitleID: sub.ID,
 		VideoID:    sub.VideoID,
 	}
-	if sub.Source == models.SubtitleSourceTranslation {
+	if schema.SubtitleSource(sub.Source) == schema.SubtitleSourceTranslation {
 		subtitleTask.Type = SubtitleTaskTypeTranslate
 		subtitleTask.TargetLanguage = sub.Language
 		bestSource, err := m.findBestSourceSubtitle(sub.VideoID)
 		if err != nil || bestSource == nil {
 			log.Printf("[SubtitleQueue] failed to find best source subtitle: %v, subtitle: %+v", err, sub)
-			m.db.Exec("UPDATE video_subtitles SET status = ? WHERE id = ?", models.SubtitleStatusFailed, sub.ID)
+			sub.Status = schema.SubtitleStatusFailed
+			sub.UpdatedAt = time.Now().UnixMilli()
+			_ = m.subtitleDAL.Update(m.ctx, sub)
 			return nil, err
 		}
 		subtitleTask.SourceSubtitleID = bestSource.ID
@@ -410,26 +343,15 @@ func (m *Manager) RegenerateSubtitle(subtitleID string) (*models.VideoSubtitle, 
 	return sub, nil
 }
 
-func (m *Manager) getSubtitleByID(id string) (*models.VideoSubtitle, error) {
-	if m.db == nil {
+func (m *Manager) getSubtitleByID(id string) (*schema.VideoSubtitle, error) {
+	if m.subtitleDAL == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
-	var sub models.VideoSubtitle
-	err := m.db.QueryRow(
-		`SELECT * FROM video_subtitles WHERE id = ?`,
-		id,
-	).Scan(
-		&sub.ID,
-		&sub.VideoID,
-		&sub.FilePath,
-		&sub.Language,
-		&sub.Status,
-		&sub.Source,
-		&sub.CreatedAt,
-		&sub.UpdatedAt,
-	)
-
-	return &sub, err
+	sub, err := m.subtitleDAL.GetByID(m.ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return sub, nil
 }
 
 func ensureUniqueSubtitlePath(path, targetLanguage, source string) string {

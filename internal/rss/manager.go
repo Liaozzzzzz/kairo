@@ -2,7 +2,6 @@ package rss
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -10,25 +9,31 @@ import (
 	"time"
 
 	"Kairo/internal/config"
-	"Kairo/internal/models"
+	"Kairo/internal/db/dal"
+	"Kairo/internal/db/schema"
 	"Kairo/internal/utils"
 
 	"github.com/google/uuid"
 	"github.com/mmcdole/gofeed"
+	"gorm.io/gorm"
 )
 
 type Manager struct {
 	ctx            context.Context
-	db             *sql.DB
+	db             *gorm.DB
+	rssDAL         *dal.RSSDAL
 	mu             sync.Mutex
-	OnAutoDownload func(item models.RSSItem, feed models.RSSFeed)
+	OnAutoDownload func(item schema.FeedItem, feed schema.Feed)
 }
 
-func NewManager(ctx context.Context, db *sql.DB) *Manager {
+func NewManager(ctx context.Context, db *gorm.DB) *Manager {
 	m := &Manager{
 		ctx: ctx,
 	}
 	m.db = db
+	if db != nil {
+		m.rssDAL = dal.NewRSSDAL(db)
+	}
 	return m
 }
 
@@ -50,25 +55,23 @@ func (m *Manager) getParser() *gofeed.Parser {
 	return fp
 }
 
-func (m *Manager) AddFeed(input models.AddRSSFeedInput) (*models.RSSFeed, error) {
+func (m *Manager) AddFeed(input schema.AddRSSFeedInput) (*schema.Feed, error) {
+	if m.db == nil || m.rssDAL == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
 	fp := m.getParser()
 	feed, err := fp.ParseURL(input.URL)
 	if err != nil {
 		return nil, err
 	}
 
-	tx, err := m.db.Begin()
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-
-	rssFeed := &models.RSSFeed{
+	now := time.Now().Unix()
+	rssFeed := &schema.Feed{
 		ID:               uuid.New().String(),
 		URL:              input.URL,
 		Title:            feed.Title,
 		Description:      feed.Description,
-		LastUpdated:      time.Now().Unix(),
+		LastUpdated:      now,
 		UnreadCount:      len(feed.Items),
 		CustomDir:        input.CustomDir,
 		DownloadLatest:   input.DownloadLatest,
@@ -77,19 +80,14 @@ func (m *Manager) AddFeed(input models.AddRSSFeedInput) (*models.RSSFeed, error)
 		FilenameTemplate: input.FilenameTemplate,
 		CategoryID:       input.CategoryID,
 		Enabled:          true,
+		CreatedAt:        now,
+		UpdatedAt:        now,
 	}
 
 	if feed.Image != nil {
 		rssFeed.Thumbnail = utils.EnsureHTTPS(feed.Image.URL)
 	}
-
-	_, err = tx.Exec(`INSERT INTO feeds (id, url, title, description, thumbnail, last_updated, unread_count, custom_dir, download_latest, filters, tags, filename_template, category_id, enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		rssFeed.ID, rssFeed.URL, rssFeed.Title, rssFeed.Description, rssFeed.Thumbnail, rssFeed.LastUpdated, rssFeed.UnreadCount,
-		rssFeed.CustomDir, rssFeed.DownloadLatest, rssFeed.Filters, rssFeed.Tags, rssFeed.FilenameTemplate, rssFeed.CategoryID, rssFeed.Enabled)
-	if err != nil {
-		return nil, err
-	}
-
+	feedItems := make([]schema.FeedItem, 0, len(feed.Items))
 	for _, item := range feed.Items {
 		pubDate := time.Now().Unix()
 		if item.PublishedParsed != nil {
@@ -97,31 +95,35 @@ func (m *Manager) AddFeed(input models.AddRSSFeedInput) (*models.RSSFeed, error)
 		}
 		itemID := uuid.New().String()
 
-		rssItem := models.RSSItem{
+		thumbnail := ""
+		if len(item.Enclosures) > 0 && (item.Enclosures[0].Type == "image/jpeg" || item.Enclosures[0].Type == "image/png") {
+			thumbnail = utils.EnsureHTTPS(item.Enclosures[0].URL)
+		} else if item.Image != nil {
+			thumbnail = utils.EnsureHTTPS(item.Image.URL)
+		}
+
+		feedItems = append(feedItems, schema.FeedItem{
 			ID:          itemID,
 			FeedID:      rssFeed.ID,
 			Title:       item.Title,
 			Link:        item.Link,
 			Description: item.Description,
 			PubDate:     pubDate,
-			Status:      models.RSSItemStatusNew,
-		}
-		// Extract thumbnail if possible (from extensions or enclosure)
-		if len(item.Enclosures) > 0 && (item.Enclosures[0].Type == "image/jpeg" || item.Enclosures[0].Type == "image/png") {
-			rssItem.Thumbnail = utils.EnsureHTTPS(item.Enclosures[0].URL)
-		} else if item.Image != nil {
-			rssItem.Thumbnail = utils.EnsureHTTPS(item.Image.URL)
-		}
-
-		_, err = tx.Exec(`INSERT OR IGNORE INTO feed_items (id, feed_id, title, link, description, pub_date, status, thumbnail) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			rssItem.ID, rssItem.FeedID, rssItem.Title, rssItem.Link, rssItem.Description, rssItem.PubDate, models.RSSItemStatusNew, rssItem.Thumbnail)
-		if err != nil {
-			// Log error but continue
-			fmt.Printf("Failed to insert item %s: %v\n", rssItem.ID, err)
-		}
+			Status:      schema.RSSItemStatusNew,
+			Thumbnail:   thumbnail,
+			CreatedAt:   pubDate,
+			UpdatedAt:   pubDate,
+		})
 	}
 
-	if err := tx.Commit(); err != nil {
+	err = m.db.Transaction(func(tx *gorm.DB) error {
+		txDal := dal.NewRSSDAL(tx)
+		if err := txDal.CreateFeed(m.ctx, rssFeed); err != nil {
+			return err
+		}
+		return txDal.CreateFeedItems(m.ctx, feedItems)
+	})
+	if err != nil {
 		return nil, err
 	}
 
@@ -130,150 +132,128 @@ func (m *Manager) AddFeed(input models.AddRSSFeedInput) (*models.RSSFeed, error)
 	return rssFeed, nil
 }
 
-func (m *Manager) GetFeeds() ([]models.RSSFeed, error) {
-	rows, err := m.db.Query(`SELECT id, url, title, description, thumbnail, last_updated, unread_count, custom_dir, download_latest, filters, tags, filename_template, category_id, enabled FROM feeds`)
+func (m *Manager) GetFeeds() ([]schema.Feed, error) {
+	if m.rssDAL == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	rows, err := m.rssDAL.ListFeeds(m.ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var feeds []models.RSSFeed
-	for rows.Next() {
-		var feed models.RSSFeed
-		var customDir, filters, tags, filenameTemplate, categoryID sql.NullString
-		var downloadLatest, enabled sql.NullInt32
-		if err := rows.Scan(&feed.ID, &feed.URL, &feed.Title, &feed.Description, &feed.Thumbnail, &feed.LastUpdated, &feed.UnreadCount, &customDir, &downloadLatest, &filters, &tags, &filenameTemplate, &categoryID, &enabled); err != nil {
-			continue
-		}
-		feed.CustomDir = customDir.String
-		feed.Filters = filters.String
-		feed.Tags = tags.String
-		feed.FilenameTemplate = filenameTemplate.String
-		feed.CategoryID = categoryID.String
-		feed.DownloadLatest = downloadLatest.Int32 == 1
-		// Default to true if null (for old records if migration fails silently or default not applied)
-		if enabled.Valid {
-			feed.Enabled = enabled.Int32 == 1
-		} else {
-			feed.Enabled = true
-		}
-		feeds = append(feeds, feed)
-	}
-	return feeds, nil
+	return rows, nil
 }
 
 func (m *Manager) DeleteFeed(id string) error {
-	tx, err := m.db.Begin()
-	if err != nil {
-		return err
+	if m.rssDAL == nil {
+		return fmt.Errorf("database not initialized")
 	}
-	defer tx.Rollback()
-
-	if _, err := tx.Exec(`DELETE FROM feed_items WHERE feed_id = ?`, id); err != nil {
-		return err
-	}
-
-	if _, err := tx.Exec(`DELETE FROM feeds WHERE id = ?`, id); err != nil {
-		return err
-	}
-
-	return tx.Commit()
+	return m.rssDAL.DeleteFeed(m.ctx, id)
 }
 
 func (m *Manager) SetFeedEnabled(feedID string, enabled bool) error {
-	val := 0
-	if enabled {
-		val = 1
+	if m.rssDAL == nil {
+		return fmt.Errorf("database not initialized")
 	}
-	_, err := m.db.Exec(`UPDATE feeds SET enabled = ? WHERE id = ?`, val, feedID)
-	return err
+	return m.rssDAL.UpdateFeed(m.ctx, feedID, map[string]interface{}{
+		"enabled":    enabled,
+		"updated_at": time.Now().Unix(),
+	})
 }
 
-func (m *Manager) GetFeedItems(feedID string) ([]models.RSSItem, error) {
-	rows, err := m.db.Query(`SELECT id, feed_id, title, link, description, pub_date, status, thumbnail FROM feed_items WHERE feed_id = ? ORDER BY pub_date DESC`, feedID)
+func (m *Manager) GetFeedItems(feedID string) ([]schema.FeedItem, error) {
+	if m.rssDAL == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	rows, err := m.rssDAL.ListFeedItems(m.ctx, feedID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var items []models.RSSItem
-	for rows.Next() {
-		var item models.RSSItem
-		if err := rows.Scan(&item.ID, &item.FeedID, &item.Title, &item.Link, &item.Description, &item.PubDate, &item.Status, &item.Thumbnail); err != nil {
-			continue
-		}
-		items = append(items, item)
-	}
-	return items, nil
+	return rows, nil
 }
 
-func (m *Manager) UpdateFeed(feed models.RSSFeed) error {
-	_, err := m.db.Exec(`UPDATE feeds SET custom_dir = ?, download_latest = ?, filters = ?, tags = ?, filename_template = ?, category_id = ? WHERE id = ?`,
-		feed.CustomDir, feed.DownloadLatest, feed.Filters, feed.Tags, feed.FilenameTemplate, feed.CategoryID, feed.ID)
-	return err
+func (m *Manager) UpdateFeed(feed schema.Feed) error {
+	if m.rssDAL == nil {
+		return fmt.Errorf("database not initialized")
+	}
+	return m.rssDAL.UpdateFeed(m.ctx, feed.ID, map[string]interface{}{
+		"custom_dir":        feed.CustomDir,
+		"download_latest":   feed.DownloadLatest,
+		"filters":           feed.Filters,
+		"tags":              feed.Tags,
+		"filename_template": feed.FilenameTemplate,
+		"category_id":       feed.CategoryID,
+		"updated_at":        time.Now().Unix(),
+	})
 }
 
 func (m *Manager) updateUnreadCount(feedID string) error {
-	var unreadCount int
-	err := m.db.QueryRow(`SELECT COUNT(*) FROM feed_items WHERE feed_id = ? AND status = ?`, feedID, models.RSSItemStatusNew).Scan(&unreadCount)
-	if err == nil {
-		_, err = m.db.Exec(`UPDATE feeds SET unread_count = ? WHERE id = ?`, unreadCount, feedID)
+	if m.rssDAL == nil {
+		return fmt.Errorf("database not initialized")
 	}
-	return err
-}
-
-func (m *Manager) SetItemQueued(itemID string, queued bool) error {
-	s := models.RSSItemStatusRead // Default to Read if un-queued
-	if queued {
-		s = models.RSSItemStatusQueued
-	}
-	// Don't overwrite Downloaded (4) status unless explicitly re-queuing?
-	// For now, simple update.
-	_, err := m.db.Exec(`UPDATE feed_items SET status = ? WHERE id = ?`, s, itemID)
+	count, err := m.rssDAL.CountUnread(m.ctx, feedID, int(schema.RSSItemStatusNew))
 	if err != nil {
 		return err
 	}
+	return m.rssDAL.UpdateFeed(m.ctx, feedID, map[string]interface{}{
+		"unread_count": count,
+		"updated_at":   time.Now().Unix(),
+	})
+}
 
-	var feedID string
-	if err := m.db.QueryRow("SELECT feed_id FROM feed_items WHERE id = ?", itemID).Scan(&feedID); err == nil {
+func (m *Manager) SetItemQueued(itemID string, queued bool) error {
+	if m.rssDAL == nil {
+		return fmt.Errorf("database not initialized")
+	}
+	s := schema.RSSItemStatusRead // Default to Read if un-queued
+	if queued {
+		s = schema.RSSItemStatusQueued
+	}
+	// Don't overwrite Downloaded (4) status unless explicitly re-queuing?
+	// For now, simple update.
+	if err := m.rssDAL.UpdateFeedItemStatusByID(m.ctx, itemID, int(s)); err != nil {
+		return err
+	}
+	if feedID, err := m.rssDAL.GetFeedIDByItemID(m.ctx, itemID); err == nil {
 		_ = m.updateUnreadCount(feedID)
 	}
 	return nil
 }
 
 func (m *Manager) SetItemDownloadedByLink(link string, downloaded bool) error {
-	s := models.RSSItemStatusRead // Default to Read if not downloaded
-	if downloaded {
-		s = models.RSSItemStatusDownloaded
+	if m.rssDAL == nil {
+		return fmt.Errorf("database not initialized")
 	}
-	_, err := m.db.Exec(`UPDATE feed_items SET status = ? WHERE link = ?`, s, link)
-	if err != nil {
+	s := schema.RSSItemStatusRead // Default to Read if not downloaded
+	if downloaded {
+		s = schema.RSSItemStatusDownloaded
+	}
+	if err := m.rssDAL.UpdateFeedItemStatusByLink(m.ctx, link, int(s)); err != nil {
 		return err
 	}
-
-	var feedID string
-	if err := m.db.QueryRow("SELECT feed_id FROM feed_items WHERE link = ?", link).Scan(&feedID); err == nil {
+	if feedID, err := m.rssDAL.GetFeedIDByItemLink(m.ctx, link); err == nil {
 		_ = m.updateUnreadCount(feedID)
 	}
 	return nil
 }
 
 func (m *Manager) SetItemFailedByLink(link string) error {
-	_, err := m.db.Exec(`UPDATE feed_items SET status = ? WHERE link = ?`, models.RSSItemStatusFailed, link)
-	if err != nil {
+	if m.rssDAL == nil {
+		return fmt.Errorf("database not initialized")
+	}
+	if err := m.rssDAL.UpdateFeedItemStatusByLink(m.ctx, link, int(schema.RSSItemStatusFailed)); err != nil {
 		return err
 	}
-
-	var feedID string
-	if err := m.db.QueryRow("SELECT feed_id FROM feed_items WHERE link = ?", link).Scan(&feedID); err == nil {
+	if feedID, err := m.rssDAL.GetFeedIDByItemLink(m.ctx, link); err == nil {
 		_ = m.updateUnreadCount(feedID)
 	}
 	return nil
 }
 
 func (m *Manager) RefreshFeed(feedID string) error {
-	var url string
-	err := m.db.QueryRow("SELECT url FROM feeds WHERE id = ?", feedID).Scan(&url)
+	if m.db == nil || m.rssDAL == nil {
+		return fmt.Errorf("database not initialized")
+	}
+	url, err := m.rssDAL.GetFeedURLByID(m.ctx, feedID)
 	if err != nil {
 		return err
 	}
@@ -284,35 +264,13 @@ func (m *Manager) RefreshFeed(feedID string) error {
 		return err
 	}
 
-	tx, err := m.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	// Update feed info
-	_, err = tx.Exec(`UPDATE feeds SET title = ?, description = ?, last_updated = ? WHERE id = ?`,
-		feed.Title, feed.Description, time.Now().Unix(), feedID)
-	if err != nil {
-		return err
-	}
-	if feed.Image != nil {
-		_, _ = tx.Exec(`UPDATE feeds SET thumbnail = ? WHERE id = ?`, utils.EnsureHTTPS(feed.Image.URL), feedID)
-	}
-
-	// Insert new items
+	now := time.Now().Unix()
+	newItems := make([]schema.FeedItem, 0, len(feed.Items))
 	for _, item := range feed.Items {
 		pubDate := time.Now().Unix()
 		if item.PublishedParsed != nil {
 			pubDate = item.PublishedParsed.Unix()
 		}
-		// Check if item already exists by link
-		var exists int
-		err = tx.QueryRow(`SELECT 1 FROM feed_items WHERE feed_id = ? AND link = ?`, feedID, item.Link).Scan(&exists)
-		if err == nil && exists == 1 {
-			continue
-		}
-
 		itemID := uuid.New().String()
 
 		var thumbnail string
@@ -321,24 +279,46 @@ func (m *Manager) RefreshFeed(feedID string) error {
 		} else if item.Image != nil {
 			thumbnail = utils.EnsureHTTPS(item.Image.URL)
 		}
-
-		_, err = tx.Exec(`INSERT INTO feed_items (id, feed_id, title, link, description, pub_date, status, thumbnail) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			itemID, feedID, item.Title, item.Link, item.Description, pubDate, models.RSSItemStatusNew, thumbnail)
-		if err != nil {
-			continue
+		newItems = append(newItems, schema.FeedItem{
+			ID:          itemID,
+			FeedID:      feedID,
+			Title:       item.Title,
+			Link:        item.Link,
+			Description: item.Description,
+			PubDate:     pubDate,
+			Status:      schema.RSSItemStatusNew,
+			Thumbnail:   thumbnail,
+			CreatedAt:   pubDate,
+			UpdatedAt:   pubDate,
+		})
+	}
+	updates := map[string]interface{}{
+		"title":        feed.Title,
+		"description":  feed.Description,
+		"last_updated": now,
+		"updated_at":   now,
+	}
+	if feed.Image != nil {
+		updates["thumbnail"] = utils.EnsureHTTPS(feed.Image.URL)
+	}
+	err = m.db.Transaction(func(tx *gorm.DB) error {
+		txDal := dal.NewRSSDAL(tx)
+		if err := txDal.UpdateFeed(m.ctx, feedID, updates); err != nil {
+			return err
 		}
-	}
-
-	// Update unread count
-	// This is a bit expensive but accurate. Or we could just increment for new items if we tracked them.
-	// For simplicity, let's recount.
-	var unreadCount int
-	err = tx.QueryRow(`SELECT COUNT(*) FROM feed_items WHERE feed_id = ? AND status = ?`, feedID, models.RSSItemStatusNew).Scan(&unreadCount)
-	if err == nil {
-		_, _ = tx.Exec(`UPDATE feeds SET unread_count = ? WHERE id = ?`, unreadCount, feedID)
-	}
-
-	if err := tx.Commit(); err != nil {
+		if err := txDal.CreateFeedItems(m.ctx, newItems); err != nil {
+			return err
+		}
+		count, err := txDal.CountUnread(m.ctx, feedID, int(schema.RSSItemStatusNew))
+		if err != nil {
+			return err
+		}
+		return txDal.UpdateFeed(m.ctx, feedID, map[string]interface{}{
+			"unread_count": count,
+			"updated_at":   time.Now().Unix(),
+		})
+	})
+	if err != nil {
 		return err
 	}
 
@@ -382,16 +362,16 @@ func (m *Manager) checkFeeds() {
 }
 
 func (m *Manager) MarkItemRead(itemID string) error {
-	// Only mark as read if it's currently New (0)
-	_, err := m.db.Exec(`UPDATE feed_items SET status = ? WHERE id = ? AND status = ?`, models.RSSItemStatusRead, itemID, models.RSSItemStatusNew)
-	// Update feed unread count
-	var feedID string
-	if err := m.db.QueryRow("SELECT feed_id FROM feed_items WHERE id = ?", itemID).Scan(&feedID); err == nil {
-		var unreadCount int
-		m.db.QueryRow(`SELECT COUNT(*) FROM feed_items WHERE feed_id = ? AND status = ?`, feedID, models.RSSItemStatusNew).Scan(&unreadCount)
-		m.db.Exec(`UPDATE feeds SET unread_count = ? WHERE id = ?`, unreadCount, feedID)
+	if m.rssDAL == nil {
+		return fmt.Errorf("database not initialized")
 	}
-	return err
+	if err := m.rssDAL.UpdateFeedItemStatusByIDIf(m.ctx, itemID, int(schema.RSSItemStatusNew), int(schema.RSSItemStatusRead)); err != nil {
+		return err
+	}
+	if feedID, err := m.rssDAL.GetFeedIDByItemID(m.ctx, itemID); err == nil {
+		_ = m.updateUnreadCount(feedID)
+	}
+	return nil
 }
 
 func (m *Manager) processAutoDownload(feedID string) {
@@ -399,36 +379,25 @@ func (m *Manager) processAutoDownload(feedID string) {
 		return
 	}
 
-	var feed models.RSSFeed
-	var downloadLatest int
-	err := m.db.QueryRow("SELECT id, url, title, thumbnail, custom_dir, download_latest, filters, tags, filename_template FROM feeds WHERE id = ?", feedID).
-		Scan(&feed.ID, &feed.URL, &feed.Title, &feed.Thumbnail, &feed.CustomDir, &downloadLatest, &feed.Filters, &feed.Tags, &feed.FilenameTemplate)
+	if m.rssDAL == nil {
+		return
+	}
+	feed, err := m.rssDAL.GetFeedByID(m.ctx, feedID)
 	if err != nil {
 		return
 	}
-	feed.DownloadLatest = downloadLatest == 1
 
 	if !feed.DownloadLatest {
 		return
 	}
 
-	rows, err := m.db.Query(`SELECT id, feed_id, title, link, description, pub_date, status, thumbnail FROM feed_items WHERE feed_id = ? AND (status = ? OR status = ?)`,
-		feedID, models.RSSItemStatusNew, models.RSSItemStatusRead)
+	items, err := m.rssDAL.ListFeedItemsByStatuses(m.ctx, feedID, []int{int(schema.RSSItemStatusNew), int(schema.RSSItemStatusRead)})
 	if err != nil {
 		return
 	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var item models.RSSItem
-		if err := rows.Scan(&item.ID, &item.FeedID, &item.Title, &item.Link, &item.Description, &item.PubDate, &item.Status, &item.Thumbnail); err != nil {
-			continue
-		}
-
-		m.OnAutoDownload(item, feed)
-
-		_, _ = m.db.Exec(`UPDATE feed_items SET status = ? WHERE id = ?`, models.RSSItemStatusQueued, item.ID)
+	for _, item := range items {
+		m.OnAutoDownload(item, *feed)
+		_ = m.rssDAL.UpdateFeedItemStatusByID(m.ctx, item.ID, int(schema.RSSItemStatusQueued))
 	}
-
 	_ = m.updateUnreadCount(feedID)
 }

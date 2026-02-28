@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"Kairo/internal/models"
+	"Kairo/internal/db/schema"
 )
 
 type SubtitleTaskType int
@@ -34,31 +34,22 @@ func (m *Manager) InitSubtitleQueue() {
 func (m *Manager) restorePendingSubtitles() {
 	// 1. Reset Generating -> Pending
 	log.Println("[SubtitleQueue] Resetting generating subtitles to pending...")
-	_, err := m.db.Exec("UPDATE video_subtitles SET status = ? WHERE status = ?", models.SubtitleStatusPending, models.SubtitleStatusGenerating)
-	if err != nil {
+	if m.subtitleDAL == nil {
+		return
+	}
+	if err := m.subtitleDAL.UpdateStatusByStatus(m.ctx, int(schema.SubtitleStatusGenerating), int(schema.SubtitleStatusPending)); err != nil {
 		log.Printf("[SubtitleQueue] failed to reset generating subtitles: %v", err)
 	}
 
 	// 2. Load Pending tasks
-	rows, err := m.db.Query("SELECT id, video_id, language, status, source FROM video_subtitles WHERE status = ?", models.SubtitleStatusPending)
+	rows, err := m.subtitleDAL.ListByStatus(m.ctx, int(schema.SubtitleStatusPending))
 	if err != nil {
 		log.Printf("[SubtitleQueue] failed to query pending subtitles: %v", err)
 		return
 	}
-	defer rows.Close()
 
 	count := 0
-	for rows.Next() {
-		var subtitle models.VideoSubtitle
-		if err := rows.Scan(&subtitle.ID,
-			&subtitle.VideoID,
-			&subtitle.Language,
-			&subtitle.Status,
-			&subtitle.Source); err != nil {
-			log.Printf("[SubtitleQueue] failed to scan pending subtitle: %v", err)
-			continue
-		}
-
+	for _, subtitle := range rows {
 		log.Printf("[SubtitleQueue] Restored pending subtitle: %+v", subtitle)
 
 		task := SubtitleTask{
@@ -66,20 +57,20 @@ func (m *Manager) restorePendingSubtitles() {
 			VideoID:    subtitle.VideoID,
 		}
 
-		if subtitle.Source == models.SubtitleSourceTranslation {
+		if schema.SubtitleSource(subtitle.Source) == schema.SubtitleSourceTranslation {
 			task.Type = SubtitleTaskTypeTranslate
 			task.TargetLanguage = subtitle.Language
 			bestSource, err := m.findBestSourceSubtitle(subtitle.VideoID)
 
 			if err != nil || bestSource == nil {
 				log.Printf("[SubtitleQueue] failed to find best source subtitle: %v, subtitle: %+v", err, subtitle)
-				m.db.Exec("UPDATE video_subtitles SET status = ? WHERE id = ?", models.SubtitleStatusFailed, subtitle.ID)
+				_ = m.subtitleDAL.UpdateStatus(m.ctx, subtitle.ID, int(schema.SubtitleStatusFailed))
 				continue
 			}
 			task.SourceSubtitleID = bestSource.ID
 			m.subtitleQueue <- task
 			count++
-		} else if subtitle.Source == models.SubtitleSourceASR {
+		} else if schema.SubtitleSource(subtitle.Source) == schema.SubtitleSourceASR {
 			task.Type = SubtitleTaskTypeASR
 			m.subtitleQueue <- task
 			count++
@@ -88,28 +79,27 @@ func (m *Manager) restorePendingSubtitles() {
 	log.Printf("[SubtitleQueue] Restored %d pending subtitles", count)
 }
 
-func (m *Manager) findBestSourceSubtitle(videoID string) (*models.VideoSubtitle, error) {
+func (m *Manager) findBestSourceSubtitle(videoID string) (*schema.VideoSubtitle, error) {
 	// Prefer ASR, then Builtin
-	rows, err := m.db.Query("SELECT id, source FROM video_subtitles WHERE video_id = ? AND status = ?", videoID, models.SubtitleStatusSuccess)
+	if m.subtitleDAL == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	rows, err := m.subtitleDAL.ListByVideoAndStatus(m.ctx, videoID, int(schema.SubtitleStatusSuccess))
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
 	var bestID string
 	var bestScore int = -1
-	for rows.Next() {
-		var id string
-		var source models.SubtitleSource
-		if err := rows.Scan(&id, &source); err != nil {
-			continue
-		}
+	for _, s := range rows {
+		id := s.ID
+		source := schema.SubtitleSource(s.Source)
 		score := 0
-		if source == models.SubtitleSourceASR {
+		if source == schema.SubtitleSourceASR {
 			score = 10
-		} else if source == models.SubtitleSourceBuiltin {
+		} else if source == schema.SubtitleSourceBuiltin {
 			score = 5
-		} else if source == models.SubtitleSourceManual {
+		} else if source == schema.SubtitleSourceManual {
 			score = 8
 		}
 
@@ -135,8 +125,10 @@ func (m *Manager) handleSubtitleTask(task SubtitleTask) {
 	log.Printf("[SubtitleQueue] processing task: %+v", task)
 
 	// Update status to Generating
-	_, err := m.db.Exec("UPDATE video_subtitles SET status = ? WHERE id = ?", models.SubtitleStatusGenerating, task.SubtitleID)
-	if err != nil {
+	if m.subtitleDAL == nil {
+		return
+	}
+	if err := m.subtitleDAL.UpdateStatus(m.ctx, task.SubtitleID, int(schema.SubtitleStatusGenerating)); err != nil {
 		log.Printf("[SubtitleQueue] failed to update status to generating: %v", err)
 		return
 	}
@@ -149,14 +141,12 @@ func (m *Manager) handleSubtitleTask(task SubtitleTask) {
 		resultErr = m.processTranslateTask(task)
 	}
 
-	status := models.SubtitleStatusSuccess
+	status := schema.SubtitleStatusSuccess
 	if resultErr != nil {
-		status = models.SubtitleStatusFailed
+		status = schema.SubtitleStatusFailed
 		log.Printf("[SubtitleQueue] task failed: %v", resultErr)
 	}
-
-	_, err = m.db.Exec("UPDATE video_subtitles SET status = ?, updated_at = ? WHERE id = ?", status, time.Now().UnixMilli(), task.SubtitleID)
-	if err != nil {
+	if err := m.subtitleDAL.UpdateStatus(m.ctx, task.SubtitleID, int(status)); err != nil {
 		log.Printf("[SubtitleQueue] failed to update status to %v: %v", status, err)
 	}
 }
@@ -171,14 +161,14 @@ func (m *Manager) processASRTask(task SubtitleTask) error {
 	if err != nil {
 		return err
 	}
-
-	_, err = m.db.Exec(
-		`UPDATE video_subtitles SET file_path = ?, language = ? WHERE id = ?`,
-		outputPath,
-		language,
-		task.SubtitleID,
-	)
-	return err
+	sub, err := m.getSubtitleByID(task.SubtitleID)
+	if err != nil {
+		return err
+	}
+	sub.FilePath = outputPath
+	sub.Language = language
+	sub.UpdatedAt = time.Now().UnixMilli()
+	return m.subtitleDAL.Update(m.ctx, sub)
 }
 
 func (m *Manager) processTranslateTask(task SubtitleTask) error {
@@ -217,6 +207,11 @@ func (m *Manager) processTranslateTask(task SubtitleTask) error {
 	}
 
 	// 5. Update DB (file_path)
-	_, err = m.db.Exec("UPDATE video_subtitles SET file_path = ? WHERE id = ?", outputPath, task.SubtitleID)
-	return err
+	sub, err := m.getSubtitleByID(task.SubtitleID)
+	if err != nil {
+		return err
+	}
+	sub.FilePath = outputPath
+	sub.UpdatedAt = time.Now().UnixMilli()
+	return m.subtitleDAL.Update(m.ctx, sub)
 }

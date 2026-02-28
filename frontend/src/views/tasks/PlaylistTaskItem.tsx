@@ -1,20 +1,12 @@
 import { useState, useMemo } from 'react';
 import { Card, Badge, Modal, Dropdown, MenuProps } from 'antd';
-import {
-  DownOutlined,
-  RightOutlined,
-  DeleteOutlined,
-  FolderOutlined,
-  FileTextOutlined,
-  CloseOutlined,
-} from '@ant-design/icons';
+import { DownOutlined, RightOutlined, DeleteOutlined, CloseOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { Task } from '@/types';
 import { TaskStatus, SourceType } from '@/data/variables';
 import { TaskItem } from './TaskItem';
 import { useTaskStore } from '@/store/useTaskStore';
-import { OpenTaskDir } from '@root/wailsjs/go/main/App';
 
 interface PlaylistTaskItemProps {
   task: Task;
@@ -55,21 +47,6 @@ export function PlaylistTaskItem({ task, childrenTasks, onViewLog }: PlaylistTas
   };
 
   const menuItems: MenuProps['items'] = [
-    {
-      key: 'open',
-      label: t('tasks.contextMenu.openLocation'),
-      icon: <FolderOutlined className="w-4 h-4 mt-[-2px]" />,
-      onClick: () => OpenTaskDir(task.id),
-    },
-    {
-      key: 'details',
-      label: t('tasks.contextMenu.details'),
-      icon: <FileTextOutlined className="w-4 h-4 mt-[-2px]" />,
-      onClick: () => onViewLog(task.id),
-    },
-    {
-      type: 'divider',
-    },
     {
       key: 'delete',
       label: t('tasks.contextMenu.delete'),

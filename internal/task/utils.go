@@ -2,89 +2,27 @@ package task
 
 import (
 	"fmt"
-	"log"
-	"os"
 	"time"
 
 	"Kairo/internal/config"
-	"Kairo/internal/models"
+	"Kairo/internal/db/schema"
 
 	"github.com/google/uuid"
 )
 
-const taskColumns = `
-	id,
-	COALESCE(url, '') AS url,
-	COALESCE(dir, '') AS dir,
-	COALESCE(quality, '') AS quality,
-	COALESCE(format, '') AS format,
-	COALESCE(format_id, '') AS format_id,
-	COALESCE(parent_id, '') AS parent_id,
-	source_type,
-	COALESCE(status, '') AS status,
-	progress,
-	COALESCE(title, '') AS title,
-	COALESCE(thumbnail, '') AS thumbnail,
-	COALESCE(speed, '') AS speed,
-	COALESCE(eta, '') AS eta,
-	COALESCE(log_path, '') AS log_path,
-	file_exists,
-	COALESCE(file_path, '') AS file_path,
-	total_bytes,
-	COALESCE(trim_start, '') AS trim_start,
-	COALESCE(trim_end, '') AS trim_end,
-	COALESCE(trim_mode, '') AS trim_mode,
-	COALESCE(category_id, '') AS category_id,
-	created_at
-`
-
-type Scanner interface {
-	Scan(dest ...interface{}) error
-}
-
-func scanTask(s Scanner) (*models.DownloadTask, error) {
-	var t models.DownloadTask
-	err := s.Scan(
-		&t.ID, &t.URL, &t.Dir, &t.Quality, &t.Format, &t.FormatID, &t.ParentID, &t.SourceType,
-		&t.Status, &t.Progress, &t.Title, &t.Thumbnail, &t.Speed, &t.Eta,
-		&t.LogPath, &t.FileExists, &t.FilePath,
-		&t.TotalBytes, &t.TrimStart, &t.TrimEnd, &t.TrimMode, &t.CategoryID, &t.CreatedAt,
-	)
-	if err != nil {
-		log.Printf("Failed to scan task: %v\n", err)
-		return nil, err
-	}
-
-	// Check if file exists for completed tasks
-	if t.Status == models.TaskStatusCompleted && t.ParentID == "" {
-		t.FileExists = false
-		if t.FilePath != "" {
-			if _, err := os.Stat(t.FilePath); err == nil {
-				t.FileExists = true
-			}
-		}
-	}
-	return &t, nil
-}
-
-func (m *Manager) getPendingTasks(limit int) ([]*models.DownloadTask, error) {
-	if m.db == nil {
+func (m *Manager) getPendingTasks(limit int) ([]*schema.Task, error) {
+	if m.taskDAL == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
-
-	rows, err := m.db.Query(fmt.Sprintf(`SELECT %s FROM tasks WHERE status = ? ORDER BY created_at ASC LIMIT ?`, taskColumns), models.TaskStatusPending, limit)
+	rows, err := m.taskDAL.ListPending(m.ctx, limit)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var tasks []*models.DownloadTask
-	for rows.Next() {
-		t, err := scanTask(rows)
-		if err != nil {
-			continue
-		}
-		tasks = append(tasks, t)
+	var tasks []*schema.Task
+	for _, t := range rows {
+		// Create a copy to take address
+		temp := t
+		tasks = append(tasks, &temp)
 	}
 	return tasks, nil
 }
@@ -103,19 +41,21 @@ func validateTaskInput(url, dir string) (string, error) {
 	return dir, nil
 }
 
-func newTask(url, dir, title, thumbnail string, sourceType models.SourceType, categoryID string) *models.DownloadTask {
+func newTask(url, dir, title, thumbnail string, sourceType schema.SourceType, categoryID string) *schema.Task {
 	id := uuid.New().String()
-	return &models.DownloadTask{
+	now := time.Now().Unix()
+	return &schema.Task{
 		ID:         id,
 		URL:        url,
 		Dir:        dir,
 		Title:      title,
 		Thumbnail:  thumbnail,
 		SourceType: sourceType,
-		Status:     models.TaskStatusPending,
-		CreatedAt:  time.Now().Unix(),
+		Status:     schema.TaskStatusPending,
+		CreatedAt:  now,
+		UpdatedAt:  now,
 		LogPath:    config.GetLogPath(id),
-		TrimMode:   models.TrimModeNone,
+		TrimMode:   schema.TrimModeNone,
 		CategoryID: categoryID,
 	}
 }

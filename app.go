@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	_ "embed"
 	"encoding/base64"
 	"encoding/json"
@@ -16,14 +15,16 @@ import (
 
 	"Kairo/internal/category"
 	"Kairo/internal/config"
+	"Kairo/internal/db"
+	"Kairo/internal/db/schema"
 	"Kairo/internal/deps"
-	"Kairo/internal/models"
 	"Kairo/internal/rss"
 	"Kairo/internal/task"
 	"Kairo/internal/utils"
 	"Kairo/internal/video"
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
+	"gorm.io/gorm"
 )
 
 //go:embed wails.json
@@ -37,7 +38,7 @@ type App struct {
 	rssManager      *rss.Manager
 	videoManager    *video.Manager
 	categoryManager *category.Manager
-	db              *sql.DB
+	db              *gorm.DB
 }
 
 // NewApp creates a new App application struct
@@ -71,7 +72,7 @@ func (a *App) startup(ctx context.Context) {
 	// Load settings from disk
 	_ = config.LoadSettings()
 
-	a.db = config.InitDatabase()
+	a.db = db.InitDatabase()
 
 	dep := deps.NewManager(ctx, readEmbedded)
 	dep.EnsureYtDlp()
@@ -87,7 +88,7 @@ func (a *App) startup(ctx context.Context) {
 	a.categoryManager = category.NewManager(ctx, a.db)
 
 	// Wire up Task Manager callback to RSS Manager and Video Manager
-	a.taskManager.OnTaskComplete = func(task *models.DownloadTask) {
+	a.taskManager.OnTaskComplete = func(task *schema.Task) {
 		// Update RSS item status when task completes
 		// Note: We use task.URL to match RSS item link
 		// This assumes 1-to-1 mapping or at least that the URL is unique enough
@@ -97,13 +98,13 @@ func (a *App) startup(ctx context.Context) {
 		_ = a.videoManager.CreateFromTask(task)
 	}
 
-	a.taskManager.OnTaskFailed = func(task *models.DownloadTask) {
+	a.taskManager.OnTaskFailed = func(task *schema.Task) {
 		_ = a.rssManager.SetItemFailedByLink(task.URL)
 	}
 
 	// Wire up RSS Auto Download
-	a.rssManager.OnAutoDownload = func(item models.RSSItem, feed models.RSSFeed) {
-		input := models.AddRSSTaskInput{
+	a.rssManager.OnAutoDownload = func(item schema.FeedItem, feed schema.Feed) {
+		input := schema.AddRSSTaskInput{
 			FeedURL:       feed.URL,
 			FeedTitle:     feed.Title,
 			FeedThumbnail: feed.Thumbnail,
@@ -130,12 +131,12 @@ func (a *App) ChooseDirectory() (string, error) {
 }
 
 // GetVideos returns the list of videos based on filter
-func (a *App) GetVideos(filter models.VideoFilter) ([]*models.Video, error) {
+func (a *App) GetVideos(filter schema.VideoFilter) ([]*schema.Video, error) {
 	return a.videoManager.GetVideos(filter)
 }
 
 // GetVideo returns a single video by ID
-func (a *App) GetVideo(id string) (*models.Video, error) {
+func (a *App) GetVideo(id string) (*schema.Video, error) {
 	return a.videoManager.GetVideo(id)
 }
 
@@ -144,27 +145,27 @@ func (a *App) FetchSubtitles(id string) error {
 }
 
 // GetVideoSubtitles returns subtitles for a video
-func (a *App) GetVideoSubtitles(videoID string) ([]models.VideoSubtitle, error) {
+func (a *App) GetVideoSubtitles(videoID string) ([]schema.VideoSubtitle, error) {
 	return a.videoManager.GetVideoSubtitles(videoID)
 }
 
 // ImportSubtitle imports a subtitle file for a video
-func (a *App) ImportSubtitle(videoID string, filePath string, language string) (*models.VideoSubtitle, error) {
+func (a *App) ImportSubtitle(videoID string, filePath string, language string) (*schema.VideoSubtitle, error) {
 	return a.videoManager.ImportSubtitle(videoID, filePath, language)
 }
 
 // TranslateSubtitle translates a subtitle into a target language
-func (a *App) TranslateSubtitle(input models.TranslateSubtitleInput) (*models.VideoSubtitle, error) {
+func (a *App) TranslateSubtitle(input schema.TranslateSubtitleInput) (*schema.VideoSubtitle, error) {
 	return a.videoManager.TranslateSubtitle(input)
 }
 
 // SaveSubtitleContent saves subtitle content to a new file and registers it
-func (a *App) SaveSubtitleContent(videoID string, language string, content string) (*models.VideoSubtitle, error) {
+func (a *App) SaveSubtitleContent(videoID string, language string, content string) (*schema.VideoSubtitle, error) {
 	return a.videoManager.SaveSubtitleContent(videoID, language, content)
 }
 
 // UpdateSubtitle updates the content of an existing subtitle
-func (a *App) UpdateSubtitle(subtitleID string, content string, language string) (*models.VideoSubtitle, error) {
+func (a *App) UpdateSubtitle(subtitleID string, content string, language string) (*schema.VideoSubtitle, error) {
 	return a.videoManager.UpdateSubtitle(subtitleID, content, language)
 }
 
@@ -174,7 +175,7 @@ func (a *App) DeleteSubtitle(id string) error {
 }
 
 // RegenerateSubtitle regenerates a failed subtitle
-func (a *App) RegenerateSubtitle(id string) (*models.VideoSubtitle, error) {
+func (a *App) RegenerateSubtitle(id string) (*schema.VideoSubtitle, error) {
 	return a.videoManager.RegenerateSubtitle(id)
 }
 
@@ -184,7 +185,7 @@ func (a *App) AddVideoToLibrary(taskID string) (bool, error) {
 	if !ok {
 		return false, fmt.Errorf("task not found")
 	}
-	if task.Status != models.TaskStatusCompleted {
+	if task.Status != schema.TaskStatusCompleted {
 		return false, fmt.Errorf("task not completed")
 	}
 	if !task.FileExists {
@@ -215,7 +216,7 @@ func (a *App) AnalyzeVideo(id string) error {
 }
 
 // GetVideoHighlights returns highlights for a video
-func (a *App) GetVideoHighlights(videoID string) ([]models.AIHighlight, error) {
+func (a *App) GetVideoHighlights(videoID string) ([]schema.VideoHighlight, error) {
 	return a.videoManager.GetHighlights(videoID)
 }
 
@@ -265,7 +266,7 @@ func (a *App) ClipVideo(videoID string, highlightID string, start, end string) e
 			"status":     updatedVideo.Status,
 			"summary":    updatedVideo.Summary,
 			"evaluation": updatedVideo.Evaluation,
-			"tags":       updatedVideo.Tags,
+			"tags":       updatedVideo.TagsList,
 			"highlights": updatedVideo.Highlights,
 		})
 	}
@@ -363,25 +364,25 @@ func (a *App) GetDefaultDownloadDir() (string, error) {
 	return config.GetDefaultDownloadDir()
 }
 
-// GetVideoInfo fetches video metadata
-func (a *App) GetVideoInfo(url string) (*models.VideoInfo, error) {
-	return a.depsManager.GetVideoInfo(url)
-}
-
-// AddTask creates a new download task and starts it
-func (a *App) AddTask(input models.AddTaskInput) (string, error) {
+func (a *App) AddTask(input schema.AddTaskInput) (string, error) {
 	return a.taskManager.AddTask(input)
 }
 
-func (a *App) AddPlaylistTask(input models.AddPlaylistTaskInput) (string, error) {
+// AddPlaylistTask adds a new playlist download task
+func (a *App) AddPlaylistTask(input schema.AddPlaylistTaskInput) (string, error) {
 	return a.taskManager.AddPlaylistTask(input)
 }
 
-func (a *App) AddRSSTask(input models.AddRSSTaskInput) (string, error) {
+// GetVideoInfo fetches video information from a URL
+func (a *App) GetVideoInfo(url string) (*schema.VideoInfo, error) {
+	return a.depsManager.GetVideoInfo(url)
+}
+
+func (a *App) AddRSSTask(input schema.AddRSSTaskInput) (string, error) {
 	return a.taskManager.AddRSSTask(input)
 }
 
-func (a *App) GetTasks() map[string]*models.DownloadTask {
+func (a *App) GetTasks() map[string]*schema.Task {
 	return a.taskManager.GetTasks()
 }
 
@@ -419,15 +420,15 @@ func (a *App) GetSettings() config.AppSettings {
 	return config.GetSettings()
 }
 
-func (a *App) GetCategories() ([]models.Category, error) {
+func (a *App) GetCategories() ([]schema.Category, error) {
 	return a.categoryManager.GetCategories()
 }
 
-func (a *App) CreateCategory(name string, prompt string) (*models.Category, error) {
+func (a *App) CreateCategory(name string, prompt string) (*schema.Category, error) {
 	return a.categoryManager.CreateCategory(name, prompt)
 }
 
-func (a *App) UpdateCategory(id string, name string, prompt string) (*models.Category, error) {
+func (a *App) UpdateCategory(id string, name string, prompt string) (*schema.Category, error) {
 	return a.categoryManager.UpdateCategory(id, name, prompt)
 }
 
@@ -436,11 +437,11 @@ func (a *App) DeleteCategory(id string) error {
 }
 
 // RSS Methods
-func (a *App) AddRSSFeed(input models.AddRSSFeedInput) (*models.RSSFeed, error) {
+func (a *App) AddFeed(input schema.AddRSSFeedInput) (*schema.Feed, error) {
 	return a.rssManager.AddFeed(input)
 }
 
-func (a *App) GetRSSFeeds() ([]models.RSSFeed, error) {
+func (a *App) GetRSSFeeds() ([]schema.Feed, error) {
 	return a.rssManager.GetFeeds()
 }
 
@@ -448,7 +449,7 @@ func (a *App) DeleteRSSFeed(id string) error {
 	return a.rssManager.DeleteFeed(id)
 }
 
-func (a *App) GetRSSFeedItems(feedID string) ([]models.RSSItem, error) {
+func (a *App) GetRSSFeedItems(feedID string) ([]schema.FeedItem, error) {
 	return a.rssManager.GetFeedItems(feedID)
 }
 
@@ -464,7 +465,7 @@ func (a *App) SetRSSFeedEnabled(feedID string, enabled bool) error {
 	return a.rssManager.SetFeedEnabled(feedID, enabled)
 }
 
-func (a *App) UpdateRSSFeed(feed models.RSSFeed) error {
+func (a *App) UpdateRSSFeed(feed schema.Feed) error {
 	return a.rssManager.UpdateFeed(feed)
 }
 

@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"Kairo/internal/config"
-	"Kairo/internal/models"
+	"Kairo/internal/db/schema"
 	"Kairo/internal/utils"
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
@@ -110,7 +110,7 @@ func (m *Manager) EnsureYtDlp() {
 	}
 }
 
-func (m *Manager) GetVideoInfo(url string) (*models.VideoInfo, error) {
+func (m *Manager) GetVideoInfo(url string) (*schema.VideoInfo, error) {
 	if url == "" {
 		log.Printf("[getVideoInfo] url is empty")
 		return nil, errors.New("url is empty")
@@ -128,7 +128,7 @@ func (m *Manager) GetVideoInfo(url string) (*models.VideoInfo, error) {
 		if err != nil {
 			return nil, err
 		}
-		if playlistInfo != nil && playlistInfo.SourceType == models.SourceTypePlaylist {
+		if playlistInfo != nil && playlistInfo.SourceType == schema.SourceTypePlaylist {
 			return playlistInfo, nil
 		}
 	}
@@ -141,7 +141,7 @@ func (m *Manager) GetVideoInfo(url string) (*models.VideoInfo, error) {
 
 	log.Printf("[getVideoInfo] failed to get single video info: %s, try to get playlist info", err.Error())
 	playlistInfo, pErr := m.getPlaylistInfo(url)
-	if pErr == nil && playlistInfo != nil && playlistInfo.SourceType == models.SourceTypePlaylist {
+	if pErr == nil && playlistInfo != nil && playlistInfo.SourceType == schema.SourceTypePlaylist {
 		return playlistInfo, nil
 	}
 	return nil, err
@@ -159,7 +159,7 @@ func (m *Manager) isLikelyPlaylist(url string) bool {
 		strings.Contains(lower, "medialist")
 }
 
-func (m *Manager) getSingleVideoInfo(url string) (*models.VideoInfo, error) {
+func (m *Manager) getSingleVideoInfo(url string) (*schema.VideoInfo, error) {
 	args := []string{"--dump-json", "--no-playlist"}
 	if proxy := config.GetProxyUrl(); proxy != "" {
 		args = append(args, "--proxy", proxy)
@@ -196,7 +196,7 @@ func (m *Manager) getSingleVideoInfo(url string) (*models.VideoInfo, error) {
 	return m.ParseVideoInfo(output)
 }
 
-func (m *Manager) getPlaylistInfo(url string) (*models.VideoInfo, error) {
+func (m *Manager) getPlaylistInfo(url string) (*schema.VideoInfo, error) {
 	args := []string{"--dump-single-json"}
 
 	lowerURL := strings.ToLower(url)
@@ -260,7 +260,7 @@ func (m *Manager) getPlaylistInfo(url string) (*models.VideoInfo, error) {
 		return nil, nil
 	}
 
-	var items []models.PlaylistItem
+	var items []schema.PlaylistItem
 	for i, entry := range rawInfo.Entries {
 		itemTitle := entry.Title
 		if itemTitle == "" {
@@ -278,7 +278,7 @@ func (m *Manager) getPlaylistInfo(url string) (*models.VideoInfo, error) {
 		if itemURL == "" {
 			itemURL = strings.TrimSpace(entry.URL)
 		}
-		items = append(items, models.PlaylistItem{
+		items = append(items, schema.PlaylistItem{
 			Index:     i + 1,
 			Title:     itemTitle,
 			Duration:  entry.Duration,
@@ -288,10 +288,10 @@ func (m *Manager) getPlaylistInfo(url string) (*models.VideoInfo, error) {
 	}
 
 	playlistThumbnail := pickThumbnail(rawInfo.Thumbnail, rawInfo.Thumbnails)
-	info := models.VideoInfo{
+	info := schema.VideoInfo{
 		Title:         rawInfo.Title,
 		Thumbnail:     playlistThumbnail,
-		SourceType:    models.SourceTypePlaylist,
+		SourceType:    schema.SourceTypePlaylist,
 		PlaylistItems: items,
 		TotalItems:    len(items),
 	}
@@ -299,7 +299,7 @@ func (m *Manager) getPlaylistInfo(url string) (*models.VideoInfo, error) {
 	return &info, nil
 }
 
-func (m *Manager) ParseVideoInfo(output []byte) (*models.VideoInfo, error) {
+func (m *Manager) ParseVideoInfo(output []byte) (*schema.VideoInfo, error) {
 	var rawInfo struct {
 		Title      string                   `json:"title"`
 		Thumbnail  string                   `json:"thumbnail"`
@@ -314,10 +314,12 @@ func (m *Manager) ParseVideoInfo(output []byte) (*models.VideoInfo, error) {
 	}
 
 	thumbnail := pickThumbnail(rawInfo.Thumbnail, rawInfo.Thumbnails)
-	info := models.VideoInfo{
-		Title:     rawInfo.Title,
-		Thumbnail: thumbnail,
-		Duration:  rawInfo.Duration,
+	info := schema.VideoInfo{
+		Title:         rawInfo.Title,
+		Thumbnail:     thumbnail,
+		Duration:      rawInfo.Duration,
+		Qualities:     []schema.QualityOption{},
+		PlaylistItems: []schema.PlaylistItem{},
 	}
 
 	getSize := func(f map[string]interface{}) int64 {
@@ -400,7 +402,7 @@ func (m *Manager) ParseVideoInfo(output []byte) (*models.VideoInfo, error) {
 	}
 	sort.Sort(sort.Reverse(sort.IntSlice(heights)))
 
-	var qualities []models.QualityOption
+	var qualities []schema.QualityOption
 
 	for _, h := range heights {
 		var videoSize, audioSize, totalSize int64
@@ -432,7 +434,7 @@ func (m *Manager) ParseVideoInfo(output []byte) (*models.VideoInfo, error) {
 			continue
 		}
 
-		qualities = append(qualities, models.QualityOption{
+		qualities = append(qualities, schema.QualityOption{
 			Label:      fmt.Sprintf("%dp", h),
 			Value:      fmt.Sprintf("%dp", h),
 			FormatID:   formatID,
@@ -445,7 +447,7 @@ func (m *Manager) ParseVideoInfo(output []byte) (*models.VideoInfo, error) {
 		})
 	}
 
-	qualities = append(qualities, models.QualityOption{
+	qualities = append(qualities, schema.QualityOption{
 		Label:      "Audio Only",
 		Value:      "audio",
 		FormatID:   bestAudioID,

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Grid, CellComponentProps } from 'react-window';
 import { useTranslation } from 'react-i18next';
 import { Button, Checkbox, Divider, Image, Select, Tag } from 'antd';
-import { models } from '@root/wailsjs/go/models';
+import { schema } from '@root/wailsjs/go/models';
 import { ImageFallback } from '@/data/variables';
 import dayjs from 'dayjs';
 import { DownloadOutlined, PlayCircleOutlined } from '@ant-design/icons';
@@ -12,7 +12,7 @@ import { useSettingStore } from '@/store/useSettingStore';
 import { Category } from '@/types';
 
 interface VideoResultProps {
-  videoInfo: models.VideoInfo;
+  videoInfo: schema.VideoInfo;
   onStartDownload: ({ newDir, playList }: { newDir: string; playList?: number[] }) => void;
   categories: Category[];
   categoryId: string;
@@ -42,7 +42,7 @@ const PlaylistResult = ({
     if (!Array.isArray(videoInfo.playlist_items)) {
       return [];
     }
-    const result: Array<[models.PlaylistItem, models.PlaylistItem | undefined]> = [];
+    const result: Array<[schema.PlaylistItem, schema.PlaylistItem | undefined]> = [];
     for (let i = 0; i < videoInfo.playlist_items.length; i += 2) {
       result.push([videoInfo.playlist_items[i], videoInfo.playlist_items[i + 1]]);
     }
@@ -65,7 +65,7 @@ const PlaylistResult = ({
     }
   }, [videoInfo]);
 
-  const renderCard = (item: models.PlaylistItem) => {
+  const renderCard = (item: schema.PlaylistItem) => {
     // Format duration using dayjs directly
     let durationText = '--:--';
     if (item.duration && item.duration > 0) {
@@ -136,10 +136,10 @@ const PlaylistResult = ({
     renderCard: cellRenderCard,
     ariaAttributes,
   }: CellComponentProps<{
-    columns: Array<[models.PlaylistItem, models.PlaylistItem | undefined]>;
+    columns: Array<[schema.PlaylistItem, schema.PlaylistItem | undefined]>;
     columnWidth: number;
     rowHeight: number;
-    renderCard: (item: models.PlaylistItem) => JSX.Element;
+    renderCard: (item: schema.PlaylistItem) => JSX.Element;
   }>) => {
     const item = cellColumns[columnIndex]?.[rowIndex];
     if (!item) return null;
@@ -197,22 +197,26 @@ const PlaylistResult = ({
         rowHeight={170}
         overscanCount={2}
       />
-      <Divider size="large" />
-      <div className="flex items-end justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-4 flex-wrap">
-          <DownloadDir defaultDir={newDir} setNewDir={setNewDir} className="!w-auto grow-0" />
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">{t('downloads.category')}</label>
-            <Select
-              value={categoryId || undefined}
-              onChange={(value) => onCategoryChange(value || '')}
-              allowClear
-              placeholder={t('downloads.categoryPlaceholder')}
-              options={categories.map((item) => ({ label: item.name, value: item.id }))}
-              style={{ width: 220 }}
-            />
-          </div>
+      {/* <Divider size="large" /> */}
+      <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300 delay-75">
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-foreground">{t('downloads.saveTo')}</label>
+          <DownloadDir defaultDir={newDir} setNewDir={setNewDir} />
         </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-foreground">{t('downloads.category')}</label>
+          <Select
+            value={categoryId || undefined}
+            onChange={(value) => onCategoryChange(value || '')}
+            allowClear
+            placeholder={t('downloads.categoryPlaceholder')}
+            options={categories.map((item) => ({ label: item.name, value: item.id }))}
+            style={{ width: '100%' }}
+          />
+        </div>
+      </div>
+      <Divider size="large" />
+      <div className="flex items-end justify-end">
         <Button
           type="primary"
           onClick={() => onStartDownload({ newDir, playList: selectedPlaylistItems })}

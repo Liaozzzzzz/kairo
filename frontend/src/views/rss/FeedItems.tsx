@@ -6,7 +6,7 @@ import { ExportOutlined } from '@ant-design/icons';
 import { cn } from '@/lib/utils';
 import { BrowserOpenURL } from '@root/wailsjs/runtime/runtime';
 import { AddRSSTask } from '@root/wailsjs/go/main/App';
-import { models } from '@root/wailsjs/go/models';
+import { schema } from '@root/wailsjs/go/models';
 import dayjs from 'dayjs';
 import { RSSItem, RSSFeed } from '@/types';
 import { RSSItemStatus } from '@/data/variables';
@@ -177,7 +177,7 @@ const FeedItems: React.FC = () => {
         }
 
         await AddRSSTask(
-          new models.AddRSSTaskInput({
+          new schema.AddRSSTaskInput({
             feed_url: currentFeed?.url || '',
             feed_title: currentFeed?.title || '',
             feed_thumbnail: currentFeed?.thumbnail || '',

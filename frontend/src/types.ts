@@ -59,6 +59,8 @@ export interface RSSFeed {
   tags: string;
   filename_template: string;
   category_id: string;
+  created_at: number;
+  updated_at: number;
 }
 
 export interface RSSItem {

@@ -8,7 +8,7 @@ import {
   CustomerServiceOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { models } from '@root/wailsjs/go/models';
+import { schema } from '@root/wailsjs/go/models';
 import { ImageFallback } from '@/data/variables';
 import { useSettingStore } from '@/store/useSettingStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -18,7 +18,7 @@ import { Category } from '@/types';
 import { TrimMode } from '@/data/variables';
 
 interface SingleVideoResultProps {
-  videoInfo: models.VideoInfo;
+  videoInfo: schema.VideoInfo;
   onStartDownload: ({
     newDir,
     newQuality,

@@ -28,7 +28,7 @@ import CategoriesView from '@/views/categories';
 import appIcon from '@/assets/images/icon-full.png';
 import { MenuItemKey, TaskStatus, SourceType } from './data/variables';
 import { getThemeColor } from '@/data/themeColors';
-import { models } from '@root/wailsjs/go/models';
+import { schema } from '@root/wailsjs/go/models';
 
 const { Sider, Content } = Layout;
 
@@ -182,7 +182,7 @@ function App() {
         summary: string;
         evaluation: string;
         tags: string[];
-        highlights: models.AIHighlight[];
+        highlights: schema.VideoHighlight[];
       }) => {
         updateVideoStatus(
           data.id,

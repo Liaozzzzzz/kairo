@@ -24,20 +24,42 @@ type AIConfig struct {
 	Prompt    string `json:"prompt"`
 }
 
+type DatabaseResolverConfig struct {
+	DBType   string   `json:"dbType"`
+	Sources  []string `json:"sources"`
+	Replicas []string `json:"replicas"`
+	Tables   []string `json:"tables"`
+}
+
+type DatabaseConfig struct {
+	Debug        bool                     `json:"debug"`
+	Type         string                   `json:"type"`
+	DSN          string                   `json:"dsn"`
+	MaxLifetime  int                      `json:"maxLifetime"`
+	MaxIdleTime  int                      `json:"maxIdleTime"`
+	MaxOpenConns int                      `json:"maxOpenConns"`
+	MaxIdleConns int                      `json:"maxIdleConns"`
+	TablePrefix  string                   `json:"tablePrefix"`
+	AutoMigrate  bool                     `json:"autoMigrate"`
+	PrepareStmt  bool                     `json:"prepareStmt"`
+	Resolver     []DatabaseResolverConfig `json:"resolver"`
+}
+
 type AppSettings struct {
-	DownloadDir         string       `json:"downloadDir"`
-	DownloadConcurrency int          `json:"downloadConcurrency"`
-	MaxDownloadSpeed    *int         `json:"maxDownloadSpeed"` // MB/s
-	Language            string       `json:"language"`
-	ProxyUrl            string       `json:"proxyUrl"`
-	UserAgent           string       `json:"userAgent"`
-	Referer             string       `json:"referer"`
-	GeoBypass           bool         `json:"geoBypass"`
-	Cookie              CookieConfig `json:"cookie"`
-	AI                  AIConfig     `json:"ai"`
-	WhisperAI           AIConfig     `json:"whisperAi"`
-	TranslateAI         AIConfig     `json:"translateAi"`
-	RSSCheckInterval    int          `json:"rssCheckInterval"` // Minutes
+	DownloadDir         string         `json:"downloadDir"`
+	DownloadConcurrency int            `json:"downloadConcurrency"`
+	MaxDownloadSpeed    *int           `json:"maxDownloadSpeed"` // MB/s
+	Language            string         `json:"language"`
+	ProxyUrl            string         `json:"proxyUrl"`
+	UserAgent           string         `json:"userAgent"`
+	Referer             string         `json:"referer"`
+	GeoBypass           bool           `json:"geoBypass"`
+	Cookie              CookieConfig   `json:"cookie"`
+	AI                  AIConfig       `json:"ai"`
+	WhisperAI           AIConfig       `json:"whisperAi"`
+	TranslateAI         AIConfig       `json:"translateAi"`
+	RSSCheckInterval    int            `json:"rssCheckInterval"` // Minutes
+	Database            DatabaseConfig `json:"database"`
 }
 
 var (
@@ -50,6 +72,14 @@ func init() {
 		DownloadConcurrency: 3,
 		GeoBypass:           true,
 		RSSCheckInterval:    60,
+		Database: DatabaseConfig{
+			Type:         "sqlite3",
+			MaxLifetime:  86400,
+			MaxIdleTime:  3600,
+			MaxOpenConns: 25,
+			MaxIdleConns: 25,
+			AutoMigrate:  true,
+		},
 		AI: AIConfig{
 			Provider:  "openai",
 			BaseURL:   "https://api.openai.com/v1",
@@ -152,6 +182,21 @@ func LoadSettings() error {
 	}
 	if currentConfig.TranslateAI.ModelName == "" {
 		currentConfig.TranslateAI.ModelName = "gpt-3.5-turbo"
+	}
+	if currentConfig.Database.Type == "" {
+		currentConfig.Database.Type = "sqlite3"
+	}
+	if currentConfig.Database.MaxLifetime <= 0 {
+		currentConfig.Database.MaxLifetime = 86400
+	}
+	if currentConfig.Database.MaxIdleTime <= 0 {
+		currentConfig.Database.MaxIdleTime = 3600
+	}
+	if currentConfig.Database.MaxOpenConns <= 0 {
+		currentConfig.Database.MaxOpenConns = 25
+	}
+	if currentConfig.Database.MaxIdleConns <= 0 {
+		currentConfig.Database.MaxIdleConns = 25
 	}
 
 	return nil

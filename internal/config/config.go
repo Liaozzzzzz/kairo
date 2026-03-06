@@ -185,6 +185,7 @@ func LoadSettings() error {
 	}
 	if currentConfig.Database.Type == "" {
 		currentConfig.Database.Type = "sqlite3"
+		currentConfig.Database.AutoMigrate = true
 	}
 	if currentConfig.Database.MaxLifetime <= 0 {
 		currentConfig.Database.MaxLifetime = 86400

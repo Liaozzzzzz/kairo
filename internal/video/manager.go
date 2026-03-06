@@ -229,13 +229,12 @@ func (m *Manager) DeleteVideo(id string) error {
 	return m.videoDAL.DeleteVideoCascade(m.ctx, id)
 }
 
-func (m *Manager) UpdateVideoStatus(id, status, summary, evaluation string, tags []string, highlights []schema.VideoHighlight) error {
+func (m *Manager) UpdateVideoStatus(id, status, summary, evaluation string, tags string, highlights []schema.VideoHighlight) error {
 	if m.videoDAL == nil {
 		return fmt.Errorf("database not initialized")
 	}
 
-	tagsJSON, _ := json.Marshal(tags)
-	err := m.videoDAL.UpdateStatus(m.ctx, id, status, summary, evaluation, string(tagsJSON))
+	err := m.videoDAL.UpdateStatus(m.ctx, id, status, summary, evaluation, tags)
 	if err == nil {
 		if status == "completed" && len(highlights) > 0 {
 			_ = m.clearHighlightFiles(id)
@@ -251,6 +250,7 @@ func (m *Manager) UpdateVideoStatus(id, status, summary, evaluation string, tags
 					VideoID:     id,
 					StartTime:   h.StartTime,
 					EndTime:     h.EndTime,
+					Title:       h.Title,
 					Description: h.Description,
 					FilePath:    h.FilePath,
 					CreatedAt:   now,
@@ -260,12 +260,20 @@ func (m *Manager) UpdateVideoStatus(id, status, summary, evaluation string, tags
 			_ = m.videoDAL.ReplaceHighlights(m.ctx, id, records)
 		}
 
+		// Split tags for frontend compatibility
+		var tagsList []string
+		if tags != "" {
+			tagsList = strings.Split(tags, ",")
+		} else {
+			tagsList = []string{}
+		}
+
 		wailsRuntime.EventsEmit(m.ctx, "video:ai_status", map[string]interface{}{
 			"id":         id,
 			"status":     status,
 			"summary":    summary,
 			"evaluation": evaluation,
-			"tags":       tags,
+			"tags":       tagsList,
 			"highlights": highlights,
 		})
 	}
@@ -281,7 +289,7 @@ func (m *Manager) AnalyzeVideo(id string) error {
 
 	// Set status to analyzing
 	// If re-analyzing, we clear previous results but keep metadata
-	m.UpdateVideoStatus(id, "processing", "", "", nil, nil)
+	m.UpdateVideoStatus(id, "processing", "", "", "", nil)
 
 	go func() {
 		var subtitlesContent string
@@ -334,11 +342,11 @@ func (m *Manager) AnalyzeVideo(id string) error {
 
 		if err != nil {
 			if errors.Is(err, ai.ErrAIDisabled) {
-				m.UpdateVideoStatus(id, "failed", "AI is disabled in settings", "", nil, nil)
+				m.UpdateVideoStatus(id, "failed", "AI is disabled in settings", "", "", nil)
 				return
 			}
 			fmt.Printf("AI Analysis failed: %v\n", err)
-			m.UpdateVideoStatus(id, "failed", fmt.Sprintf("Error: %v", err), "", nil, nil)
+			m.UpdateVideoStatus(id, "failed", fmt.Sprintf("Error: %v", err), "", "", nil)
 			return
 		}
 
@@ -355,6 +363,7 @@ func (m *Manager) AnalyzeVideo(id string) error {
 				VideoID:     id,
 				StartTime:   h.Start,
 				EndTime:     h.End,
+				Title:       h.Title,
 				Description: h.Description,
 			})
 		}
@@ -390,21 +399,25 @@ func (m *Manager) clearHighlightFiles(videoID string) error {
 }
 
 func buildFallbackHighlights(candidates []energyCandidate) []struct {
+	Title       string `json:"title"`
 	Start       string `json:"start"`
 	End         string `json:"end"`
 	Description string `json:"description"`
 } {
 	highlights := make([]struct {
+		Title       string `json:"title"`
 		Start       string `json:"start"`
 		End         string `json:"end"`
 		Description string `json:"description"`
 	}, 0, len(candidates))
 	for _, candidate := range candidates {
 		highlights = append(highlights, struct {
+			Title       string `json:"title"`
 			Start       string `json:"start"`
 			End         string `json:"end"`
 			Description string `json:"description"`
 		}{
+			Title:       "Highlight",
 			Start:       formatTimestampHMS(candidate.Start),
 			End:         formatTimestampHMS(candidate.End),
 			Description: "高能片段：" + candidate.Reason,
@@ -416,14 +429,17 @@ func buildFallbackHighlights(candidates []energyCandidate) []struct {
 type highlightRange struct {
 	Start       float64
 	End         float64
+	Title       string
 	Description string
 }
 
 func normalizeHighlights(highlights []struct {
+	Title       string `json:"title"`
 	Start       string `json:"start"`
 	End         string `json:"end"`
 	Description string `json:"description"`
 }, videoDuration float64, segments []subtitleSegment, candidates []energyCandidate) []struct {
+	Title       string `json:"title"`
 	Start       string `json:"start"`
 	End         string `json:"end"`
 	Description string `json:"description"`
@@ -466,6 +482,7 @@ func normalizeHighlights(highlights []struct {
 		normalized = append(normalized, highlightRange{
 			Start:       start,
 			End:         end,
+			Title:       h.Title,
 			Description: h.Description,
 		})
 	}
@@ -477,16 +494,19 @@ func normalizeHighlights(highlights []struct {
 	})
 	merged := mergeHighlightRanges(normalized, 5.0)
 	final := make([]struct {
+		Title       string `json:"title"`
 		Start       string `json:"start"`
 		End         string `json:"end"`
 		Description string `json:"description"`
 	}, 0, len(merged))
 	for _, h := range merged {
 		final = append(final, struct {
+			Title       string `json:"title"`
 			Start       string `json:"start"`
 			End         string `json:"end"`
 			Description string `json:"description"`
 		}{
+			Title:       h.Title,
 			Start:       formatTimestampHMS(h.Start),
 			End:         formatTimestampHMS(h.End),
 			Description: h.Description,
@@ -534,6 +554,9 @@ func mergeHighlightRanges(items []highlightRange, gap float64) []highlightRange 
 			}
 			if items[i].Description != "" && items[i].Description != last.Description {
 				last.Description = last.Description + "；" + items[i].Description
+			}
+			if items[i].Title != "" && items[i].Title != last.Title {
+				last.Title = last.Title + " / " + items[i].Title
 			}
 			continue
 		}

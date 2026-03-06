@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import {
   BellOutlined,
   DownloadOutlined,
+  UploadOutlined,
   SettingOutlined,
   TagsOutlined,
   UnorderedListOutlined,
@@ -45,6 +46,11 @@ export const useAppStore = create<TaskState>((set) => ({
       id: MenuItemKey.Videos,
       icon: VideoCameraOutlined,
       labelKey: 'app.sidebar.videos',
+    },
+    {
+      id: MenuItemKey.Publish,
+      icon: UploadOutlined,
+      labelKey: 'app.sidebar.publish',
     },
     {
       id: MenuItemKey.Categories,

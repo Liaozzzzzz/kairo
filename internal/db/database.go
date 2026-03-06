@@ -16,6 +16,11 @@ import (
 	"gorm.io/gorm"
 )
 
+type PublishPlatformSeed struct {
+	Name        string
+	DisplayName string
+}
+
 func NewDatabase() *gorm.DB {
 	settings := config.GetSettings()
 	cfg := settings.Database
@@ -79,6 +84,7 @@ func initSchema(db *gorm.DB, enableAutoMigrate bool) {
 		}
 	}
 	seedDefaultCategories(db)
+	seedDefaultPublishPlatforms(db)
 }
 
 func migrateSchema(db *gorm.DB) error {
@@ -90,6 +96,11 @@ func migrateSchema(db *gorm.DB) error {
 		new(schema.Feed),
 		new(schema.FeedItem),
 		new(schema.Category),
+		new(schema.PublishPlatform),
+		new(schema.PublishTask),
+		new(schema.PublishAccount),
+		new(schema.PublishAutomation),
+		new(schema.PublishRecord),
 	)
 }
 
@@ -133,6 +144,34 @@ func seedDefaultCategories(db *gorm.DB) {
 			Source:    schema.CategorySourceBuiltin,
 			CreatedAt: now,
 			UpdatedAt: now,
+		}).Error
+	}
+}
+
+func seedDefaultPublishPlatforms(db *gorm.DB) {
+	platforms := []PublishPlatformSeed{
+		{
+			Name:        string(schema.PlatformXiaohongshu),
+			DisplayName: "小红书",
+		},
+		{
+			Name:        string(schema.PlatformDouyin),
+			DisplayName: "抖音",
+		},
+	}
+	for _, p := range platforms {
+		var existing schema.PublishPlatform
+		err := db.Where("name = ?", p.Name).First(&existing).Error
+		if err == nil {
+			continue
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			continue
+		}
+		_ = db.Create(&schema.PublishPlatform{
+			ID:          uuid.NewString(),
+			Name:        p.Name,
+			DisplayName: p.DisplayName,
 		}).Error
 	}
 }

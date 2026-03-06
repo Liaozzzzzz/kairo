@@ -31,10 +31,11 @@ func DefaultPrompt() string {
 }
 
 type AnalysisResult struct {
-	Summary    string   `json:"summary"`
-	Tags       []string `json:"tags"`
-	Evaluation string   `json:"evaluation"`
+	Summary    string `json:"summary"`
+	Tags       string `json:"tags"`
+	Evaluation string `json:"evaluation"`
 	Highlights []struct {
+		Title       string `json:"title"`
 		Start       string `json:"start"`
 		End         string `json:"end"`
 		Description string `json:"description"`
@@ -89,8 +90,9 @@ func (m *Manager) Analyze(meta VideoMetadata, promptTemplate string) (*AnalysisR
 	if err := json.Unmarshal([]byte(content), &analysis); err != nil {
 		log.Printf("[Analysis] Error unmarshalling analysis response: %v", err)
 		analysis.Summary = content
-		analysis.Tags = []string{}
+		analysis.Tags = ""
 		analysis.Highlights = []struct {
+			Title       string `json:"title"`
 			Start       string `json:"start"`
 			End         string `json:"end"`
 			Description string `json:"description"`

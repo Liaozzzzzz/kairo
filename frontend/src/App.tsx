@@ -25,6 +25,7 @@ import Settings from '@/views/settings';
 import RSSView from '@/views/rss';
 import Videos from '@/views/videos';
 import CategoriesView from '@/views/categories';
+import PublishView from '@/views/publish';
 import appIcon from '@/assets/images/icon-full.png';
 import { MenuItemKey, TaskStatus, SourceType } from './data/variables';
 import { getThemeColor } from '@/data/themeColors';
@@ -363,6 +364,7 @@ function App() {
             {activeTab === 'tasks' && <Tasks />}
             {activeTab === 'videos' && <Videos />}
             {activeTab === 'rss' && <RSSView />}
+            {activeTab === 'publish' && <PublishView />}
             {activeTab === 'categories' && <CategoriesView />}
             {activeTab === 'settings' && <Settings />}
           </Content>

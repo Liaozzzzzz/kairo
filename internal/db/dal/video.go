@@ -73,8 +73,31 @@ func (d *VideoDAL) UpdateStatus(ctx context.Context, id, status, summary, evalua
 
 func (d *VideoDAL) ListHighlights(ctx context.Context, videoID string) ([]schema.VideoHighlight, error) {
 	var highlights []schema.VideoHighlight
-	err := d.db.WithContext(ctx).Where("video_id = ?", videoID).Find(&highlights).Error
+	db := d.db.WithContext(ctx).Model(&schema.VideoHighlight{})
+	if videoID != "" {
+		db = db.Where("video_id = ?", videoID)
+	}
+	err := db.Find(&highlights).Error
 	return highlights, err
+}
+
+func (d *VideoDAL) ListHighlightsByCategoryID(ctx context.Context, categoryID string) ([]schema.VideoHighlight, error) {
+	var highlights []schema.VideoHighlight
+	// Join with Video table to filter by category_id, but do not preload Video data
+	err := d.db.WithContext(ctx).Model(&schema.VideoHighlight{}).
+		Joins("JOIN videos ON videos.id = video_highlights.video_id").
+		Where("videos.category_id = ?", categoryID).
+		Order("videos.created_at desc").
+		Find(&highlights).Error
+	return highlights, err
+}
+
+func (d *VideoDAL) GetHighlightByID(ctx context.Context, highlightID string) (*schema.VideoHighlight, error) {
+	var highlight schema.VideoHighlight
+	if err := d.db.WithContext(ctx).First(&highlight, "id = ?", highlightID).Error; err != nil {
+		return nil, err
+	}
+	return &highlight, nil
 }
 
 func (d *VideoDAL) ReplaceHighlights(ctx context.Context, videoID string, highlights []schema.VideoHighlight) error {

@@ -18,6 +18,9 @@
     "description": "简介",
     "view_details": "查看详情",
     "refresh": "刷新",
+    "validate": "校验",
+    "example": "示例",
+    "unknownError": "未知错误",
     "or": "或"
   },
   "app": {
@@ -27,9 +30,208 @@
       "tasks": "任务列表",
       "rss": "订阅",
       "videos": "视频库",
+      "publish": "发布中心",
       "categories": "类目管理",
       "settings": "设置"
     }
+  },
+  "publish": {
+    "title": "发布中心",
+    "subtitle": "管理账号、素材与发布任务",
+    "tabs": {
+      "accounts": "账号列表",
+      "materials": "素材库",
+      "platforms": "平台配置",
+      "automation": "自动化配置",
+      "center": "发布中心"
+    },
+    "account": {
+      "status": {
+        "active": "正常",
+        "invalid": "异常",
+        "unknown": "未知"
+      },
+      "message": {
+        "updateSuccess": "账号更新成功",
+        "createSuccess": "账号创建成功",
+        "saveFailed": "保存失败",
+        "validateSuccess": "账号校验成功",
+        "validateFailed": "账号校验失败",
+        "deleteSuccess": "账号删除成功",
+        "deleteFailed": "账号删除失败",
+        "enabled": "账号已启用",
+        "disabled": "账号已停用",
+        "toggleFailed": "更新账号启用状态失败"
+      },
+      "columns": {
+        "name": "名称",
+        "platform": "平台",
+        "status": "登录状态",
+        "enabled": "是否启用",
+        "lastChecked": "最近校验",
+        "actions": "操作"
+      },
+      "deleteConfirm": "确认删除该账号？",
+      "modal": {
+        "editTitle": "编辑账号",
+        "addTitle": "新增账号"
+      },
+      "form": {
+        "platform": "平台",
+        "platformPlaceholder": "请选择平台",
+        "name": "账号名称",
+        "namePlaceholder": "请输入账号名称",
+        "interval": "发布间隔",
+        "intervalPlaceholder": "请输入发布间隔",
+        "intervalExtra": "例如：1h, 30m, 2h30m",
+        "enabled": "启用状态",
+        "enabledLabel": "启用",
+        "disabledLabel": "停用",
+        "cookie": "Cookie 文件",
+        "cookieExtra": "无需选择 Cookie，添加后请点击\"验证\"按钮进行扫码登录",
+        "cookiePlaceholder": "可选，留空自动处理"
+      }
+    },
+    "automation": {
+      "tips": {
+        "variables": "支持变量：<br />{{title}} - 片段标题<br />{{date}} - 视频创建时间<br />{{description}} - 片段描述",
+        "cron": "Cron 表达式格式 (5位，空格分隔):"
+      },
+      "message": {
+        "fetchFailed": "获取自动化配置失败",
+        "fetchCategoriesFailed": "获取分类失败",
+        "deleteSuccess": "删除成功",
+        "deleteFailed": "删除失败",
+        "updateSuccess": "更新成功",
+        "createSuccess": "创建成功",
+        "saveFailed": "保存失败"
+      },
+      "columns": {
+        "category": "类目",
+        "platform": "平台",
+        "account": "账号",
+        "cron": "执行时间",
+        "status": "状态",
+        "createdAt": "创建时间",
+        "actions": "操作"
+      },
+      "deleteConfirm": "确认删除该配置？",
+      "modal": {
+        "editTitle": "编辑自动化配置",
+        "addTitle": "新增自动化配置"
+      },
+      "form": {
+        "category": "触发类目",
+        "categoryPlaceholder": "选择触发类目",
+        "categoryTooltip": "当视频属于该类目时触发",
+        "account": "目标账号",
+        "accountPlaceholder": "请选择账号",
+        "enabled": "是否启用",
+        "cron": "执行时间",
+        "cronPlaceholder": "0 8 * * *",
+        "cronError": "Cron表达式必须包含5个部分 (分 时 日 月 周)",
+        "cronInvalid": "Cron表达式无效",
+        "titleTemplate": "标题模板",
+        "descriptionTemplate": "描述模板",
+        "tags": "标签",
+        "tagsTooltip": "多个标签用逗号分隔"
+      },
+      "nextRun": "下次执行时间: {{time}}"
+    },
+    "platform": {
+      "message": {
+        "updateSuccess": "平台已更新",
+        "saveFailed": "平台保存失败"
+      },
+      "columns": {
+        "displayName": "展示名称",
+        "name": "平台标识",
+        "updatedAt": "更新时间",
+        "actions": "操作"
+      },
+      "modal": {
+        "editTitle": "编辑平台配置"
+      },
+      "form": {
+        "name": "平台标识",
+        "displayName": "展示名称",
+        "displayNameRequired": "请输入展示名称"
+      }
+    },
+    "task": {
+      "status": {
+        "pending": "待发布",
+        "published": "已发布",
+        "failed": "失败",
+        "cancelled": "已取消"
+      },
+      "message": {
+        "updateSuccess": "发布任务已更新",
+        "createSuccess": "发布任务已创建",
+        "operationFailed": "操作失败",
+        "cancelSuccess": "任务已取消",
+        "cancelFailed": "取消任务失败",
+        "retrySuccess": "任务已重试",
+        "retryFailed": "重试任务失败",
+        "publishSuccess": "任务已发布",
+        "publishFailed": "发布失败",
+        "deleteSuccess": "删除任务成功",
+        "deleteFailed": "删除任务失败"
+      },
+      "columns": {
+        "platform": "平台",
+        "account": "账号",
+        "status": "状态",
+        "scheduledAt": "计划发布时间",
+        "title": "标题",
+        "description": "描述",
+        "tags": "标签",
+        "highlight": "视频片段",
+        "createdAt": "创建时间",
+        "updatedAt": "更新时间",
+        "actions": "操作"
+      },
+      "tooltips": {
+        "edit": "编辑",
+        "publishNow": "立即发布",
+        "retry": "重试",
+        "cancel": "取消",
+        "records": "发布记录",
+        "delete": "删除"
+      },
+      "popconfirm": {
+        "deleteTitle": "确认删除",
+        "deleteDescription": "确定要删除该任务吗？"
+      },
+      "modal": {
+        "editTitle": "编辑发布任务",
+        "createTitle": "新建发布任务",
+        "recordsTitle": "发布记录"
+      },
+      "form": {
+        "account": "账号",
+        "accountPlaceholder": "请选择账号",
+        "highlight": "高能片段",
+        "highlightPlaceholder": "请选择高能片段",
+        "title": "标题",
+        "titlePlaceholder": "可选标题，留空使用视频标题",
+        "description": "描述",
+        "descriptionPlaceholder": "可选描述",
+        "tags": "标签",
+        "tagsPlaceholder": "用逗号分隔标签",
+        "scheduledAt": "计划发布时间"
+      },
+      "records": {
+        "trigger": "触发",
+        "status": "状态",
+        "time": "时间",
+        "message": "信息",
+        "noAccount": "未绑定账号"
+      }
+    },
+    "addAccount": "新增账号",
+    "addAutomation": "新增配置",
+    "addTask": "新增任务"
   },
   "settings": {
     "title": "设置",

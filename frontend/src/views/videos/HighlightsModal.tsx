@@ -198,12 +198,19 @@ export default function VideoHighlightsModal({
                       key={idx}
                       className="bg-white p-3 rounded border border-slate-200 flex justify-between items-center gap-4"
                     >
-                      <div>
-                        <div className="font-medium text-slate-700 text-sm">
-                          {highlight.description}
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <div className="bg-blue-100 shrink-0 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-mono px-1.5 py-0.5 rounded">
+                            {highlight.start} - {highlight.end}
+                          </div>
+                          {highlight.title && (
+                            <div className="truncate font-bold text-slate-800 dark:text-slate-100 text-sm">
+                              {highlight.title}
+                            </div>
+                          )}
                         </div>
-                        <div className="text-xs text-slate-500 font-mono mt-1">
-                          {highlight.start} - {highlight.end}
+                        <div className="text-sm text-slate-600 dark:text-slate-300">
+                          {highlight.description}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">

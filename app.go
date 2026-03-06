@@ -18,6 +18,7 @@ import (
 	"Kairo/internal/db"
 	"Kairo/internal/db/schema"
 	"Kairo/internal/deps"
+	"Kairo/internal/publish"
 	"Kairo/internal/rss"
 	"Kairo/internal/task"
 	"Kairo/internal/utils"
@@ -38,6 +39,7 @@ type App struct {
 	rssManager      *rss.Manager
 	videoManager    *video.Manager
 	categoryManager *category.Manager
+	publishManager  *publish.PublishManager
 	db              *gorm.DB
 }
 
@@ -85,7 +87,11 @@ func (a *App) startup(ctx context.Context) {
 
 	a.rssManager = rss.NewManager(ctx, a.db)
 	a.rssManager.Start()
+
 	a.categoryManager = category.NewManager(ctx, a.db)
+
+	a.publishManager = publish.NewPublishManager(ctx, a.db)
+	a.publishManager.StartAutoPublish()
 
 	// Wire up Task Manager callback to RSS Manager and Video Manager
 	a.taskManager.OnTaskComplete = func(task *schema.Task) {
@@ -471,4 +477,84 @@ func (a *App) UpdateRSSFeed(feed schema.Feed) error {
 
 func (a *App) SetRSSItemQueued(itemID string, queued bool) error {
 	return a.rssManager.SetItemQueued(itemID, queued)
+}
+
+// Publish Platform Management
+func (a *App) ListPublishPlatforms() ([]schema.PublishPlatform, error) {
+	return a.publishManager.ListPlatforms()
+}
+
+func (a *App) UpdatePublishPlatform(id, displayName string) (*schema.PublishPlatform, error) {
+	return a.publishManager.UpdatePlatform(id, displayName)
+}
+
+// publish account management
+func (a *App) ListPublishAccounts(platformID string) ([]schema.PublishAccount, error) {
+	return a.publishManager.ListAccounts(platformID)
+}
+
+func (a *App) CreatePublishAccount(platformID, name string, isEnabled bool, cookieFilePath string, publishInterval string) (*schema.PublishAccount, error) {
+	return a.publishManager.CreateAccount(platformID, name, isEnabled, cookieFilePath, publishInterval)
+}
+
+func (a *App) UpdatePublishAccount(id, name string, isEnabled bool, cookieFilePath string, publishInterval string) (*schema.PublishAccount, error) {
+	return a.publishManager.UpdateAccount(id, name, isEnabled, cookieFilePath, publishInterval)
+}
+
+func (a *App) ValidatePublishAccount(id string) (*schema.PublishAccount, error) {
+	return a.publishManager.ValidateAccount(id)
+}
+
+func (a *App) DeletePublishAccount(id string) error {
+	return a.publishManager.DeleteAccount(id)
+}
+
+// Publish Automation Management
+func (a *App) CreatePublishAutomation(req schema.CreatePublishAutomationRequest) (*schema.PublishAutomation, error) {
+	return a.publishManager.CreateAutomation(req)
+}
+
+func (a *App) UpdatePublishAutomation(req schema.UpdatePublishAutomationRequest) (*schema.PublishAutomation, error) {
+	return a.publishManager.UpdateAutomation(req)
+}
+
+func (a *App) DeletePublishAutomation(id string) error {
+	return a.publishManager.DeleteAutomation(id)
+}
+
+func (a *App) ListPublishAutomations(categoryID, platformID string) ([]schema.PublishAutomation, error) {
+	return a.publishManager.ListAutomations(categoryID, platformID)
+}
+
+// Publish Task Management
+func (a *App) ListPublishTasks(status, platformID string, page, pageSize int) (*schema.PublishTaskListResponse, error) {
+	return a.publishManager.ListTasks(status, platformID, page, pageSize)
+}
+
+func (a *App) CreatePublishTask(req schema.CreatePublishTaskRequest) (*schema.PublishTask, error) {
+	return a.publishManager.CreateTask(req)
+}
+
+func (a *App) UpdatePublishTask(req schema.UpdatePublishTaskRequest) (*schema.PublishTask, error) {
+	return a.publishManager.UpdateTask(req)
+}
+
+func (a *App) CancelPublishTask(id string) error {
+	return a.publishManager.CancelTask(id)
+}
+
+func (a *App) PublishTaskNow(id string) error {
+	return a.publishManager.PublishTaskNow(id)
+}
+
+func (a *App) RetryPublishTask(id string) error {
+	return a.publishManager.RetryTask(id)
+}
+
+func (a *App) DeletePublishTask(id string) error {
+	return a.publishManager.DeleteTask(id)
+}
+
+func (a *App) ListPublishTaskRecords(taskID string) ([]schema.PublishRecord, error) {
+	return a.publishManager.ListRecords(taskID)
 }

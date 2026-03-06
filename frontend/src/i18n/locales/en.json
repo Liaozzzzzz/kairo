@@ -177,11 +177,17 @@
         "deleteSuccess": "Task deleted successfully",
         "deleteFailed": "Failed to delete task"
       },
+      "type": {
+        "auto": "Auto",
+        "manual": "Manual"
+      },
       "columns": {
         "platform": "Platform",
         "account": "Account",
         "status": "Status",
+        "type": "Type",
         "scheduledAt": "Scheduled At",
+        "publishedAt": "Published At",
         "title": "Title",
         "description": "Description",
         "tags": "Tags",

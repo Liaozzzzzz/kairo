@@ -178,11 +178,17 @@
         "deleteSuccess": "删除任务成功",
         "deleteFailed": "删除任务失败"
       },
+      "type": {
+        "auto": "自动",
+        "manual": "手动"
+      },
       "columns": {
         "platform": "平台",
         "account": "账号",
         "status": "状态",
+        "type": "类型",
         "scheduledAt": "计划发布时间",
+        "publishedAt": "发布时间",
         "title": "标题",
         "description": "描述",
         "tags": "标签",

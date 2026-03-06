@@ -294,11 +294,25 @@ export default forwardRef<PublishCenterPanelRef, unknown>(function PublishCenter
       },
     },
     {
+      title: t('publish.task.columns.type'),
+      key: 'type',
+      width: 70,
+      render: (_, record) =>
+        record.type === 'auto' ? t('publish.task.type.auto') : t('publish.task.type.manual'),
+    },
+    {
       title: t('publish.task.columns.scheduledAt'),
       key: 'scheduled_at',
       width: 160,
       render: (_, record) =>
         record.scheduled_at ? dayjs(record.scheduled_at).format('YYYY-MM-DD HH:mm') : '-',
+    },
+    {
+      title: t('publish.task.columns.publishedAt'),
+      key: 'published_at',
+      width: 160,
+      render: (_, record) =>
+        record.published_at ? dayjs(record.published_at).format('YYYY-MM-DD HH:mm') : '-',
     },
     {
       title: t('publish.task.columns.title'),

@@ -68,7 +68,7 @@ func (p *PublishManager) CreateTask(req schema.CreatePublishTaskRequest) (*schem
 		return nil, fmt.Errorf("highlight id is required")
 	}
 
-	highlight, err := p.videoDAL.GetHighlightByID(p.ctx, req.HighlightID)
+	highlight, err := p.videoHighlightDAL.GetByID(p.ctx, req.HighlightID)
 	if err != nil {
 		log.Printf("[CreateTask] highlight not found: %v", err)
 		return nil, fmt.Errorf("highlight not found: %v", err)
@@ -185,7 +185,7 @@ func (p *PublishManager) publishTask(task *schema.PublishTask, trigger string) e
 		_ = p.publishRecordDAL.SaveRecord(p.ctx, p.updateRecord(record, schema.PublishStatusFailed, "Highlight not found"))
 		return p.updateTaskStatus(task.ID, schema.PublishStatusFailed, "Highlight not found")
 	}
-	highlight, err := p.videoDAL.GetHighlightByID(p.ctx, task.HighlightID)
+	highlight, err := p.videoHighlightDAL.GetByID(p.ctx, task.HighlightID)
 	if err != nil {
 		_ = p.publishRecordDAL.SaveRecord(p.ctx, p.updateRecord(record, schema.PublishStatusFailed, "Highlight not found"))
 		return p.updateTaskStatus(task.ID, schema.PublishStatusFailed, "Highlight not found")

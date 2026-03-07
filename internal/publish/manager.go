@@ -24,7 +24,7 @@ type PublishManager struct {
 	publishPlatformDAL   *dal.PublishPlatformDAL
 	publishAccountDAL    *dal.PublishAccountDAL
 	publishAutomationDAL *dal.PublishAutomationDAL
-	videoDAL             *dal.VideoDAL
+	videoHighlightDAL    *dal.VideoHighlightDAL
 	platformManager      *platforms.PlatformManager
 	automationCron       *cron.Cron
 	automationEntryIDs   map[string]cron.EntryID
@@ -40,7 +40,7 @@ func NewPublishManager(ctx context.Context, db *gorm.DB) *PublishManager {
 		publishPlatformDAL:   dal.NewPublishPlatformDAL(db),
 		publishAccountDAL:    dal.NewPublishAccountDAL(db),
 		publishAutomationDAL: dal.NewPublishAutomationDAL(db),
-		videoDAL:             dal.NewVideoDAL(db),
+		videoHighlightDAL:    dal.NewVideoHighlightDAL(db),
 		platformManager:      platforms.NewPlatformManager(),
 		automationCron:       cron.New(),
 		automationEntryIDs:   make(map[string]cron.EntryID),
@@ -127,6 +127,7 @@ func (p *PublishManager) reloadAutomationCronJobs() {
 func (p *PublishManager) runAutomationDetection(automationID string) {
 	auto, err := p.publishAutomationDAL.GetAutomationById(p.ctx, automationID)
 	if err != nil {
+		fmt.Printf("Failed to load automation %s for detection: %v\n", automationID, err)
 		return
 	}
 	if !auto.IsEnabled || strings.TrimSpace(auto.Cron) == "" {
@@ -135,6 +136,7 @@ func (p *PublishManager) runAutomationDetection(automationID string) {
 
 	account, err := p.publishAccountDAL.GetAccountById(p.ctx, auto.AccountID)
 	if err != nil || account == nil || !account.IsEnabled {
+		fmt.Printf("Failed to load account %s for automation %s: %v\n", auto.AccountID, automationID, err)
 		return
 	}
 
@@ -145,7 +147,12 @@ func (p *PublishManager) runAutomationDetection(automationID string) {
 	}
 
 	// Calculate base time for scheduling
-	latestTask, _ := p.publishTaskDAL.GetLatestScheduledTask(p.ctx, auto.AccountID)
+	latestTask, err := p.publishTaskDAL.GetLatestScheduledTask(p.ctx, auto.AccountID)
+	if err != nil {
+		fmt.Printf("Failed to load latest task for account %s for automation %s: %v\n", auto.AccountID, automationID, err)
+		return
+	}
+
 	var baseTime time.Time
 	if latestTask != nil {
 		baseTime = time.UnixMilli(latestTask.ScheduledAt)
@@ -156,8 +163,9 @@ func (p *PublishManager) runAutomationDetection(automationID string) {
 		baseTime = time.Now()
 	}
 
-	highlights, err := p.videoDAL.ListHighlightsByCategoryID(p.ctx, auto.CategoryID)
+	highlights, err := p.videoHighlightDAL.ListByCategoryIDExcludingPublished(p.ctx, auto.CategoryID)
 	if err != nil {
+		fmt.Printf("Failed to load highlights for category %s for automation %s: %v\n", auto.CategoryID, automationID, err)
 		return
 	}
 
@@ -167,7 +175,7 @@ func (p *PublishManager) runAutomationDetection(automationID string) {
 		baseTime = baseTime.Add(interval)
 		scheduledAt := baseTime.UnixMilli()
 
-		_, _ = p.CreateTask(schema.CreatePublishTaskRequest{
+		_, err = p.CreateTask(schema.CreatePublishTaskRequest{
 			HighlightID: highlight.ID,
 			AccountID:   auto.AccountID,
 			PublishType: schema.PublishTypeAuto,
@@ -176,6 +184,9 @@ func (p *PublishManager) runAutomationDetection(automationID string) {
 			Description: description,
 			Tags:        auto.Tags,
 		})
+		if err != nil {
+			fmt.Printf("Failed to create publish task for highlight %s for automation %s: %v\n", highlight.ID, automationID, err)
+		}
 	}
 }
 

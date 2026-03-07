@@ -52,6 +52,16 @@ func (d *VideoDAL) List(ctx context.Context, statusFilter, query string) ([]sche
 	return videos, err
 }
 
+func (d *VideoDAL) ListUnanalyzed(ctx context.Context, limit int) ([]schema.Video, error) {
+	db := d.db.WithContext(ctx).Model(&schema.Video{}).Where("(status IS NULL OR status = '' OR status = ?)", "none")
+	if limit > 0 {
+		db = db.Limit(limit)
+	}
+	var videos []schema.Video
+	err := db.Order("created_at desc").Find(&videos).Error
+	return videos, err
+}
+
 func (d *VideoDAL) GetByID(ctx context.Context, id string) (*schema.Video, error) {
 	var video schema.Video
 	err := d.db.WithContext(ctx).First(&video, "id = ?", id).Error
@@ -71,57 +81,15 @@ func (d *VideoDAL) UpdateStatus(ctx context.Context, id, status, summary, evalua
 	}).Error
 }
 
-func (d *VideoDAL) ListHighlights(ctx context.Context, videoID string) ([]schema.VideoHighlight, error) {
-	var highlights []schema.VideoHighlight
-	db := d.db.WithContext(ctx).Model(&schema.VideoHighlight{})
-	if videoID != "" {
-		db = db.Where("video_id = ?", videoID)
-	}
-	err := db.Find(&highlights).Error
-	return highlights, err
-}
-
-func (d *VideoDAL) ListHighlightsByCategoryID(ctx context.Context, categoryID string) ([]schema.VideoHighlight, error) {
-	var highlights []schema.VideoHighlight
-	// Join with Video table to filter by category_id, but do not preload Video data
-	err := d.db.WithContext(ctx).Model(&schema.VideoHighlight{}).
-		Joins("JOIN videos ON videos.id = video_highlights.video_id").
-		Where("videos.category_id = ?", categoryID).
-		Order("videos.created_at desc").
-		Find(&highlights).Error
-	return highlights, err
-}
-
-func (d *VideoDAL) GetHighlightByID(ctx context.Context, highlightID string) (*schema.VideoHighlight, error) {
-	var highlight schema.VideoHighlight
-	if err := d.db.WithContext(ctx).First(&highlight, "id = ?", highlightID).Error; err != nil {
-		return nil, err
-	}
-	return &highlight, nil
-}
-
-func (d *VideoDAL) ReplaceHighlights(ctx context.Context, videoID string, highlights []schema.VideoHighlight) error {
-	return d.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("video_id = ?", videoID).Delete(&schema.VideoHighlight{}).Error; err != nil {
-			return err
-		}
-		if len(highlights) == 0 {
-			return nil
-		}
-		return tx.Create(&highlights).Error
-	})
-}
-
-func (d *VideoDAL) UpdateHighlightFilePath(ctx context.Context, highlightID, filePath string) error {
-	return d.db.WithContext(ctx).Model(&schema.VideoHighlight{}).Where("id = ?", highlightID).Update("file_path", filePath).Error
+func (d *VideoDAL) UpdateStatusByStatus(ctx context.Context, fromStatus, toStatus string) error {
+	return d.db.WithContext(ctx).Model(&schema.Video{}).Where("status = ?", fromStatus).Updates(map[string]interface{}{
+		"status":     toStatus,
+		"updated_at": time.Now().Unix(),
+	}).Error
 }
 
 func (d *VideoDAL) DeleteByID(ctx context.Context, id string) error {
 	return d.db.WithContext(ctx).Delete(&schema.Video{}, "id = ?", id).Error
-}
-
-func (d *VideoDAL) DeleteHighlightsByVideoID(ctx context.Context, videoID string) error {
-	return d.db.WithContext(ctx).Delete(&schema.VideoHighlight{}, "video_id = ?", videoID).Error
 }
 
 func (d *VideoDAL) DeleteVideoCascade(ctx context.Context, id string) error {

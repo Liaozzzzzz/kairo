@@ -137,13 +137,13 @@ func (a *App) ChooseDirectory() (string, error) {
 }
 
 // GetVideos returns the list of videos based on filter
-func (a *App) GetVideos(filter schema.VideoFilter) ([]*schema.Video, error) {
-	return a.videoManager.GetVideos(filter)
+func (a *App) ListVideos(filter schema.VideoFilter) ([]schema.Video, error) {
+	return a.videoManager.ListVideos(filter)
 }
 
 // GetVideo returns a single video by ID
-func (a *App) GetVideo(id string) (*schema.Video, error) {
-	return a.videoManager.GetVideo(id)
+func (a *App) GetVideoById(id string) (*schema.Video, error) {
+	return a.videoManager.GetVideoById(id)
 }
 
 func (a *App) FetchSubtitles(id string) error {
@@ -228,7 +228,7 @@ func (a *App) GetVideoHighlights(videoID string) ([]schema.VideoHighlight, error
 
 // ClipVideo creates a new video clip and updates the highlight record
 func (a *App) ClipVideo(videoID string, highlightID string, start, end string) error {
-	v, err := a.videoManager.GetVideo(videoID)
+	v, err := a.videoManager.GetVideoById(videoID)
 	if err != nil {
 		return err
 	}
@@ -263,7 +263,7 @@ func (a *App) ClipVideo(videoID string, highlightID string, start, end string) e
 	// Emit event to update UI
 	// We re-emit the full video status which includes highlights
 	// Re-fetching the video to get updated highlights
-	updatedVideo, err := a.videoManager.GetVideo(videoID)
+	updatedVideo, err := a.videoManager.GetVideoById(videoID)
 	if err == nil {
 		highlights, _ := a.videoManager.GetHighlights(videoID)
 		updatedVideo.Highlights = highlights

@@ -168,61 +168,62 @@ func (d *API) UploadVideo(ctx context.Context, title, description string, tags [
 }
 
 func uploadToDouyin(ctx context.Context, input automation.UploadInput) error {
-	session, err := automation.StartBrowserSession(ctx, input)
-	if err != nil {
-		return err
-	}
-	defer session.Close()
+	return nil
+	// session, err := automation.StartBrowserSession(ctx, input)
+	// if err != nil {
+	// 	return err
+	// }
+	// defer session.Close()
 
-	// Use session context to detect browser close
-	ctx = session.Ctx
-	page := session.Page
+	// // Use session context to detect browser close
+	// ctx = session.Ctx
+	// page := session.Page
 
-	if _, err := page.Goto("https://creator.douyin.com/creator-micro/content/upload"); err != nil {
-		log.Printf("Failed to navigate to publish page: %v", err)
-		return err
-	}
-	log.Printf("[uploadToDouyin] Navigated to publish page")
-	if err := page.WaitForURL("https://creator.douyin.com/creator-micro/content/upload"); err != nil {
-		log.Printf("[uploadToDouyin] Failed to wait for publish page to load: %v", err)
-		return err
-	}
-	log.Printf("[uploadToDouyin] Publish page loaded successfully")
-	if err := automation.EnsureLoggedIn(page); err != nil {
-		log.Printf("[uploadToDouyin] Failed to ensure login: %v", err)
-		return err
-	}
+	// if _, err := page.Goto("https://creator.douyin.com/creator-micro/content/upload"); err != nil {
+	// 	log.Printf("Failed to navigate to publish page: %v", err)
+	// 	return err
+	// }
+	// log.Printf("[uploadToDouyin] Navigated to publish page")
+	// if err := page.WaitForURL("https://creator.douyin.com/creator-micro/content/upload"); err != nil {
+	// 	log.Printf("[uploadToDouyin] Failed to wait for publish page to load: %v", err)
+	// 	return err
+	// }
+	// log.Printf("[uploadToDouyin] Publish page loaded successfully")
+	// if err := automation.EnsureLoggedIn(page); err != nil {
+	// 	log.Printf("[uploadToDouyin] Failed to ensure login: %v", err)
+	// 	return err
+	// }
 
-	log.Printf("[uploadToDouyin] Setting input file: %s", input.VideoPath)
-	if err := automation.SetInputFile(page, "div[class^='container'] input", input.VideoPath); err != nil {
-		log.Printf("[uploadToDouyin] Failed to set input file: %v", err)
-		return err
-	}
+	// log.Printf("[uploadToDouyin] Setting input file: %s", input.VideoPath)
+	// if err := automation.SetInputFile(page, "div[class^='container'] input", input.VideoPath); err != nil {
+	// 	log.Printf("[uploadToDouyin] Failed to set input file: %v", err)
+	// 	return err
+	// }
 
-	log.Printf("[uploadToDouyin] Waiting for publish page to load")
-	if err := waitForDouyinPublishPage(ctx, page); err != nil {
-		log.Printf("[uploadToDouyin] Failed to wait for publish page to load: %v", err)
-		return err
-	}
+	// log.Printf("[uploadToDouyin] Waiting for publish page to load")
+	// if err := waitForDouyinPublishPage(ctx, page); err != nil {
+	// 	log.Printf("[uploadToDouyin] Failed to wait for publish page to load: %v", err)
+	// 	return err
+	// }
 
-	log.Printf("[uploadToDouyin] Filling title and tags")
-	if err := fillDouyinTitleAndTags(page, input.Title, automation.NormalizeTags(input.Tags)); err != nil {
-		log.Printf("[uploadToDouyin] Failed to fill title and tags: %v", err)
-		return err
-	}
+	// log.Printf("[uploadToDouyin] Filling title and tags")
+	// if err := fillDouyinTitleAndTags(page, input.Title, automation.NormalizeTags(input.Tags)); err != nil {
+	// 	log.Printf("[uploadToDouyin] Failed to fill title and tags: %v", err)
+	// 	return err
+	// }
 
-	log.Printf("[uploadToDouyin] Waiting for upload to complete")
-	if err := waitForDouyinUploadDone(ctx, page, input.VideoPath); err != nil {
-		log.Printf("[uploadToDouyin] Failed to wait for upload to complete: %v", err)
-		return err
-	}
+	// log.Printf("[uploadToDouyin] Waiting for upload to complete")
+	// if err := waitForDouyinUploadDone(ctx, page, input.VideoPath); err != nil {
+	// 	log.Printf("[uploadToDouyin] Failed to wait for upload to complete: %v", err)
+	// 	return err
+	// }
 
-	log.Printf("[uploadToDouyin] Publishing video")
-	if err := publishDouyin(ctx, page); err != nil {
-		log.Printf("[uploadToDouyin] Failed to publish video: %v", err)
-		return err
-	}
-	return automation.SaveCookies(session.Context, input.AccountCookies)
+	// log.Printf("[uploadToDouyin] Publishing video")
+	// if err := publishDouyin(ctx, page); err != nil {
+	// 	log.Printf("[uploadToDouyin] Failed to publish video: %v", err)
+	// 	return err
+	// }
+	// return automation.SaveCookies(session.Context, input.AccountCookies)
 }
 
 func waitForDouyinPublishPage(ctx context.Context, page playwright.Page) error {

@@ -25,7 +25,7 @@ func (m *Manager) GetVideoSubtitles(videoID string) ([]schema.VideoSubtitle, err
 }
 
 func (m *Manager) FetchSubtitles(id string) error {
-	v, err := m.GetVideo(id)
+	v, err := m.GetVideoById(id)
 	if err != nil {
 		return err
 	}
@@ -39,10 +39,7 @@ func (m *Manager) FetchSubtitles(id string) error {
 	}
 
 	// Prepare command
-	dir := filepath.Dir(v.FilePath)
-	ext := filepath.Ext(v.FilePath)
-	baseName := strings.TrimSuffix(filepath.Base(v.FilePath), ext)
-	outputTemplate := filepath.Join(dir, baseName+".%(ext)s")
+	outputTemplate := buildOutputTemplate(v.FilePath)
 	ffmpegPath, _ := m.deps.GetFFmpegPath()
 
 	args := []string{
@@ -82,20 +79,31 @@ func (m *Manager) FetchSubtitles(id string) error {
 	}
 
 	if len(entries) == 0 {
-		outputPath, language, asrErr := m.GenerateSubtitlesByASR(v, dir)
+		outputPath, language, asrErr := m.GenerateSubtitlesByASR(v)
 		if asrErr != nil {
 			return asrErr
 		}
-		if strings.TrimSpace(outputPath) != "" {
-			_, _ = m.addSubtitleRecord(v.ID, outputPath, language, schema.SubtitleStatusSuccess, schema.SubtitleSourceASR)
-			return nil
+
+		if strings.TrimSpace(outputPath) == "" {
+			return fmt.Errorf("asr subtitles failed")
 		}
+
+		if _, err := m.addSubtitleRecord(v.ID, outputPath, language, schema.SubtitleStatusSuccess, schema.SubtitleSourceASR); err != nil {
+			return err
+		}
+
+		m.enqueueAnalyze(v.ID)
+		return nil
 	}
 
-	return nil
+	if len(entries) > 0 {
+		m.enqueueAnalyze(v.ID)
+	}
+
+	return err
 }
 
-func (m *Manager) GenerateSubtitlesByASR(v *schema.Video, dir string) (string, string, error) {
+func (m *Manager) GenerateSubtitlesByASR(v *schema.Video) (string, string, error) {
 	if !config.GetSettings().WhisperAI.Enabled {
 		log.Printf("[GenerateSubtitlesByASR] Whisper disabled, skip generating subtitles")
 		return "", "", nil
@@ -143,10 +151,9 @@ func (m *Manager) GenerateSubtitlesByASR(v *schema.Video, dir string) (string, s
 		return "", "", fmt.Errorf("asr failed: %v", err)
 	}
 
-	ext := filepath.Ext(v.FilePath)
-	baseName := strings.TrimSuffix(filepath.Base(v.FilePath), ext)
+	pathInfo := buildVideoPathInfo(v.FilePath)
 	language := utils.DetectLanguageFromText(utils.ExtractTextFromVTT(content))
-	outputPath := filepath.Join(dir, baseName+".asr."+language+".vtt")
+	outputPath := filepath.Join(pathInfo.Dir, pathInfo.BaseName+".asr."+language+".vtt")
 	if err := os.WriteFile(outputPath, []byte(content), 0o644); err != nil {
 		log.Printf("[GenerateSubtitlesByASR] error write vtt file: %v", err)
 		return "", "", err
@@ -261,7 +268,7 @@ func (m *Manager) SaveSubtitleContent(videoID string, language string, content s
 	if strings.TrimSpace(content) == "" {
 		return nil, fmt.Errorf("content is empty")
 	}
-	video, err := m.GetVideo(videoID)
+	video, err := m.GetVideoById(videoID)
 	if err != nil {
 		return nil, err
 	}
@@ -306,6 +313,7 @@ func (m *Manager) RegenerateSubtitle(subtitleID string) (*schema.VideoSubtitle, 
 		return nil, fmt.Errorf("subtitle source cannot be regenerated")
 	}
 
+	oldPath := sub.FilePath
 	sub.Status = schema.SubtitleStatusPending
 	sub.UpdatedAt = time.Now().UnixMilli()
 	sub.FilePath = ""
@@ -315,7 +323,7 @@ func (m *Manager) RegenerateSubtitle(subtitleID string) (*schema.VideoSubtitle, 
 		return nil, err
 	}
 	// delete existing file
-	if err := utils.DeleteFile(sub.FilePath); err != nil {
+	if err := utils.DeleteFile(oldPath); err != nil {
 		return nil, err
 	}
 
@@ -355,12 +363,10 @@ func (m *Manager) getSubtitleByID(id string) (*schema.VideoSubtitle, error) {
 }
 
 func ensureUniqueSubtitlePath(path, targetLanguage, source string) string {
-	dir := filepath.Dir(path)
-	ext := filepath.Ext(path)
-	base := strings.TrimSuffix(filepath.Base(path), ext)
-	outputPath := filepath.Join(dir, base+"."+source+"."+targetLanguage+".vtt")
+	pathInfo := buildVideoPathInfo(path)
+	outputPath := filepath.Join(pathInfo.Dir, pathInfo.BaseName+"."+source+"."+targetLanguage+".vtt")
 	if _, err := os.Stat(outputPath); err == nil {
-		outputPath = filepath.Join(dir, base+"."+uuid.NewString()+"."+source+"."+targetLanguage+".vtt")
+		outputPath = filepath.Join(pathInfo.Dir, pathInfo.BaseName+"."+uuid.NewString()+"."+source+"."+targetLanguage+".vtt")
 	}
 	return outputPath
 }
@@ -372,12 +378,66 @@ func buildTranslatedVTT(segments []subtitleSegment, translations []string) strin
 		if i >= len(translations) {
 			break
 		}
-		b.WriteString(formatSubtitleTimestamp(seg.Start))
+		b.WriteString(formatTimestamp(seg.Start, true))
 		b.WriteString(" --> ")
-		b.WriteString(formatSubtitleTimestamp(seg.End))
+		b.WriteString(formatTimestamp(seg.End, true))
 		b.WriteString("\n")
 		b.WriteString(strings.TrimSpace(translations[i]))
 		b.WriteString("\n\n")
 	}
 	return strings.TrimSpace(b.String()) + "\n"
+}
+
+func (m *Manager) UpdateSubtitle(subtitleID string, content string, language string) (*schema.VideoSubtitle, error) {
+	if m.subtitleDAL == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	sub, err := m.getSubtitleByID(subtitleID)
+	if err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(content) == "" {
+		return nil, fmt.Errorf("content is empty")
+	}
+
+	lang := strings.TrimSpace(language)
+	if lang == "" {
+		lang = sub.Language // fallback to existing language if not provided
+	}
+
+	if lang != sub.Language {
+		// Language changed, generate new path
+		video, err := m.GetVideoById(sub.VideoID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get video: %v", err)
+		}
+
+		// Use ensureUniqueSubtitlePath to generate new path
+		newPath := ensureUniqueSubtitlePath(video.FilePath, lang, "manual")
+
+		if err := os.WriteFile(newPath, []byte(content), 0o644); err != nil {
+			return nil, err
+		}
+
+		// Delete old file
+		if err := utils.DeleteFile(sub.FilePath); err != nil {
+			log.Printf("Failed to delete old subtitle file %s: %v", sub.FilePath, err)
+			// Non-fatal, continue
+		}
+
+		sub.FilePath = newPath
+		sub.Language = lang
+	} else {
+		// Language same, just overwrite
+		if err := os.WriteFile(sub.FilePath, []byte(content), 0o644); err != nil {
+			return nil, err
+		}
+	}
+
+	sub.UpdatedAt = time.Now().UnixMilli()
+	if err := m.subtitleDAL.Update(m.ctx, sub); err != nil {
+		return nil, err
+	}
+
+	return sub, nil
 }

@@ -88,64 +88,15 @@ func parseTimestampLine(line string) (float64, float64, bool) {
 	if len(startFields) == 0 || len(endFields) == 0 {
 		return 0, 0, false
 	}
-	start, err := parseSubtitleTimestamp(startFields[0])
+	start, err := parseTimestampToSeconds(startFields[0])
 	if err != nil {
 		return 0, 0, false
 	}
-	end, err := parseSubtitleTimestamp(endFields[0])
+	end, err := parseTimestampToSeconds(endFields[0])
 	if err != nil {
 		return 0, 0, false
 	}
 	return start, end, true
-}
-
-func parseSubtitleTimestamp(raw string) (float64, error) {
-	s := strings.TrimSpace(raw)
-	s = strings.ReplaceAll(s, ",", ".")
-	parts := strings.Split(s, ":")
-	if len(parts) != 2 && len(parts) != 3 {
-		return 0, fmt.Errorf("invalid timestamp: %s", raw)
-	}
-	hours := 0
-	minutes := 0
-	var secondsPart string
-	if len(parts) == 2 {
-		min, err := strconv.Atoi(parts[0])
-		if err != nil {
-			return 0, err
-		}
-		minutes = min
-		secondsPart = parts[1]
-	} else {
-		h, err := strconv.Atoi(parts[0])
-		if err != nil {
-			return 0, err
-		}
-		min, err := strconv.Atoi(parts[1])
-		if err != nil {
-			return 0, err
-		}
-		hours = h
-		minutes = min
-		secondsPart = parts[2]
-	}
-	secs, err := strconv.ParseFloat(secondsPart, 64)
-	if err != nil {
-		return 0, err
-	}
-	return float64(hours*3600+minutes*60) + secs, nil
-}
-
-func formatSubtitleTimestamp(seconds float64) string {
-	if seconds < 0 {
-		seconds = 0
-	}
-	totalMillis := int64(seconds*1000 + 0.5)
-	hours := totalMillis / 3600000
-	minutes := (totalMillis % 3600000) / 60000
-	secs := (totalMillis % 60000) / 1000
-	millis := totalMillis % 1000
-	return fmt.Sprintf("%02d:%02d:%02d.%03d", hours, minutes, secs, millis)
 }
 
 func buildSubtitleText(segments []subtitleSegment) string {
@@ -157,9 +108,9 @@ func buildSubtitleText(segments []subtitleSegment) string {
 		if i > 0 && b.Len() > 0 {
 			b.WriteString("\n")
 		}
-		b.WriteString(formatSubtitleTimestamp(seg.Start))
+		b.WriteString(formatTimestamp(seg.Start, true))
 		b.WriteString(" --> ")
-		b.WriteString(formatSubtitleTimestamp(seg.End))
+		b.WriteString(formatTimestamp(seg.End, true))
 		b.WriteString("\n")
 		b.WriteString(seg.Text)
 	}
@@ -429,8 +380,8 @@ func formatEnergyCandidates(candidates []energyCandidate) string {
 		}
 		fmt.Fprintf(&b, "%d. %s-%s score=%.2f %s",
 			i+1,
-			formatTimestampHMS(candidate.Start),
-			formatTimestampHMS(candidate.End),
+			formatTimestamp(candidate.Start, false),
+			formatTimestamp(candidate.End, false),
 			candidate.Score,
 			candidate.Reason,
 		)
@@ -511,17 +462,6 @@ func maxSegmentEnd(segments []subtitleSegment) float64 {
 		}
 	}
 	return maxEnd
-}
-
-func formatTimestampHMS(seconds float64) string {
-	if seconds < 0 {
-		seconds = 0
-	}
-	totalSeconds := int64(seconds + 0.5)
-	hours := totalSeconds / 3600
-	minutes := (totalSeconds % 3600) / 60
-	secs := totalSeconds % 60
-	return fmt.Sprintf("%02d:%02d:%02d", hours, minutes, secs)
 }
 
 func overlapsSelected(start float64, end float64, selected []energyCandidate) bool {
@@ -611,15 +551,15 @@ func snapRangeToSegments(segments []subtitleSegment, start float64, end float64)
 	return snappedStart, snappedEnd
 }
 
-func parseHmsTimestamp(raw string) (float64, bool) {
+func parseTimestampToSeconds(raw string) (float64, error) {
 	s := strings.TrimSpace(raw)
 	if s == "" {
-		return 0, false
+		return 0, fmt.Errorf("invalid timestamp: %s", raw)
 	}
 	s = strings.ReplaceAll(s, ",", ".")
 	parts := strings.Split(s, ":")
 	if len(parts) != 2 && len(parts) != 3 {
-		return 0, false
+		return 0, fmt.Errorf("invalid timestamp: %s", raw)
 	}
 	hours := 0
 	minutes := 0
@@ -627,18 +567,18 @@ func parseHmsTimestamp(raw string) (float64, bool) {
 	if len(parts) == 2 {
 		min, err := strconv.Atoi(parts[0])
 		if err != nil {
-			return 0, false
+			return 0, err
 		}
 		minutes = min
 		secondsPart = parts[1]
 	} else {
 		h, err := strconv.Atoi(parts[0])
 		if err != nil {
-			return 0, false
+			return 0, err
 		}
 		min, err := strconv.Atoi(parts[1])
 		if err != nil {
-			return 0, false
+			return 0, err
 		}
 		hours = h
 		minutes = min
@@ -646,7 +586,26 @@ func parseHmsTimestamp(raw string) (float64, bool) {
 	}
 	secs, err := strconv.ParseFloat(secondsPart, 64)
 	if err != nil {
-		return 0, false
+		return 0, err
 	}
-	return float64(hours*3600+minutes*60) + secs, true
+	return float64(hours*3600+minutes*60) + secs, nil
+}
+
+func formatTimestamp(seconds float64, includeMillis bool) string {
+	if seconds < 0 {
+		seconds = 0
+	}
+	if includeMillis {
+		totalMillis := int64(seconds*1000 + 0.5)
+		hours := totalMillis / 3600000
+		minutes := (totalMillis % 3600000) / 60000
+		secs := (totalMillis % 60000) / 1000
+		millis := totalMillis % 1000
+		return fmt.Sprintf("%02d:%02d:%02d.%03d", hours, minutes, secs, millis)
+	}
+	totalSeconds := int64(seconds + 0.5)
+	hours := totalSeconds / 3600
+	minutes := (totalSeconds % 3600) / 60
+	secs := totalSeconds % 60
+	return fmt.Sprintf("%02d:%02d:%02d", hours, minutes, secs)
 }

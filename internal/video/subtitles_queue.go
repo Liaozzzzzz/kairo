@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
+	"strings"
 	"time"
 
 	"Kairo/internal/db/schema"
@@ -152,14 +152,16 @@ func (m *Manager) handleSubtitleTask(task SubtitleTask) {
 }
 
 func (m *Manager) processASRTask(task SubtitleTask) error {
-	video, err := m.GetVideo(task.VideoID)
+	video, err := m.GetVideoById(task.VideoID)
 	if err != nil {
 		return err
 	}
-	dir := filepath.Dir(video.FilePath)
-	outputPath, language, err := m.GenerateSubtitlesByASR(video, dir)
+	outputPath, language, err := m.GenerateSubtitlesByASR(video)
 	if err != nil {
 		return err
+	}
+	if strings.TrimSpace(outputPath) == "" {
+		return fmt.Errorf("no subtitle generated")
 	}
 	sub, err := m.getSubtitleByID(task.SubtitleID)
 	if err != nil {
@@ -183,6 +185,9 @@ func (m *Manager) processTranslateTask(task SubtitleTask) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse source subtitle: %v", err)
 	}
+	if len(segments) == 0 {
+		return fmt.Errorf("no segments found in source subtitle")
+	}
 
 	// 3. Translate
 	var texts []string
@@ -193,10 +198,13 @@ func (m *Manager) processTranslateTask(task SubtitleTask) error {
 	if err != nil {
 		return fmt.Errorf("translation failed: %v", err)
 	}
+	if len(translations) == 0 {
+		return fmt.Errorf("translation returned empty result")
+	}
 	content := buildTranslatedVTT(segments, translations)
 
 	// 4. Save file
-	video, err := m.GetVideo(task.VideoID)
+	video, err := m.GetVideoById(task.VideoID)
 	if err != nil {
 		return err
 	}

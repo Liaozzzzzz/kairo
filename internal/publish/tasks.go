@@ -95,6 +95,14 @@ func (p *PublishManager) CreateTask(req schema.CreatePublishTaskRequest) (*schem
 	}
 
 	// 创建发布任务
+	title := req.Title
+	if title == "" {
+		title = highlight.Title
+	}
+	description := req.Description
+	if description == "" {
+		description = highlight.Description
+	}
 	task := &schema.PublishTask{
 		ID:          uuid.New().String(),
 		HighlightID: req.HighlightID,
@@ -102,8 +110,8 @@ func (p *PublishManager) CreateTask(req schema.CreatePublishTaskRequest) (*schem
 		Status:      schema.PublishStatusPending,
 		Type:        publishType,
 		ScheduledAt: req.ScheduledAt,
-		Title:       req.Title,
-		Description: req.Description,
+		Title:       title,
+		Description: description,
 		Tags:        strings.TrimSpace(req.Tags),
 	}
 
@@ -202,20 +210,23 @@ func (p *PublishManager) publishTask(task *schema.PublishTask, trigger string) e
 		return p.updateTaskStatus(task.ID, schema.PublishStatusFailed, "Video file not found")
 	}
 
-	accountCookiePath := ""
-	if task.AccountID != "" {
-		if strings.TrimSpace(account.CookiePath) == "" {
-			_ = p.publishRecordDAL.SaveRecord(p.ctx, p.updateRecord(record, schema.PublishStatusFailed, "Account cookie missing"))
-			return p.updateTaskStatus(task.ID, schema.PublishStatusFailed, "Account cookie missing")
-		}
-		accountCookiePath = account.CookiePath
+	if strings.TrimSpace(account.CookiePath) == "" {
+		_ = p.publishRecordDAL.SaveRecord(p.ctx, p.updateRecord(record, schema.PublishStatusFailed, "Account cookie missing"))
+		return p.updateTaskStatus(task.ID, schema.PublishStatusFailed, "Account cookie missing")
 	}
 
 	// 验证Cookie文件存在
-	if _, err := os.Stat(accountCookiePath); err != nil {
+	if _, err := os.Stat(account.CookiePath); err != nil {
 		_ = p.publishRecordDAL.SaveRecord(p.ctx, p.updateRecord(record, schema.PublishStatusFailed, "Account cookie not accessible"))
 		return p.updateTaskStatus(task.ID, schema.PublishStatusFailed, "Account cookie not accessible")
 	}
+
+	// 更新状态为发布中
+	if err := p.updateTaskStatus(task.ID, schema.PublishStatusPublishing, ""); err != nil {
+		_ = p.publishRecordDAL.SaveRecord(p.ctx, p.updateRecord(record, schema.PublishStatusFailed, fmt.Sprintf("Failed to update status: %v", err)))
+		return err
+	}
+	_ = p.publishRecordDAL.SaveRecord(p.ctx, p.updateRecord(record, schema.PublishStatusPublishing, "Starting upload..."))
 
 	// 解析标签
 	var tags []string
@@ -223,12 +234,7 @@ func (p *PublishManager) publishTask(task *schema.PublishTask, trigger string) e
 		tags = strings.Split(task.Tags, ",")
 	}
 
-	var scheduledAt *time.Time
-	if task.ScheduledAt > 0 {
-		t := time.UnixMilli(task.ScheduledAt)
-		scheduledAt = &t
-	}
-	platformVideoID, err := platformAPI.UploadVideo(p.ctx, task.Title, task.Description, tags, videoPath, accountCookiePath, scheduledAt)
+	platformVideoID, err := platformAPI.UploadVideo(p.ctx, task.Title, task.Description, tags, videoPath, account.CookiePath)
 	if err != nil {
 		_ = p.publishRecordDAL.SaveRecord(p.ctx, p.updateRecord(record, schema.PublishStatusFailed, fmt.Sprintf("Upload failed: %v", err)))
 		return p.updateTaskStatus(task.ID, schema.PublishStatusFailed, fmt.Sprintf("Upload failed: %v", err))
@@ -263,6 +269,9 @@ func (p *PublishManager) CancelTask(taskID string) error {
 	if task.Status == schema.PublishStatusPublished {
 		return fmt.Errorf("cannot cancel already published task")
 	}
+	if task.Status == schema.PublishStatusPublishing {
+		return fmt.Errorf("cannot cancel publishing task")
+	}
 
 	return p.updateTaskStatus(taskID, schema.PublishStatusCancelled, "Cancelled by user")
 }
@@ -293,6 +302,9 @@ func (p *PublishManager) PublishTaskNow(taskID string) error {
 	}
 	if task.Status == schema.PublishStatusPublished {
 		return fmt.Errorf("cannot publish already published task")
+	}
+	if task.Status == schema.PublishStatusPublishing {
+		return fmt.Errorf("cannot publish publishing task")
 	}
 	if task.Status == schema.PublishStatusCancelled {
 		return fmt.Errorf("cannot publish cancelled task")

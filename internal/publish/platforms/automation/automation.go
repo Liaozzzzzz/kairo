@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/playwright-community/playwright-go"
 )
@@ -24,7 +23,6 @@ type UploadInput struct {
 	Tags           []string
 	VideoPath      string
 	AccountCookies string
-	ScheduledAt    *time.Time
 	Config         Config
 }
 

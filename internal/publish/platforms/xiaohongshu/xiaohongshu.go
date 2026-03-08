@@ -143,7 +143,7 @@ func (x *API) performLogin(ctx context.Context, cookiePath string) error {
 	}
 }
 
-func (x *API) UploadVideo(ctx context.Context, title, description string, tags []string, videoPath, accountCookiePath string, scheduledAt *time.Time) (string, error) {
+func (x *API) UploadVideo(ctx context.Context, title, description string, tags []string, videoPath, accountCookiePath string) (string, error) {
 	if strings.TrimSpace(accountCookiePath) == "" {
 		return "", fmt.Errorf("account cookie is required")
 	}
@@ -157,7 +157,6 @@ func (x *API) UploadVideo(ctx context.Context, title, description string, tags [
 		Tags:           tags,
 		VideoPath:      videoPath,
 		AccountCookies: accountCookiePath,
-		ScheduledAt:    scheduledAt,
 		Config:         config,
 	}); err != nil {
 		return "", err
@@ -216,15 +215,8 @@ func uploadToXiaohongshu(ctx context.Context, input automation.UploadInput) erro
 		return fmt.Errorf("failed to fill description: %v", err)
 	}
 
-	// 7. Set Schedule (Optional)
-	if input.ScheduledAt != nil {
-		if err := setXiaohongshuSchedule(page, input.ScheduledAt); err != nil {
-			return fmt.Errorf("failed to set schedule: %v", err)
-		}
-	}
-
-	// 8. Publish
-	if err := publishXiaohongshu(ctx, page, input.ScheduledAt != nil); err != nil {
+	// 7. Publish
+	if err := publishXiaohongshu(ctx, page); err != nil {
 		return fmt.Errorf("failed to publish: %v", err)
 	}
 
@@ -354,11 +346,8 @@ func setXiaohongshuSchedule(page playwright.Page, scheduledAt *time.Time) error 
 	return page.Locator("body").Click()
 }
 
-func publishXiaohongshu(ctx context.Context, page playwright.Page, isScheduled bool) error {
+func publishXiaohongshu(ctx context.Context, page playwright.Page) error {
 	btnText := "发布"
-	if isScheduled {
-		btnText = "定时发布"
-	}
 
 	// Click the button
 	btn := page.Locator(fmt.Sprintf("button:has-text('%s')", btnText))

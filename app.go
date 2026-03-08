@@ -484,6 +484,10 @@ func (a *App) ListPublishPlatforms() ([]schema.PublishPlatform, error) {
 	return a.publishManager.ListPlatforms()
 }
 
+func (a *App) CreatePublishPlatform(name, displayName string, platformType string) (*schema.PublishPlatform, error) {
+	return a.publishManager.CreatePlatform(name, displayName, schema.PublishPlatformType(platformType))
+}
+
 func (a *App) UpdatePublishPlatform(id, displayName string) (*schema.PublishPlatform, error) {
 	return a.publishManager.UpdatePlatform(id, displayName)
 }

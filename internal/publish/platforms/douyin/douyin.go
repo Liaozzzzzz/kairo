@@ -145,7 +145,7 @@ func (d *API) performLogin(ctx context.Context, cookiePath string) error {
 	}
 }
 
-func (d *API) UploadVideo(ctx context.Context, title, description string, tags []string, videoPath, accountCookiePath string, scheduledAt *time.Time) (string, error) {
+func (d *API) UploadVideo(ctx context.Context, title, description string, tags []string, videoPath, accountCookiePath string) (string, error) {
 	if strings.TrimSpace(accountCookiePath) == "" {
 		return "", fmt.Errorf("account cookie is required")
 	}
@@ -159,7 +159,6 @@ func (d *API) UploadVideo(ctx context.Context, title, description string, tags [
 		Tags:           tags,
 		VideoPath:      videoPath,
 		AccountCookies: accountCookiePath,
-		ScheduledAt:    scheduledAt,
 		Config:         config,
 	}); err != nil {
 		return "", err

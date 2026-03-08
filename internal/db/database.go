@@ -19,6 +19,7 @@ import (
 type PublishPlatformSeed struct {
 	Name        string
 	DisplayName string
+	Type        schema.PublishPlatformType
 }
 
 func NewDatabase() *gorm.DB {
@@ -153,10 +154,12 @@ func seedDefaultPublishPlatforms(db *gorm.DB) {
 		{
 			Name:        string(schema.PlatformXiaohongshu),
 			DisplayName: "小红书",
+			Type:        schema.PublishPlatformTypeBuiltin,
 		},
 		{
 			Name:        string(schema.PlatformDouyin),
 			DisplayName: "抖音",
+			Type:        schema.PublishPlatformTypeBuiltin,
 		},
 	}
 	for _, p := range platforms {
@@ -172,6 +175,7 @@ func seedDefaultPublishPlatforms(db *gorm.DB) {
 			ID:          uuid.NewString(),
 			Name:        p.Name,
 			DisplayName: p.DisplayName,
+			Type:        p.Type,
 		}).Error
 	}
 }

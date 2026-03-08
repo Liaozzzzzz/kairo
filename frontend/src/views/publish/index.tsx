@@ -6,7 +6,7 @@ import PageHeader from '@/components/PageHeader';
 import AccountsPanel, { AccountsPanelRef } from './AccountsPanel';
 import AutomationPanel, { AutomationPanelRef } from './AutomationPanel';
 import PublishCenterPanel, { PublishCenterPanelRef } from './PublishCenterPanel';
-import PlatformsPanel from './PlatformsPanel';
+import PlatformsPanel, { PlatformsPanelRef } from './PlatformsPanel';
 
 const PublishView = () => {
   const { t } = useTranslation();
@@ -14,6 +14,7 @@ const PublishView = () => {
   const accountsPanelRef = useRef<AccountsPanelRef>(null);
   const automationPanelRef = useRef<AutomationPanelRef>(null);
   const publishCenterPanelRef = useRef<PublishCenterPanelRef>(null);
+  const platformsPanelRef = useRef<PlatformsPanelRef>(null);
 
   return (
     <PageContainer
@@ -59,6 +60,17 @@ const PublishView = () => {
                   {t('publish.addTask')}
                 </Button>
               )}
+              {activeKey === 'platforms' && (
+                <Button
+                  type="primary"
+                  size="middle"
+                  onClick={() => {
+                    platformsPanelRef.current?.addPlatform?.();
+                  }}
+                >
+                  {t('publish.addPlatform')}
+                </Button>
+              )}
             </>
           }
           items={[
@@ -70,7 +82,7 @@ const PublishView = () => {
             {
               key: 'platforms',
               label: t('publish.tabs.platforms'),
-              children: <PlatformsPanel />,
+              children: <PlatformsPanel ref={platformsPanelRef} />,
             },
             {
               key: 'automation',

@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"Kairo/internal/db/schema"
+
+	"github.com/google/uuid"
 )
 
 func (p *PublishManager) ListPlatforms() ([]schema.PublishPlatform, error) {
@@ -15,10 +17,13 @@ func (p *PublishManager) GetPlatformById(cid string) (*schema.PublishPlatform, e
 }
 
 // Platform management
-func (p *PublishManager) CreatePlatform(name, displayName string) (*schema.PublishPlatform, error) {
+func (p *PublishManager) CreatePlatform(name, displayName string, platformType schema.PublishPlatformType) (*schema.PublishPlatform, error) {
 	platform := &schema.PublishPlatform{
+		ID:          uuid.NewString(),
 		Name:        name,
 		DisplayName: displayName,
+		Type:        platformType,
+		Status:      schema.PublishPlatformStatusEnabled,
 	}
 
 	if err := p.publishPlatformDAL.SavePlatform(p.ctx, platform); err != nil {

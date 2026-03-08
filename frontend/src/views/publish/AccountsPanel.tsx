@@ -181,16 +181,19 @@ export default forwardRef<AccountsPanelRef, unknown>(function AccountsPanel(_, r
       title: t('publish.account.columns.name'),
       dataIndex: 'name',
       key: 'name',
+      width: 160,
     },
     {
       title: t('publish.account.columns.platform'),
       key: 'platform',
+      width: 140,
       render: (_: unknown, record: schema.PublishAccount) =>
         record.platform?.display_name || record.platform?.name || record.platform_id,
     },
     {
       title: t('publish.account.columns.status'),
       key: 'status',
+      width: 90,
       render: (_: unknown, record: schema.PublishAccount) => {
         const status = statusLabelMap[record.status] || statusLabelMap.unknown;
         return <Tag color={status.color}>{status.label}</Tag>;
@@ -199,6 +202,7 @@ export default forwardRef<AccountsPanelRef, unknown>(function AccountsPanel(_, r
     {
       title: t('publish.account.columns.enabled'),
       key: 'enabled',
+      width: 90,
       render: (_: unknown, record: schema.PublishAccount) => (
         <Switch
           checked={record.is_enabled ?? true}
@@ -209,12 +213,15 @@ export default forwardRef<AccountsPanelRef, unknown>(function AccountsPanel(_, r
     {
       title: t('publish.account.columns.lastChecked'),
       key: 'last_checked',
+      width: 160,
       render: (_: unknown, record: schema.PublishAccount) =>
         record.last_checked ? dayjs(record.last_checked).format('YYYY-MM-DD HH:mm') : '-',
     },
     {
       title: t('publish.account.columns.actions'),
       key: 'actions',
+      fixed: 'right' as const,
+      width: 200,
       render: (_: unknown, record: schema.PublishAccount) => (
         <Space>
           <Button size="small" onClick={() => handleValidate(record.id)}>
@@ -250,6 +257,7 @@ export default forwardRef<AccountsPanelRef, unknown>(function AccountsPanel(_, r
         columns={columns}
         loading={loadingAccounts}
         pagination={false}
+        scroll={{ x: 60 * 5 }}
       />
 
       <Modal

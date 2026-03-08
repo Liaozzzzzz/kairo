@@ -97,6 +97,19 @@
         "variables": "支持变量：<br />{{title}} - 片段标题<br />{{date}} - 视频创建时间<br />{{description}} - 片段描述",
         "cron": "Cron 表达式格式 (5位，空格分隔):"
       },
+      "cron": {
+        "week": "周",
+        "month": "月",
+        "day": "日",
+        "hour": "时",
+        "minute": "分",
+        "examples": {
+          "daily8": "每天早上 8 点",
+          "daily1830": "每天下午 6:30",
+          "weeklySun": "每周日午夜",
+          "monthly1st": "每月 1 号午夜"
+        }
+      },
       "message": {
         "fetchFailed": "获取自动化配置失败",
         "fetchCategoriesFailed": "获取分类失败",
@@ -141,26 +154,41 @@
     "platform": {
       "message": {
         "updateSuccess": "平台已更新",
+        "createSuccess": "平台已创建",
         "saveFailed": "平台保存失败"
       },
       "columns": {
         "displayName": "展示名称",
         "name": "平台标识",
+        "type": "类型",
         "updatedAt": "更新时间",
         "actions": "操作"
       },
+      "type": {
+        "builtin": "内置",
+        "openclaw": "OpenClaw"
+      },
       "modal": {
+        "createTitle": "新增平台配置",
         "editTitle": "编辑平台配置"
       },
       "form": {
         "name": "平台标识",
+        "nameRequired": "请输入平台标识",
         "displayName": "展示名称",
-        "displayNameRequired": "请输入展示名称"
+        "displayNameRequired": "请输入展示名称",
+        "type": "类型",
+        "openClawNameExtra": "OpenClaw CLI 调用的 Skill 名称",
+        "openClawParams": "OpenClaw Skill 参数说明",
+        "openClawDesc": "当类型为 OpenClaw 时，系统将通过以下方式调用 CLI：",
+        "uploadInput": "上传视频 (UploadVideo) 输入参数：",
+        "validateInput": "验证账号 (ValidateAccount) 输入参数："
       }
     },
     "task": {
       "status": {
         "pending": "待发布",
+        "publishing": "发布中",
         "published": "已发布",
         "failed": "失败",
         "cancelled": "已取消"
@@ -237,7 +265,8 @@
     },
     "addAccount": "新增账号",
     "addAutomation": "新增配置",
-    "addTask": "新增任务"
+    "addTask": "新增任务",
+    "addPlatform": "新增平台"
   },
   "settings": {
     "title": "设置",

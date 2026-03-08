@@ -58,6 +58,7 @@ export default forwardRef<PublishCenterPanelRef, unknown>(function PublishCenter
 
   const statusLabelMap: Record<string, { color: string; label: string }> = {
     pending: { color: 'blue', label: t('publish.task.status.pending') },
+    publishing: { color: 'orange', label: t('publish.task.status.publishing') },
     published: { color: 'green', label: t('publish.task.status.published') },
     failed: { color: 'red', label: t('publish.task.status.failed') },
     cancelled: { color: 'default', label: t('publish.task.status.cancelled') },
@@ -275,13 +276,15 @@ export default forwardRef<PublishCenterPanelRef, unknown>(function PublishCenter
     {
       title: t('publish.task.columns.platform'),
       key: 'platform',
-      width: 100,
+      width: 120,
+      ellipsis: { showTitle: true },
       render: (_, record) => record.platform?.display_name || '-',
     },
     {
       title: t('publish.task.columns.account'),
       key: 'account',
-      width: 100,
+      width: 120,
+      ellipsis: { showTitle: true },
       render: (_, record) => record.account?.name || '-',
     },
     {
@@ -542,6 +545,8 @@ export default forwardRef<PublishCenterPanelRef, unknown>(function PublishCenter
                   title: t('publish.task.records.trigger'),
                   dataIndex: 'trigger',
                   key: 'trigger',
+                  render: (value: string) =>
+                    value === 'auto' ? t('publish.task.type.auto') : t('publish.task.type.manual'),
                 },
                 {
                   title: t('publish.task.records.status'),
@@ -561,6 +566,7 @@ export default forwardRef<PublishCenterPanelRef, unknown>(function PublishCenter
                   title: t('publish.task.records.message'),
                   dataIndex: 'message',
                   key: 'message',
+                  className: 'select-auto',
                   render: (value: string) => value || '-',
                 },
               ]}

@@ -3,15 +3,15 @@ package platforms
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"Kairo/internal/db/schema"
 	"Kairo/internal/publish/platforms/douyin"
+	"Kairo/internal/publish/platforms/openclaw"
 	"Kairo/internal/publish/platforms/xiaohongshu"
 )
 
 type PlatformAPI interface {
-	UploadVideo(ctx context.Context, title, description string, tags []string, videoPath, accountCookiePath string, scheduledAt *time.Time) (string, error)
+	UploadVideo(ctx context.Context, title, description string, tags []string, videoPath, accountCookiePath string) (string, error)
 	ValidateAccount(ctx context.Context, cookiePath string) error
 	GetPlatformName() string
 	ValidateConfig() error
@@ -45,6 +45,10 @@ func (pm *PlatformManager) GetPlatforms() []string {
 
 // 创建平台API实例
 func (pm *PlatformManager) CreatePlatformAPI(platform schema.PublishPlatform) (PlatformAPI, error) {
+	if platform.Type == schema.PublishPlatformTypeOpenClaw {
+		return openclaw.New(platform), nil
+	}
+
 	defaultConfig := "{}"
 	switch platform.Name {
 	case string(schema.PlatformXiaohongshu):

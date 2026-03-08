@@ -96,6 +96,19 @@
         "variables": "Supported variables:<br />{{title}} - Clip Title<br />{{date}} - Video Created Time<br />{{description}} - Clip Description",
         "cron": "Cron Expression Format (5 fields, space separated):"
       },
+      "cron": {
+        "week": "Week",
+        "month": "Month",
+        "day": "Day",
+        "hour": "Hour",
+        "minute": "Minute",
+        "examples": {
+          "daily8": "Daily at 8:00 AM",
+          "daily1830": "Daily at 6:30 PM",
+          "weeklySun": "Weekly on Sunday midnight",
+          "monthly1st": "Monthly on 1st midnight"
+        }
+      },
       "message": {
         "fetchFailed": "Failed to fetch automation config",
         "fetchCategoriesFailed": "Failed to fetch categories",
@@ -140,26 +153,41 @@
     "platform": {
       "message": {
         "updateSuccess": "Platform updated",
+        "createSuccess": "Platform created",
         "saveFailed": "Failed to save platform"
       },
       "columns": {
         "displayName": "Display Name",
         "name": "Platform ID",
+        "type": "Type",
         "updatedAt": "Updated At",
         "actions": "Actions"
       },
+      "type": {
+        "builtin": "Built-in",
+        "openclaw": "OpenClaw"
+      },
       "modal": {
+        "createTitle": "Create Platform Config",
         "editTitle": "Edit Platform Config"
       },
       "form": {
         "name": "Platform ID",
+        "nameRequired": "Please enter platform ID",
         "displayName": "Display Name",
-        "displayNameRequired": "Please enter display name"
+        "displayNameRequired": "Please enter display name",
+        "type": "Type",
+        "openClawNameExtra": "The Skill name to invoke in OpenClaw CLI",
+        "openClawParams": "OpenClaw Skill Parameters",
+        "openClawDesc": "When using OpenClaw type, the system will invoke the CLI with:",
+        "uploadInput": "UploadVideo Input:",
+        "validateInput": "ValidateAccount Input:"
       }
     },
     "task": {
       "status": {
         "pending": "Pending",
+        "publishing": "Publishing",
         "published": "Published",
         "failed": "Failed",
         "cancelled": "Cancelled"
@@ -236,7 +264,8 @@
     },
     "addAccount": "Add Account",
     "addAutomation": "Add Config",
-    "addTask": "New Task"
+    "addTask": "New Task",
+    "addPlatform": "New Platform"
   },
   "settings": {
     "title": "Settings",

@@ -12,10 +12,11 @@ const (
 type PublishStatus string
 
 const (
-	PublishStatusPending   PublishStatus = "pending"
-	PublishStatusPublished PublishStatus = "published"
-	PublishStatusFailed    PublishStatus = "failed"
-	PublishStatusCancelled PublishStatus = "cancelled"
+	PublishStatusPending    PublishStatus = "pending"
+	PublishStatusPublishing PublishStatus = "publishing"
+	PublishStatusPublished  PublishStatus = "published"
+	PublishStatusFailed     PublishStatus = "failed"
+	PublishStatusCancelled  PublishStatus = "cancelled"
 )
 
 type PublishTask struct {

@@ -1,12 +1,14 @@
 import { useState, useMemo } from 'react';
-import { Card, Badge, Modal, Dropdown, MenuProps } from 'antd';
-import { DownOutlined, RightOutlined, DeleteOutlined, CloseOutlined } from '@ant-design/icons';
+import { Card, Badge, Tag } from 'antd';
+import { DownOutlined, RightOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { Task } from '@/types';
 import { TaskStatus, SourceType } from '@/data/variables';
 import { TaskItem } from './TaskItem';
-import { useTaskStore } from '@/store/useTaskStore';
+import { useCategoryStore } from '@/store/useCategoryStore';
+import { useSettingStore } from '@/store/useSettingStore';
+import { useStore } from 'zustand';
 
 interface PlaylistTaskItemProps {
   task: Task;
@@ -17,7 +19,8 @@ interface PlaylistTaskItemProps {
 export function PlaylistTaskItem({ task, childrenTasks, onViewLog }: PlaylistTaskItemProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
-  const deleteTask = useTaskStore((state) => state.deleteTask);
+  const categories = useStore(useCategoryStore, (state) => state.categories);
+  const themeColor = useStore(useSettingStore, (state) => state.themeColor);
 
   const completedCount = childrenTasks.filter((t) => t.status === TaskStatus.Completed).length;
   const failedCount = childrenTasks.filter((t) => t.status === TaskStatus.Error).length;
@@ -30,38 +33,10 @@ export function PlaylistTaskItem({ task, childrenTasks, onViewLog }: PlaylistTas
     return `${rawLabel[0].toUpperCase()}${rawLabel.slice(1)}`;
   }, [task.url]);
 
-  const confirmDelete = (purge: boolean) => {
-    if (task.status === TaskStatus.Merging || task.status === TaskStatus.Trimming) {
-      return;
-    }
-    const modalKey = purge ? 'tasks.confirmPurge' : 'tasks.confirmDelete';
-    Modal.confirm({
-      centered: true,
-      title: t(`${modalKey}.title`),
-      content: t(`${modalKey}.content`),
-      okText: t(`${modalKey}.ok`),
-      cancelText: t(`${modalKey}.cancel`),
-      okButtonProps: { danger: true },
-      onOk: () => deleteTask(task.id, purge),
-    });
-  };
-
-  const menuItems: MenuProps['items'] = [
-    {
-      key: 'delete',
-      label: t('tasks.contextMenu.delete'),
-      icon: <DeleteOutlined className="w-4 h-4 mt-[-2px]" />,
-      danger: true,
-      onClick: () => confirmDelete(false),
-    },
-    {
-      key: 'purge',
-      label: t('tasks.contextMenu.purge'),
-      icon: <CloseOutlined className="w-4 h-4 mt-[-2px]" />,
-      danger: true,
-      onClick: () => confirmDelete(true),
-    },
-  ];
+  const category = useMemo(() => {
+    if (!task.category_id) return null;
+    return categories?.find((c) => c.id === task.category_id);
+  }, [task.category_id, categories]);
 
   return (
     <Badge.Ribbon text={siteLabel}>
@@ -71,75 +46,78 @@ export function PlaylistTaskItem({ task, childrenTasks, onViewLog }: PlaylistTas
         styles={{ body: { padding: '0' } }}
         className="overflow-hidden"
       >
-        <Dropdown menu={{ items: menuItems }} trigger={['contextMenu']}>
-          <div
-            className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-            onClick={() => setExpanded(!expanded)}
-          >
-            <div className="text-muted-foreground text-sm">
-              {expanded ? <DownOutlined /> : <RightOutlined />}
-            </div>
+        <div
+          className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+          onClick={() => setExpanded(!expanded)}
+        >
+          <div className="text-muted-foreground text-sm">
+            {expanded ? <DownOutlined /> : <RightOutlined />}
+          </div>
 
-            <div className="flex-1 min-w-0">
-              <div
-                className="font-semibold text-[15px] truncate text-foreground mb-1"
-                title={task.title || task.url}
-              >
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 mb-1" title={task.title || task.url}>
+              {category && (
+                <Tag color={themeColor} className="py-0">
+                  {category.name}
+                </Tag>
+              )}
+              <div className="font-semibold text-[15px] truncate text-foreground">
                 {task.title || task.url}
               </div>
-              <div className="text-xs text-muted-foreground flex items-center gap-1">
-                <span>
-                  {task.source_type === SourceType.RSS
-                    ? t('tasks.playlist.rssPrefix')
-                    : t('tasks.playlist.statusPrefix')}
-                </span>
-                {totalCount > 0 && completedCount === totalCount ? (
-                  <span className="text-green-600 dark:text-green-400">
-                    {t('tasks.playlist.allCompleted')}
-                  </span>
-                ) : totalCount > 0 && failedCount === totalCount ? (
-                  <span className="text-red-500 dark:text-red-400">
-                    {t('tasks.playlist.allFailed')}
-                  </span>
-                ) : (
-                  <>
-                    <span className="text-green-600 dark:text-green-400">
-                      {t('tasks.playlist.progress', {
-                        completed: completedCount,
-                        total: totalCount,
-                      })}
-                    </span>
-                    {failedCount > 0 && (
-                      <>
-                        <span>·</span>
-                        <span className="text-red-500 dark:text-red-400">
-                          {failedCount}
-                          &ensp;
-                          {t('tasks.playlist.partiallyFailed')}
-                        </span>
-                      </>
-                    )}
-                  </>
-                )}
-                {task.created_at && (
-                  <>
-                    <span>·</span>
-                    <span>{dayjs.unix(task.created_at).format('YYYY-MM-DD HH:mm')}</span>
-                  </>
-                )}
-              </div>
             </div>
-            <div className="w-8 h-8"></div>
+            <div className="text-xs text-muted-foreground flex items-center gap-1">
+              <span>
+                {task.source_type === SourceType.RSS
+                  ? t('tasks.playlist.rssPrefix')
+                  : t('tasks.playlist.statusPrefix')}
+              </span>
+              {totalCount > 0 && completedCount === totalCount ? (
+                <span className="text-green-600 dark:text-green-400">
+                  {t('tasks.playlist.allCompleted')}
+                </span>
+              ) : totalCount > 0 && failedCount === totalCount ? (
+                <span className="text-red-500 dark:text-red-400">
+                  {t('tasks.playlist.allFailed')}
+                </span>
+              ) : (
+                <>
+                  <span className="text-green-600 dark:text-green-400">
+                    {t('tasks.playlist.progress', {
+                      completed: completedCount,
+                      total: totalCount,
+                    })}
+                  </span>
+                  {failedCount > 0 && (
+                    <>
+                      <span>·</span>
+                      <span className="text-red-500 dark:text-red-400">
+                        {failedCount}
+                        &ensp;
+                        {t('tasks.playlist.partiallyFailed')}
+                      </span>
+                    </>
+                  )}
+                </>
+              )}
+              {task.created_at && (
+                <>
+                  <span>·</span>
+                  <span>{dayjs.unix(task.created_at).format('YYYY-MM-DD HH:mm')}</span>
+                </>
+              )}
+            </div>
           </div>
-        </Dropdown>
+          <div className="w-8 h-8"></div>
+        </div>
 
         {expanded && (
-          <div className="bg-gray-50/50 dark:bg-black/20 border-t border-gray-100 dark:border-white/5 p-2 space-y-2 pl-8">
+          <div className="bg-gray-50/50 dark:bg-black/20 border-t border-gray-100 dark:border-white/5 p-2 space-y-2 pl-4">
             {childrenTasks.map((child) => (
               <TaskItem
                 key={child.id}
                 task={child}
                 showSiteLabel={false}
+                showCategoryTag={false}
                 onViewLog={() => onViewLog(child.id)}
               />
             ))}

@@ -99,6 +99,9 @@ export const useRSSStore = create<RSSState>((set, get) => ({
         category_id: input.category_id || '',
       });
       set((state) => ({ feeds: [...state.feeds, feed] }));
+      if (!get().selectedFeedId) {
+        get().selectFeed(feed.id);
+      }
     } finally {
       set({ isLoading: false });
     }

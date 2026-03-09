@@ -13,6 +13,7 @@ import {
   notification,
 } from 'antd';
 import dayjs from 'dayjs';
+import { useStore } from 'zustand';
 import { useTranslation } from 'react-i18next';
 import { CronExpressionParser } from 'cron-parser';
 import {
@@ -20,12 +21,12 @@ import {
   UpdatePublishAutomation,
   DeletePublishAutomation,
   ListPublishAutomations,
-  GetCategories,
 } from '@root/wailsjs/go/main/App';
 import { schema } from '@root/wailsjs/go/models';
 import { usePublishStore } from '@/store/usePublishStore';
 import type { ColumnsType } from 'antd/es/table';
-
+import { useCategoryStore } from '@/store/useCategoryStore';
+import { useShallow } from 'zustand/react/shallow';
 export type AutomationPanelRef = {
   addAutomation: () => void;
 };
@@ -39,6 +40,14 @@ export default forwardRef<AutomationPanelRef, unknown>(function AutomationPanel(
   const [form] = Form.useForm();
   const cronValue = Form.useWatch('cron', form);
   const [cronExtra, setCronExtra] = useState<React.ReactNode>('');
+
+  const categories = useStore(useCategoryStore, (state) => state.categories);
+  const { accounts, fetchAccounts } = usePublishStore(
+    useShallow((state) => ({
+      accounts: state.accounts,
+      fetchAccounts: state.fetchAccounts,
+    }))
+  );
 
   const VarTooltips = (
     <div>
@@ -104,10 +113,6 @@ export default forwardRef<AutomationPanelRef, unknown>(function AutomationPanel(
     }
   }, [cronValue]);
 
-  const [categories, setCategories] = useState<schema.Category[]>([]);
-
-  const { accounts, fetchAccounts } = usePublishStore();
-
   const fetchAutomations = async () => {
     setLoading(true);
     try {
@@ -124,22 +129,8 @@ export default forwardRef<AutomationPanelRef, unknown>(function AutomationPanel(
     }
   };
 
-  const fetchCategories = async () => {
-    try {
-      const data = await GetCategories();
-      setCategories(data || []);
-    } catch (error) {
-      console.error(error);
-      notification.error({
-        message: t('publish.automation.message.fetchCategoriesFailed'),
-        description: (error as Error).message || String(error),
-      });
-    }
-  };
-
   useEffect(() => {
     fetchAccounts();
-    fetchCategories();
     fetchAutomations();
   }, []);
 
@@ -378,9 +369,11 @@ export default forwardRef<AutomationPanelRef, unknown>(function AutomationPanel(
               name="cron"
               tooltip={{
                 title: CronTooltip,
-                overlayInnerStyle: {
-                  width: 'max-content',
-                  maxWidth: '500px',
+                styles: {
+                  container: {
+                    width: 'max-content',
+                    maxWidth: '500px',
+                  },
                 },
               }}
               extra={cronExtra}

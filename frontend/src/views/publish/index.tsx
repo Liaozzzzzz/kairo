@@ -10,7 +10,7 @@ import PlatformsPanel, { PlatformsPanelRef } from './PlatformsPanel';
 
 const PublishView = () => {
   const { t } = useTranslation();
-  const [activeKey, setActiveKey] = useState('accounts');
+  const [activeKey, setActiveKey] = useState('center');
   const accountsPanelRef = useRef<AccountsPanelRef>(null);
   const automationPanelRef = useRef<AutomationPanelRef>(null);
   const publishCenterPanelRef = useRef<PublishCenterPanelRef>(null);
@@ -75,6 +75,11 @@ const PublishView = () => {
           }
           items={[
             {
+              key: 'center',
+              label: t('publish.tabs.center'),
+              children: <PublishCenterPanel ref={publishCenterPanelRef} />,
+            },
+            {
               key: 'accounts',
               label: t('publish.tabs.accounts'),
               children: <AccountsPanel ref={accountsPanelRef} />,
@@ -88,11 +93,6 @@ const PublishView = () => {
               key: 'automation',
               label: t('publish.tabs.automation'),
               children: <AutomationPanel ref={automationPanelRef} />,
-            },
-            {
-              key: 'center',
-              label: t('publish.tabs.center'),
-              children: <PublishCenterPanel ref={publishCenterPanelRef} />,
             },
           ]}
         />

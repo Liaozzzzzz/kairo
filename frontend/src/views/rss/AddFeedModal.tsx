@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal, Input, Form, message, Button, Switch, Select } from 'antd';
+import { Modal, Input, Form, Button, Switch, Select, notification } from 'antd';
 import { useRSSStore } from '@/store/useRSSStore';
 import { BrowserOpenURL } from '@root/wailsjs/runtime/runtime';
 import DownloadDir from '@/components/DownloadDir';
@@ -23,46 +23,48 @@ const AddFeedModal: React.FC<AddFeedModalProps> = ({
   mode = 'add',
 }) => {
   const { t } = useTranslation();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [form] = Form.useForm();
+
   const { defaultDir } = useSettingStore(
     useShallow((state) => ({
       defaultDir: state.defaultDir,
     }))
   );
-  const [form] = Form.useForm();
-  const { addFeed, updateFeed, isLoading } = useRSSStore();
-  const { categories, fetchCategories } = useCategoryStore(
+
+  const { addFeed, updateFeed, isLoading } = useRSSStore(
     useShallow((state) => ({
-      categories: state.categories,
-      fetchCategories: state.fetchCategories,
+      addFeed: state.addFeed,
+      updateFeed: state.updateFeed,
+      isLoading: state.isLoading,
     }))
   );
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { categories } = useCategoryStore(
+    useShallow((state) => ({
+      categories: state.categories,
+    }))
+  );
 
   useEffect(() => {
-    if (open) {
-      fetchCategories();
+    if (!open) {
+      return;
     }
-    if (open) {
-      if (mode === 'edit' && initialValues) {
-        form.setFieldsValue({
-          url: initialValues.url,
-          custom_dir: initialValues.custom_dir,
-          download_latest: initialValues.download_latest,
-          filters: initialValues.filters,
-          tags: initialValues.tags,
-          filename_template: initialValues.filename_template,
-          category_id: initialValues.category_id || undefined,
-        });
-      } else {
-        form.resetFields();
-        form.setFieldsValue({
-          download_latest: true,
-          custom_dir: defaultDir,
-          category_id: undefined,
-        });
-      }
+
+    if (mode === 'edit' && initialValues) {
+      form.setFieldsValue({
+        url: initialValues.url,
+        custom_dir: initialValues.custom_dir,
+        download_latest: initialValues.download_latest,
+        filters: initialValues.filters,
+        tags: initialValues.tags,
+        filename_template: initialValues.filename_template,
+        category_id: initialValues.category_id || undefined,
+      });
+    } else {
+      form.resetFields();
     }
-  }, [open, mode, initialValues, form, defaultDir, fetchCategories]);
+  }, [open, mode, initialValues, form]);
 
   const handleSubmit = async () => {
     try {
@@ -79,7 +81,9 @@ const AddFeedModal: React.FC<AddFeedModalProps> = ({
           filename_template: values.filename_template || '',
           category_id: values.category_id || '',
         });
-        message.success(t('rss.modal.updateSuccess'));
+        notification.success({
+          title: t('rss.modal.updateSuccess'),
+        });
       } else {
         await addFeed({
           url: values.url,
@@ -90,14 +94,19 @@ const AddFeedModal: React.FC<AddFeedModalProps> = ({
           filename_template: values.filename_template || '',
           category_id: values.category_id || '',
         });
-        message.success(t('rss.modal.success'));
+        notification.success({
+          title: t('rss.modal.success'),
+        });
       }
 
       form.resetFields();
       onClose();
     } catch (error) {
       console.error(error);
-      message.error(mode === 'edit' ? t('rss.modal.updateFailed') : t('rss.modal.failed'));
+      notification.error({
+        title: mode === 'edit' ? t('rss.modal.updateFailed') : t('rss.modal.failed'),
+        description: (error as Error).message || (error as string),
+      });
     } finally {
       setIsSubmitting(false);
     }

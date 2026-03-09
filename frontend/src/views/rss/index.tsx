@@ -9,16 +9,18 @@ import AddFeedModal from './AddFeedModal';
 import PageContainer from '@/components/PageContainer';
 import PageHeader from '@/components/PageHeader';
 import { RSSFeed } from '@/types';
+import { useShallow } from 'zustand/react/shallow';
 
 const RSSView: React.FC = () => {
   const { t } = useTranslation();
-  const { fetchFeeds, selectedFeedId } = useRSSStore();
+  const { selectedFeedId, fetchFeeds } = useRSSStore(
+    useShallow((state) => ({
+      selectedFeedId: state.selectedFeedId,
+      fetchFeeds: state.fetchFeeds,
+    }))
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingFeed, setEditingFeed] = useState<RSSFeed | undefined>(undefined);
-
-  useEffect(() => {
-    fetchFeeds();
-  }, [fetchFeeds]);
 
   const handleEdit = (feed: RSSFeed) => {
     setEditingFeed(feed);
@@ -29,6 +31,10 @@ const RSSView: React.FC = () => {
     setIsModalOpen(false);
     setEditingFeed(undefined);
   };
+
+  useEffect(() => {
+    fetchFeeds();
+  }, []);
 
   return (
     <PageContainer

@@ -10,10 +10,11 @@ import {
 import { useTranslation } from 'react-i18next';
 import { schema } from '@root/wailsjs/go/models';
 import { ImageFallback } from '@/data/variables';
-import { useSettingStore } from '@/store/useSettingStore';
 import { useShallow } from 'zustand/react/shallow';
+import { useStore } from 'zustand';
+import { useSettingStore } from '@/store/useSettingStore';
+import { useCategoryStore } from '@/store/useCategoryStore';
 import DownloadDir from '@/components/DownloadDir';
-import { Category } from '@/types';
 
 import { TrimMode } from '@/data/variables';
 
@@ -26,6 +27,7 @@ interface SingleVideoResultProps {
     trimStart,
     trimEnd,
     trimMode,
+    categoryId,
   }: {
     newDir: string;
     newQuality: string;
@@ -33,27 +35,21 @@ interface SingleVideoResultProps {
     trimStart: string;
     trimEnd: string;
     trimMode: TrimMode;
+    categoryId: string;
   }) => void;
-  categories: Category[];
-  categoryId: string;
-  onCategoryChange: (id: string) => void;
 }
 
-const SingleVideoResult = ({
-  videoInfo,
-  onStartDownload,
-  categories,
-  categoryId,
-  onCategoryChange,
-}: SingleVideoResultProps) => {
+const SingleVideoResult = ({ videoInfo, onStartDownload }: SingleVideoResultProps) => {
   const { t } = useTranslation();
   const defaultDir = useSettingStore(useShallow((state) => state.defaultDir));
+  const categories = useStore(useCategoryStore, (state) => state.categories);
   const [newDir, setNewDir] = useState(defaultDir);
 
   const [newQuality, setNewQuality] = useState('');
   const [newFormat, setNewFormat] = useState('original');
   const [trimRange, setTrimRange] = useState<[number, number]>([0, 0]);
   const [trimMode, setTrimMode] = useState<TrimMode>(TrimMode.None);
+  const [categoryId, setCategoryId] = useState('');
 
   useEffect(() => {
     if (videoInfo.qualities && videoInfo.qualities.length > 0) {
@@ -180,7 +176,7 @@ const SingleVideoResult = ({
             <label className="text-sm font-medium text-foreground">{t('downloads.category')}</label>
             <Select
               value={categoryId || undefined}
-              onChange={(value) => onCategoryChange(value || '')}
+              onChange={(value) => setCategoryId(value || '')}
               allowClear
               placeholder={t('downloads.categoryPlaceholder')}
               options={categories.map((item) => ({ label: item.name, value: item.id }))}
@@ -233,6 +229,7 @@ const SingleVideoResult = ({
               trimStart: formatSeconds(trimRange[0]),
               trimEnd: formatSeconds(trimRange[1]),
               trimMode,
+              categoryId,
             })
           }
           disabled={!newDir || !videoInfo}

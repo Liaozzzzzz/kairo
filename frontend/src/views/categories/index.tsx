@@ -43,7 +43,7 @@ export default function CategoriesView() {
 
   useEffect(() => {
     fetchCategories();
-  }, [fetchCategories]);
+  }, []);
 
   const handleOpenAdd = () => {
     setEditingCategory(null);

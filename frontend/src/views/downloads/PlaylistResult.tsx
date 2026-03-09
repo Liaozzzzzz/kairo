@@ -8,25 +8,27 @@ import dayjs from 'dayjs';
 import { DownloadOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import DownloadDir from '@/components/DownloadDir';
 import { useShallow } from 'zustand/react/shallow';
+import { useStore } from 'zustand';
+import { useCategoryStore } from '@/store/useCategoryStore';
 import { useSettingStore } from '@/store/useSettingStore';
-import { Category } from '@/types';
 
 interface VideoResultProps {
   videoInfo: schema.VideoInfo;
-  onStartDownload: ({ newDir, playList }: { newDir: string; playList?: number[] }) => void;
-  categories: Category[];
-  categoryId: string;
-  onCategoryChange: (id: string) => void;
+  onStartDownload: ({
+    newDir,
+    playList,
+    categoryId,
+  }: {
+    newDir: string;
+    playList?: number[];
+    categoryId: string;
+  }) => void;
 }
 
-const PlaylistResult = ({
-  videoInfo,
-  onStartDownload,
-  categories,
-  categoryId,
-  onCategoryChange,
-}: VideoResultProps) => {
+const PlaylistResult = ({ videoInfo, onStartDownload }: VideoResultProps) => {
   const { t } = useTranslation();
+
+  const categories = useStore(useCategoryStore, (state) => state.categories);
 
   const { defaultDir, themeColor } = useSettingStore(
     useShallow((state) => ({
@@ -37,6 +39,7 @@ const PlaylistResult = ({
 
   const [newDir, setNewDir] = useState(defaultDir);
   const [selectedPlaylistItems, setSelectedPlaylistItems] = useState<number[]>([]);
+  const [categoryId, setCategoryId] = useState('');
 
   const columns = useMemo(() => {
     if (!Array.isArray(videoInfo.playlist_items)) {
@@ -159,12 +162,15 @@ const PlaylistResult = ({
 
   return (
     <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300 delay-50">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2">
         <Tag color={themeColor} variant="outlined">
           {t('downloads.playlistItems')}
         </Tag>
         {videoInfo.title && (
-          <div className="text-sm font-semibold text-foreground truncate" title={videoInfo.title}>
+          <div
+            className="text-sm font-semibold text-foreground truncate mr-4"
+            title={videoInfo.title}
+          >
             {videoInfo.title}
           </div>
         )}
@@ -177,7 +183,7 @@ const PlaylistResult = ({
             selectedPlaylistItems.length > 0 &&
             selectedPlaylistItems.length === videoInfo.playlist_items.length
           }
-          className="shrink-0 ml-4"
+          className="shrink-0 ml-auto"
           onChange={(e) => onToggleAll(e.target.checked)}
         >
           {t('downloads.selectAll')}
@@ -207,7 +213,7 @@ const PlaylistResult = ({
           <label className="text-sm font-medium text-foreground">{t('downloads.category')}</label>
           <Select
             value={categoryId || undefined}
-            onChange={(value) => onCategoryChange(value || '')}
+            onChange={(value) => setCategoryId(value || '')}
             allowClear
             placeholder={t('downloads.categoryPlaceholder')}
             options={categories.map((item) => ({ label: item.name, value: item.id }))}
@@ -219,7 +225,7 @@ const PlaylistResult = ({
       <div className="flex items-end justify-end">
         <Button
           type="primary"
-          onClick={() => onStartDownload({ newDir, playList: selectedPlaylistItems })}
+          onClick={() => onStartDownload({ newDir, playList: selectedPlaylistItems, categoryId })}
           disabled={selectedPlaylistItems.length === 0}
           icon={<DownloadOutlined />}
         >

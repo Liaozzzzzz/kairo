@@ -34,13 +34,25 @@ func (m *Manager) GetVideoById(id string) (*schema.Video, error) {
 	return video, nil
 }
 
-func (m *Manager) DeleteVideo(id string) error {
+func (m *Manager) DeleteVideo(id string, deleteFile bool) error {
+	// Get video info before deletion to access file path
+	video, err := m.videoDAL.GetByID(m.ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// Delete subtitle files
 	subs, _ := m.GetVideoSubtitles(id)
 	for _, sub := range subs {
 		if strings.TrimSpace(sub.FilePath) == "" {
 			continue
 		}
 		_ = utils.DeleteFile(sub.FilePath)
+	}
+
+	// Delete video file if requested
+	if deleteFile && video != nil && strings.TrimSpace(video.FilePath) != "" {
+		_ = utils.DeleteFile(video.FilePath)
 	}
 
 	return m.videoDAL.DeleteVideoCascade(m.ctx, id)

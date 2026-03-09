@@ -189,7 +189,7 @@ export default forwardRef<PlatformsPanelRef, unknown>(function PlatformsPanel(_,
           {typeValue === 'openclaw' && (
             <div className="mt-4">
               <Alert
-                message={t('publish.platform.form.openClawParams')}
+                title={t('publish.platform.form.openClawParams')}
                 description={
                   <div className="text-xs font-mono max-h-60 overflow-y-auto">
                     <Paragraph className="mb-2">

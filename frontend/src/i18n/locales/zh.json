@@ -112,7 +112,6 @@
       },
       "message": {
         "fetchFailed": "获取自动化配置失败",
-        "fetchCategoriesFailed": "获取分类失败",
         "deleteSuccess": "删除成功",
         "deleteFailed": "删除失败",
         "updateSuccess": "更新成功",
@@ -350,7 +349,8 @@
     "chooseDir": "选择目录",
     "start": "开始下载",
     "analyze": "解析",
-    "parseError": "解析失败: ",
+    "parseError": "解析失败",
+    "downloadError": "下载失败",
     "duplicateTaskContent": "该任务已存在列表中，请勿重复添加",
     "duration": "时长: ",
     "playlistItems": "合集视频",
@@ -411,6 +411,7 @@
     "confirmDelete": {
       "title": "确认删除",
       "content": "删除后将从列表移除，是否继续？",
+      "deleteFile": "同时删除本地文件",
       "ok": "删除",
       "cancel": "取消"
     },
@@ -439,7 +440,7 @@
   "rss": {
     "welcome": {
       "title": "欢迎使用 RSS",
-      "subtitle": "从左侧选择订阅源开始阅读，或添加新的订阅。"
+      "subtitle": "从顶部选择订阅源开始阅读，或添加新的订阅。"
     },
     "title": "订阅",
     "subtitle": "订阅你喜欢的频道",
@@ -616,6 +617,7 @@
       "confirmDelete": {
         "title": "确认删除",
         "content": "删除后将从列表移除，是否继续？",
+        "deleteFile": "同时删除本地文件",
         "ok": "删除",
         "cancel": "取消",
         "delete_failed": "删除失败"

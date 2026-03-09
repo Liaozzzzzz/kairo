@@ -259,18 +259,20 @@ const Settings = () => {
                 </Text>
               </div>
               <div className="md:col-span-8">
-                <Input
-                  type="number"
-                  value={rssCheckInterval}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value);
-                    if (!isNaN(val) && val >= 1) {
-                      setRSSCheckInterval(val);
-                    }
-                  }}
-                  addonAfter="min"
-                  min={1}
-                />
+                <Space.Compact>
+                  <Input
+                    type="number"
+                    value={rssCheckInterval}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (!isNaN(val) && val >= 1) {
+                        setRSSCheckInterval(val);
+                      }
+                    }}
+                    min={1}
+                  />
+                  <Space.Addon>min</Space.Addon>
+                </Space.Compact>
               </div>
             </div>
 

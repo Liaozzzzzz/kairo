@@ -111,7 +111,6 @@
       },
       "message": {
         "fetchFailed": "Failed to fetch automation config",
-        "fetchCategoriesFailed": "Failed to fetch categories",
         "deleteSuccess": "Deleted successfully",
         "deleteFailed": "Deletion failed",
         "updateSuccess": "Updated successfully",
@@ -348,7 +347,8 @@
     "chooseDir": "Choose Directory",
     "start": "Start Download",
     "analyze": "Analyze",
-    "parseError": "Parse failed: ",
+    "downloadError": "Download failed",
+    "parseError": "Parse failed",
     "duplicateTaskContent": "This task is already in the list.",
     "duration": "Duration: ",
     "playlistItems": "Playlist Videos",
@@ -409,6 +409,7 @@
     "confirmDelete": {
       "title": "Confirm Delete",
       "content": "Remove this task from the list?",
+      "deleteFile": "Also delete local file",
       "ok": "Delete",
       "cancel": "Cancel"
     },
@@ -437,7 +438,7 @@
   "rss": {
     "welcome": {
       "title": "Welcome to RSS",
-      "subtitle": "Select a feed from the sidebar to start reading, or add a new subscription."
+      "subtitle": "Select a feed from the top to start reading, or add a new subscription."
     },
     "title": "RSS",
     "subtitle": "Subscribe to your favorite channels",
@@ -612,6 +613,7 @@
       "confirmDelete": {
         "title": "Confirm Delete",
         "content": "Remove this video from the list?",
+        "deleteFile": "Also delete local file",
         "ok": "Delete",
         "cancel": "Cancel",
         "delete_failed": "Failed to delete video"

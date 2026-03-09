@@ -1,12 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useShallow } from 'zustand/react/shallow';
-import { Input, Card, notification, message, Empty, Spin } from 'antd';
-import { GetVideoInfo, AddTask as AddTaskGo, AddPlaylistTask } from '@root/wailsjs/go/main/App';
+import { Input, Card, notification, Empty, Spin } from 'antd';
+import { useStore } from 'zustand';
+import { GetVideoInfo, AddTask, AddPlaylistTask } from '@root/wailsjs/go/main/App';
 import { schema } from '@root/wailsjs/go/models';
 import { useAppStore } from '@/store/useAppStore';
 import { useTaskStore } from '@/store/useTaskStore';
-import { useCategoryStore } from '@/store/useCategoryStore';
 import PageContainer from '@/components/PageContainer';
 import PageHeader from '@/components/PageHeader';
 import bilibiliIcon from '@/assets/images/bilibili.png';
@@ -17,33 +16,17 @@ import PlaylistResult from './PlaylistResult';
 
 export default function Downloads() {
   const { t } = useTranslation();
-  const tasks = useTaskStore(useShallow((state) => state.tasks));
-  const [api, contextHolder] = notification.useNotification();
-  const [messageApi, messageContextHolder] = message.useMessage();
-
   const [newUrl, setNewUrl] = useState('');
-
-  const setActiveTab = useAppStore(useShallow((state) => state.setActiveTab));
-
   const [videoInfo, setVideoInfo] = useState<schema.VideoInfo | null>(null);
   const [isFetchingInfo, setIsFetchingInfo] = useState(false);
-  const [categoryId, setCategoryId] = useState('');
 
-  const { categories, fetchCategories } = useCategoryStore(
-    useShallow((state) => ({
-      categories: state.categories,
-      fetchCategories: state.fetchCategories,
-    }))
-  );
+  const tasks = useStore(useTaskStore, (state) => state.tasks);
+  const setActiveTab = useStore(useAppStore, (state) => state.setActiveTab);
 
   const playlistItems = videoInfo?.playlist_items || [];
   const isPlaylist = Boolean(
     videoInfo?.source_type === SourceType.Playlist && playlistItems.length
   );
-
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
 
   const fetchVideoInfo = async () => {
     if (!newUrl) return;
@@ -51,7 +34,9 @@ export default function Downloads() {
     // Check duplicate
     const isDuplicate = Object.values(tasks).some((t) => t.url === newUrl);
     if (isDuplicate) {
-      messageApi.warning(t('downloads.duplicateTaskContent'));
+      notification.warning({
+        title: t('downloads.duplicateTaskContent'),
+      });
       return;
     }
 
@@ -62,7 +47,7 @@ export default function Downloads() {
       setVideoInfo(info);
     } catch (e) {
       console.error(e);
-      api.error({
+      notification.error({
         title: t('downloads.parseError'),
         description: (e as Error).message || (e as string),
       });
@@ -78,6 +63,7 @@ export default function Downloads() {
     trimStart,
     trimEnd,
     trimMode,
+    categoryId,
   }: {
     newDir: string;
     newQuality: string;
@@ -85,6 +71,7 @@ export default function Downloads() {
     trimStart: string;
     trimEnd: string;
     trimMode: TrimMode;
+    categoryId: string;
   }) => {
     if (!newUrl || !newDir) return;
     try {
@@ -93,7 +80,7 @@ export default function Downloads() {
       );
       const totalBytes = isPlaylist ? 0 : selectedQuality?.total_bytes || 0;
       const formatId = selectedQuality?.format_id || '';
-      await AddTaskGo(
+      await AddTask(
         new schema.AddTaskInput({
           url: newUrl,
           quality: newQuality,
@@ -114,15 +101,21 @@ export default function Downloads() {
       setActiveTab(MenuItemKey.Tasks);
     } catch (e) {
       console.error(e);
+      notification.error({
+        title: t('downloads.downloadError'),
+        description: (e as Error).message || (e as string),
+      });
     }
   };
 
   const handleStartPlaylistDownload = async ({
     newDir,
     playList = [],
+    categoryId,
   }: {
     newDir: string;
     playList?: number[];
+    categoryId: string;
   }) => {
     if (!newUrl || !newDir) return;
     try {
@@ -155,6 +148,10 @@ export default function Downloads() {
       setActiveTab(MenuItemKey.Tasks);
     } catch (e) {
       console.error(e);
+      notification.error({
+        title: t('downloads.downloadError'),
+        description: (e as Error).message || (e as string),
+      });
     }
   };
 
@@ -176,8 +173,6 @@ export default function Downloads() {
         </div>
       }
     >
-      {contextHolder}
-      {messageContextHolder}
       <Card variant="borderless" className="shadow-sm">
         <div className="space-y-6">
           <div className="space-y-2">
@@ -196,7 +191,7 @@ export default function Downloads() {
           </div>
 
           {isFetchingInfo && (
-            <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
               <Spin size="large" />
               <span className="text-muted-foreground">{t('downloads.analyzing')}</span>
             </div>
@@ -209,23 +204,11 @@ export default function Downloads() {
           )}
 
           {videoInfo && !isPlaylist && (
-            <SingleVideoResult
-              videoInfo={videoInfo}
-              onStartDownload={handleStartDownload}
-              categories={categories}
-              categoryId={categoryId}
-              onCategoryChange={setCategoryId}
-            />
+            <SingleVideoResult videoInfo={videoInfo} onStartDownload={handleStartDownload} />
           )}
 
           {videoInfo && isPlaylist && (
-            <PlaylistResult
-              videoInfo={videoInfo}
-              onStartDownload={handleStartPlaylistDownload}
-              categories={categories}
-              categoryId={categoryId}
-              onCategoryChange={setCategoryId}
-            />
+            <PlaylistResult videoInfo={videoInfo} onStartDownload={handleStartPlaylistDownload} />
           )}
         </div>
       </Card>

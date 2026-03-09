@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Tooltip, Empty, Spin, Modal, notification, Divider } from 'antd';
+import { Tag, Tooltip, Empty, Spin, Modal, notification, Divider, Checkbox } from 'antd';
 import {
   PlayCircleOutlined,
   DeleteOutlined,
@@ -8,14 +8,17 @@ import {
   ScissorOutlined,
   FolderOpenOutlined,
 } from '@ant-design/icons';
-import { Video } from '@/types';
+import { Video, Category } from '@/types';
 import { formatDuration } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { DeleteVideo, OpenFile, ShowInFolder } from '@root/wailsjs/go/main/App';
 import { Grid, GridProps } from 'react-window';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { ThumbnailImage } from '@/components/ThumbnailImage';
+import { useCategoryStore } from '@/store/useCategoryStore';
+import { useStore } from 'zustand';
 import icon from '@/assets/images/icon.png';
+import { useSettingStore } from '@/store/useSettingStore';
 
 interface VideoListProps {
   videos: Video[];
@@ -40,6 +43,8 @@ const Cell = (props: any) => {
     onSelect,
     onRefresh,
     onHighlights,
+    categories,
+    themeColor,
     t,
   } = props;
   const index = rowIndex * columnCount + columnIndex;
@@ -49,19 +54,32 @@ const Cell = (props: any) => {
   }
 
   const video = videos[index];
+  const category = categories?.find((c: Category) => c.id === video.category_id);
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
+    let deleteFile = false;
     Modal.confirm({
       centered: true,
       title: t('videos.confirmDelete.title'),
-      content: t('videos.confirmDelete.content'),
+      content: (
+        <div className="mt-2">
+          <div className="mb-2">{t('videos.confirmDelete.content')}</div>
+          <Checkbox
+            onChange={(e) => {
+              deleteFile = e.target.checked;
+            }}
+          >
+            {t('videos.confirmDelete.deleteFile')}
+          </Checkbox>
+        </div>
+      ),
       okText: t('videos.confirmDelete.ok'),
       cancelText: t('videos.confirmDelete.cancel'),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
-          await DeleteVideo(id);
+          await DeleteVideo(id, deleteFile);
           onRefresh();
         } catch (error) {
           console.error('Failed to delete video:', error);
@@ -124,20 +142,20 @@ const Cell = (props: any) => {
           </div>
 
           {/* Status Badges (Top Left) */}
-          <div className="absolute top-2 left-2 flex flex-col gap-1 z-20">
+          <div className="absolute top-2 left-2 flex flex-col gap-1.5 z-20">
             {video.status === 'completed' && (
               <Tooltip title={t('videos.ai_completed')}>
-                <div className="bg-emerald-500/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-sm shadow-sm flex items-center gap-1">
-                  <RobotOutlined />
-                  <span>AI</span>
+                <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[12px] font-semibold px-2.5 py-1 rounded-md backdrop-blur-sm shadow-lg shadow-emerald-500/20 flex items-center gap-1.5">
+                  <RobotOutlined className="text-xs flex-shrink-0" />
+                  <span className="leading-none">AI</span>
                 </div>
               </Tooltip>
             )}
             {video.status === 'processing' && (
               <Tooltip title={t('videos.analyzing')}>
-                <div className="bg-blue-500/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-sm shadow-sm flex items-center gap-1 animate-pulse">
-                  <Spin size="small" />
-                  <span>AI</span>
+                <div className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-[12px] font-semibold px-2.5 py-1 rounded-md backdrop-blur-sm shadow-lg shadow-blue-500/20 flex items-center gap-1.5">
+                  <Spin size="small" className="[&_.ant-spin-dot-item]:bg-white text-[12px]" />
+                  <span className="leading-none">AI</span>
                 </div>
               </Tooltip>
             )}
@@ -154,9 +172,17 @@ const Cell = (props: any) => {
         {/* Content Section */}
         <div className="p-3 flex flex-col flex-1">
           <Tooltip title={video.title} mouseEnterDelay={0.5}>
-            <h3 className="font-medium text-slate-700 dark:text-slate-200 text-sm leading-tight line-clamp-2 min-h-[2.5em]">
+            <div className="font-medium text-slate-700 dark:text-slate-200 text-sm leading-tight line-clamp-2 min-h-[2.5em]">
+              {category && (
+                <Tag
+                  color={themeColor}
+                  className="self-start text-[12px] leading-tight px-1 py-0 mr-1"
+                >
+                  {category.name}
+                </Tag>
+              )}
               {video.title}
-            </h3>
+            </div>
           </Tooltip>
           <Divider size="small" />
           <div className="flex items-center justify-around text-xs text-slate-500 dark:text-slate-400">
@@ -219,6 +245,8 @@ export default function VideoList({
   onHighlights,
 }: VideoListProps) {
   const { t } = useTranslation();
+  const categories = useStore(useCategoryStore, (state) => state.categories);
+  const themeColor = useStore(useSettingStore, (state) => state.themeColor);
 
   const itemData = useMemo(
     () => ({
@@ -226,13 +254,15 @@ export default function VideoList({
       onSelect,
       onRefresh,
       onHighlights,
+      categories,
+      themeColor,
       t,
     }),
-    [videos, onSelect, onRefresh, onHighlights, t]
+    [videos, onSelect, onRefresh, onHighlights, categories, themeColor, t]
   );
 
   if (!loading && videos.length === 0) {
-    return <Empty description={t('videos.empty')} />;
+    return <Empty className="mt-8" description={t('videos.empty')} />;
   }
 
   return (

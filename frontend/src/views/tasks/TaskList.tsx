@@ -104,7 +104,7 @@ export function TaskList({ onViewLog, filter }: TaskListProps) {
 
   if (taskList.length === 0) {
     return (
-      <button className="w-full flex flex-col items-center justify-center py-20 rounded-2xl border-2 border-dashed border-border bg-card/50 text-muted-foreground">
+      <div className="w-full flex flex-col items-center justify-center py-20 rounded-2xl border-2 border-dashed border-border bg-card/50 text-muted-foreground">
         <div className="flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-4 text-muted-foreground">
           <PlusOutlined className="text-xl" />
         </div>
@@ -118,7 +118,7 @@ export function TaskList({ onViewLog, filter }: TaskListProps) {
           </Button>
           <span>{t('tasks.startDownloadingSuffix')}</span>
         </div>
-      </button>
+      </div>
     );
   }
 

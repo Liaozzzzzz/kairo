@@ -212,8 +212,8 @@ func (a *App) AddVideoToLibrary(taskID string) (bool, error) {
 }
 
 // DeleteVideo deletes a video from the library
-func (a *App) DeleteVideo(id string) error {
-	return a.videoManager.DeleteVideo(id)
+func (a *App) DeleteVideo(id string, deleteFile bool) error {
+	return a.videoManager.DeleteVideo(id, deleteFile)
 }
 
 // AnalyzeVideo triggers AI analysis for a video

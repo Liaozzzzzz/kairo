@@ -27,9 +27,11 @@ import Videos from '@/views/videos';
 import CategoriesView from '@/views/categories';
 import PublishView from '@/views/publish';
 import appIcon from '@/assets/images/icon-full.png';
-import { MenuItemKey, TaskStatus, SourceType } from './data/variables';
+import { MenuItemKey, TaskStatus, SourceType } from '@/data/variables';
 import { getThemeColor } from '@/data/themeColors';
 import { schema } from '@root/wailsjs/go/models';
+import { useStore } from 'zustand';
+import { useCategoryStore } from '@/store/useCategoryStore';
 
 const { Sider, Content } = Layout;
 
@@ -38,37 +40,13 @@ function App() {
   const [platform, setPlatform] = useState<string>('');
   const [api, contextHolder] = notification.useNotification();
   const { antAlgorithm, isDark } = useTheme();
-
-  const {
-    language,
-    themeColor,
-    setDefaultDir,
-    setDownloadConcurrency,
-    setMaxDownloadSpeed,
-    loadSettings,
-  } = useSettingStore(
-    useShallow((state) => ({
-      defaultDir: state.defaultDir,
-      language: state.language,
-      themeColor: state.themeColor,
-      setDefaultDir: state.setDefaultDir,
-      setDownloadConcurrency: state.setDownloadConcurrency,
-      setMaxDownloadSpeed: state.setMaxDownloadSpeed,
-      loadSettings: state.loadSettings,
-    }))
-  );
-
-  const brandColor = useMemo(() => getThemeColor(themeColor), [themeColor]);
-
-  const darkPalette = useMemo(() => {
-    return generateDarkPalette(brandColor);
-  }, [brandColor]);
-
-  const lightPalette = useMemo(() => {
-    return generateLightPalette(brandColor);
-  }, [brandColor]);
-
   const { t, i18n } = useTranslation();
+
+  const fetchCategories = useStore(useCategoryStore, (state) => state.fetchCategories);
+  const updateVideoStatus = useStore(
+    useVideoStore,
+    useShallow((state) => state.updateVideoStatus)
+  );
 
   const { activeTab, menuItems, setActiveTab } = useAppStore(
     useShallow((state) => ({
@@ -78,13 +56,13 @@ function App() {
     }))
   );
 
-  const TABS = useMemo(() => {
-    return menuItems.map((tab) => ({
-      key: tab.id,
-      icon: <tab.icon style={{ fontSize: 16, marginTop: '-2px' }} />,
-      label: <span className="text-sm font-bold">{t(tab.labelKey)}</span>,
-    }));
-  }, [menuItems, t]);
+  const { language, themeColor, loadSettings } = useSettingStore(
+    useShallow((state) => ({
+      language: state.language,
+      themeColor: state.themeColor,
+      loadSettings: state.loadSettings,
+    }))
+  );
 
   const { setTasks, updateTask, updateTaskProgress, addTaskLog } = useTaskStore(
     useShallow((state) => ({
@@ -95,30 +73,21 @@ function App() {
     }))
   );
 
-  const updateVideoStatus = useVideoStore(useShallow((state) => state.updateVideoStatus));
+  const brandColor = useMemo(() => getThemeColor(themeColor), [themeColor]);
+
+  const [darkPalette, lightPalette] = useMemo(() => {
+    return [generateDarkPalette(brandColor), generateLightPalette(brandColor)];
+  }, [brandColor]);
+
+  const TABS = useMemo(() => {
+    return menuItems.map((tab) => ({
+      key: tab.id,
+      icon: <tab.icon style={{ fontSize: 16, marginTop: '-2px' }} />,
+      label: <span className="text-sm font-bold">{t(tab.labelKey)}</span>,
+    }));
+  }, [menuItems, t]);
 
   useEffect(() => {
-    // Update window title when translation changes
-    WindowSetTitle(t('app.title'));
-  }, [t]);
-
-  useEffect(() => {
-    loadSettings();
-
-    GetTasks()
-      .then((t) => {
-        setTasks(t || {});
-      })
-      .catch(console.error);
-
-    GetAppVersion()
-      .then((v) => {
-        setVersion(v);
-      })
-      .catch(console.error);
-
-    GetPlatform().then(setPlatform).catch(console.error);
-
     const cleanupUpdate = EventsOn('task:update', (task: Task) => {
       // Check for status change
       const currentTasks = useTaskStore.getState().tasks;
@@ -202,25 +171,33 @@ function App() {
       cleanupLog();
       cleanupVideoStatus();
     };
-  }, [
-    setDefaultDir,
-    setTasks,
-    updateTask,
-    updateTaskProgress,
-    addTaskLog,
-    setDownloadConcurrency,
-    setMaxDownloadSpeed,
-    updateVideoStatus,
-    t,
-  ]);
+  }, [t]);
 
   useEffect(() => {
-    if (language && language !== i18n.language) {
-      i18n.changeLanguage(language);
-    }
-  }, [language, i18n]);
+    i18n.changeLanguage(language);
+  }, [language]);
 
-  const currentPalette = isDark ? darkPalette : lightPalette;
+  useEffect(() => {
+    WindowSetTitle(t('app.title'));
+
+    fetchCategories();
+
+    loadSettings();
+
+    GetTasks()
+      .then((tasks) => {
+        setTasks(tasks || {});
+      })
+      .catch(console.error);
+
+    GetAppVersion()
+      .then((v) => {
+        setVersion(v);
+      })
+      .catch(console.error);
+
+    GetPlatform().then(setPlatform).catch(console.error);
+  }, []);
 
   return (
     <ConfigProvider
@@ -272,7 +249,7 @@ function App() {
       }}
     >
       {contextHolder}
-      <ThemeSync palette={currentPalette} />
+      <ThemeSync palette={isDark ? darkPalette : lightPalette} />
       <Layout className="h-screen overflow-hidden bg-background">
         <Sider width={200} theme={isDark ? 'dark' : 'light'} className="border-r border-border">
           <div className="flex flex-col h-full">

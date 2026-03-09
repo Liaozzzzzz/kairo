@@ -1,5 +1,5 @@
 import { ReactNode, useMemo } from 'react';
-import { Card, Progress, Dropdown, MenuProps, Badge, Modal, message } from 'antd';
+import { Card, Progress, Dropdown, MenuProps, Badge, Modal, message, Tag, Checkbox } from 'antd';
 import {
   PlayCircleOutlined,
   PauseCircleOutlined,
@@ -10,7 +10,6 @@ import {
   LinkOutlined,
   ReloadOutlined,
   DeleteOutlined,
-  CloseOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
@@ -27,17 +26,33 @@ import { useTaskStore } from '@/store/useTaskStore';
 import { formatBytes } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
 import { ThumbnailImage } from '@/components/ThumbnailImage';
+import { useCategoryStore } from '@/store/useCategoryStore';
+import { useSettingStore } from '@/store/useSettingStore';
+import { useStore } from 'zustand';
 
 interface TaskItemProps {
   task: Task;
   showSiteLabel?: boolean;
+  showCategoryTag?: boolean;
   onViewLog: () => void;
 }
 
-export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProps) {
+export function TaskItem({
+  task,
+  showSiteLabel = true,
+  showCategoryTag = true,
+  onViewLog,
+}: TaskItemProps) {
   const { t } = useTranslation();
   const deleteTask = useTaskStore((state) => state.deleteTask);
   const { isDark } = useTheme();
+  const categories = useStore(useCategoryStore, (state) => state.categories);
+  const themeColor = useStore(useSettingStore, (state) => state.themeColor);
+
+  const category = useMemo(() => {
+    if (!task.category_id || !showCategoryTag) return null;
+    return categories?.find((c) => c.id === task.category_id);
+  }, [task.category_id, categories, showCategoryTag]);
 
   const siteLabel = useMemo(() => {
     const match = task.url.match(/https?:\/\/(?:www\.)?([a-z0-9-]+)\./i);
@@ -95,19 +110,35 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
   const displayProgress = task.progress;
   const displaySize = task.total_bytes ? formatBytes(task.total_bytes) : undefined;
 
-  const confirmDelete = (purge: boolean) => {
+  const confirmDelete = () => {
     if (task.status === TaskStatus.Merging || task.status === TaskStatus.Trimming) {
       return;
     }
-    const modalKey = purge ? 'tasks.confirmPurge' : 'tasks.confirmDelete';
+    // 下载成功的任务不显示删除文件选项
+    const showDeleteFileOption = task.status !== TaskStatus.Completed;
+    let deleteFile = false;
+
     Modal.confirm({
       centered: true,
-      title: t(`${modalKey}.title`),
-      content: t(`${modalKey}.content`),
-      okText: t(`${modalKey}.ok`),
-      cancelText: t(`${modalKey}.cancel`),
+      title: t('tasks.confirmDelete.title'),
+      content: showDeleteFileOption ? (
+        <div className="mt-2">
+          <div className="mb-2">{t('tasks.confirmDelete.content')}</div>
+          <Checkbox
+            onChange={(e) => {
+              deleteFile = e.target.checked;
+            }}
+          >
+            {t('tasks.confirmDelete.deleteFile')}
+          </Checkbox>
+        </div>
+      ) : (
+        t('tasks.confirmDelete.content')
+      ),
+      okText: t('tasks.confirmDelete.ok'),
+      cancelText: t('tasks.confirmDelete.cancel'),
       okButtonProps: { danger: true },
-      onOk: () => deleteTask(task.id, purge),
+      onOk: () => deleteTask(task.id, deleteFile),
     });
   };
 
@@ -172,19 +203,8 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
       label: t('tasks.contextMenu.delete'),
       icon: <DeleteOutlined className="w-4 h-4 mt-[-2px]" />,
       danger: true,
-      onClick: () => confirmDelete(false),
+      onClick: () => confirmDelete(),
     },
-    ...(task.status !== TaskStatus.Merging && task.status !== TaskStatus.Trimming
-      ? [
-          {
-            key: 'purge',
-            label: t('tasks.contextMenu.purge'),
-            icon: <CloseOutlined className="w-4 h-4 mt-[-2px]" />,
-            danger: true,
-            onClick: () => confirmDelete(true),
-          },
-        ]
-      : []),
   ];
 
   const getStatusTagClass = (status: string) => {
@@ -255,7 +275,12 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
 
               {/* Main Info */}
               <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                <div className="flex items-center justify-between gap-4 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  {category && (
+                    <Tag color={themeColor} className="py-0">
+                      {category.name}
+                    </Tag>
+                  )}
                   <div
                     className="flex-1 min-w-0 font-semibold text-[15px] truncate text-foreground"
                     title={task.title || task.url}
@@ -329,7 +354,7 @@ export function TaskItem({ task, showSiteLabel = true, onViewLog }: TaskItemProp
                   task.status === TaskStatus.Pending) && (
                   <DeleteOutlined
                     title={t('tasks.contextMenu.delete')}
-                    onClick={() => confirmDelete(false)}
+                    onClick={() => confirmDelete()}
                     className="flex items-center justify-center rounded-full w-8 h-8 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/20"
                   />
                 )}

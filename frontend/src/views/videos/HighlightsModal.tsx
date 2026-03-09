@@ -192,61 +192,59 @@ export default function VideoHighlightsModal({
                 <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">
                   {t('videos.highlights')}
                 </div>
-                <div className="grid gap-2">
-                  {highlights.map((highlight, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-white p-3 rounded border border-slate-200 flex justify-between items-center gap-4"
-                    >
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <div className="bg-blue-100 shrink-0 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-mono px-1.5 py-0.5 rounded">
-                            {highlight.start} - {highlight.end}
-                          </div>
-                          {highlight.title && (
-                            <div className="truncate font-bold text-slate-800 dark:text-slate-100 text-sm">
-                              {highlight.title}
-                            </div>
-                          )}
-                        </div>
-                        <div className="text-sm text-slate-600 dark:text-slate-300">
-                          {highlight.description}
-                        </div>
-                      </div>
+                {highlights.map((highlight, idx) => (
+                  <div
+                    key={idx}
+                    className="w-full  bg-white p-3 rounded border border-slate-200 flex justify-between items-center gap-4"
+                  >
+                    <div className="flex flex-col gap-1 min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        {highlight.file_path ? (
-                          <>
-                            <Tooltip title={t('videos.play_clip')}>
-                              <Button
-                                size="small"
-                                icon={<PlayCircleOutlined />}
-                                onClick={() => handlePlayClip(highlight.file_path!)}
-                              />
-                            </Tooltip>
-                            <Tooltip title={t('videos.show_in_folder')}>
-                              <Button
-                                size="small"
-                                icon={<FolderOpenOutlined />}
-                                onClick={() => handleShowInFolder(highlight.file_path!)}
-                              />
-                            </Tooltip>
-                          </>
-                        ) : (
-                          <Button
-                            size="small"
-                            icon={<ScissorOutlined />}
-                            loading={clippingIndex === idx}
-                            onClick={() =>
-                              handleClip(idx, highlight.id, highlight.start, highlight.end)
-                            }
-                          >
-                            {t('videos.clip')}
-                          </Button>
+                        <div className="bg-blue-100 shrink-0 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-mono px-1.5 py-0.5 rounded">
+                          {highlight.start} - {highlight.end}
+                        </div>
+                        {highlight.title && (
+                          <div className="truncate font-bold text-slate-800 dark:text-slate-100 text-sm">
+                            {highlight.title}
+                          </div>
                         )}
                       </div>
+                      <div className="text-sm text-slate-600 dark:text-slate-300">
+                        {highlight.description}
+                      </div>
                     </div>
-                  ))}
-                </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {highlight.file_path ? (
+                        <>
+                          <Tooltip title={t('videos.play_clip')}>
+                            <Button
+                              size="small"
+                              icon={<PlayCircleOutlined />}
+                              onClick={() => handlePlayClip(highlight.file_path!)}
+                            />
+                          </Tooltip>
+                          <Tooltip title={t('videos.show_in_folder')}>
+                            <Button
+                              size="small"
+                              icon={<FolderOpenOutlined />}
+                              onClick={() => handleShowInFolder(highlight.file_path!)}
+                            />
+                          </Tooltip>
+                        </>
+                      ) : (
+                        <Button
+                          size="small"
+                          icon={<ScissorOutlined />}
+                          loading={clippingIndex === idx}
+                          onClick={() =>
+                            handleClip(idx, highlight.id, highlight.start, highlight.end)
+                          }
+                        >
+                          {t('videos.clip')}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 

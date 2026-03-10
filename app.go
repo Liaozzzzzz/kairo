@@ -100,8 +100,10 @@ func (a *App) startup(ctx context.Context) {
 		// This assumes 1-to-1 mapping or at least that the URL is unique enough
 		_ = a.rssManager.SetItemDownloadedByLink(task.URL, true)
 
-		// Create video entry from task
-		_ = a.videoManager.CreateFromTask(task)
+		// Create video entry from task, but not for audio-only downloads
+		if task.Format != "audio" {
+			_ = a.videoManager.CreateFromTask(task)
+		}
 	}
 
 	a.taskManager.OnTaskFailed = func(task *schema.Task) {
@@ -196,6 +198,10 @@ func (a *App) AddVideoToLibrary(taskID string) (bool, error) {
 	}
 	if !task.FileExists {
 		return false, fmt.Errorf("file not found")
+	}
+	// Audio-only downloads cannot be added to video library
+	if task.Format == "audio" {
+		return false, fmt.Errorf("audio-only tasks cannot be added to video library")
 	}
 
 	exists, err := a.videoManager.HasVideoForTask(task.ID, task.FilePath)

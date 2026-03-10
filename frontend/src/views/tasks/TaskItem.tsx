@@ -175,7 +175,7 @@ export function TaskItem({
       icon: <LinkOutlined className="w-4 h-4 mt-[-2px]" />,
       onClick: () => navigator.clipboard.writeText(task.url),
     },
-    ...(task.status === TaskStatus.Completed && task.file_exists
+    ...(task.status === TaskStatus.Completed && task.file_exists && task.quality !== 'audio'
       ? [
           {
             key: 'addToLibrary',
